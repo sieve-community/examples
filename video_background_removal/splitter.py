@@ -11,6 +11,8 @@ import sieve
 )
 def VideoSplitter(video: sieve.Video) -> sieve.Image:
     # use ffmpeg to extract all frames in video as bmp files and return the path to the folder
+    video_fps = video.fps
+
     import tempfile
     temp_dir = tempfile.mkdtemp()
 
@@ -25,4 +27,4 @@ def VideoSplitter(video: sieve.Video) -> sieve.Image:
     filenames.sort()
     for i, filename in enumerate(filenames):
         print(os.path.join(temp_dir, filename), i)
-        yield sieve.Image(path=os.path.join(temp_dir, filename), frame_number=i)
+        yield sieve.Image(path=os.path.join(temp_dir, filename), frame_number=i, fps=video_fps)

@@ -43,7 +43,7 @@ def SORT(it: List) -> Dict:
         mot_tracker = Sort()
         for frame_number in sorted(separated_by_class[i].keys()):
             for box in separated_by_class[i][frame_number]:
-                boxes.append([box.box[0], box.box[1], box.box[2], box.box[3], box.score])
+                boxes.append([box['box'][0], box['box'][1], box['box'][2], box['box'][3], box['score']])
             if len(boxes) == 0:
                 continue
             boxes = np.array(boxes)

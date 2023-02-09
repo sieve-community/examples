@@ -26,3 +26,8 @@ class Whisper:
                 'start': segment["start"],
                 'end': segment["end"]
             }
+
+@sieve.workflow(name="whisper")
+def whisper_wf(audio: sieve.Audio) -> sieve.Dict:
+    whisper = Whisper()
+    return whisper(audio)

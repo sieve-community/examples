@@ -12,4 +12,4 @@ cd examples/{example_name}
 sieve deploy
 ```
 
-Your workflow will now be deployed to Sieve and can be accessed via the [UI](https://www.sievedata.com/dashboard)
+Your workflow will now be deployed to Sieve and can be accessed via the [Sieve dashboard](https://www.sievedata.com/dashboard)

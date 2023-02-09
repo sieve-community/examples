@@ -87,7 +87,6 @@ def mandelbrot(x: sieve.Struct) -> sieve.Image:
 def frame_combine(it: sieve.Image) -> sieve.Video:
     import uuid
     import ffmpeg
-    import time
     l = []
     for i in it:
         l.append(i)
@@ -95,16 +94,18 @@ def frame_combine(it: sieve.Image) -> sieve.Video:
     sorted_by_frame_number = sorted(l, key=lambda k: k.frame_number)
     image_paths = [i.path for i in sorted_by_frame_number]
 
-    # use ffmpeg to combine frames
+    if hasattr(l[0], 'fps'):
+        fps = l[0].fps
+    else:
+        fps = 30
+
     video_path = f"{uuid.uuid4()}.mp4"
-    process = ffmpeg.input('pipe:', r='20', f='image2pipe').output(video_path, vcodec='libx264', pix_fmt='yuv420p').overwrite_output().run_async(pipe_stdin=True)
-    # Iterate jpeg_files, read the content of each file and write it to stdin
+    process = ffmpeg.input('pipe:', r=str(fps), f='image2pipe').output(video_path, vcodec='libx264', pix_fmt='yuv420p').overwrite_output().run_async(pipe_stdin=True)
     for in_file in image_paths:
         with open(in_file, 'rb') as f:
-            data = f.read()
-            process.stdin.write(data)
+            jpeg_data = f.read()
+            process.stdin.write(jpeg_data)
 
-    # Close stdin pipe - FFmpeg fininsh encoding the output file.
     process.stdin.close()
     process.wait()
 

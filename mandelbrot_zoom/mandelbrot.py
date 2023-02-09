@@ -110,7 +110,7 @@ def frame_combine(it: sieve.Image) -> sieve.Video:
 
     return sieve.Video(path=video_path)
 
-@sieve.workflow(name="mandelbrot-wf")
+@sieve.workflow(name="mandelbrot-zoom-video-generator")
 def mandelbrot_wf(n_frames: int, width: int, height: int, zoom_ratio: float, z_real: float, z_imag: float) -> sieve.Video:
     return frame_combine(mandelbrot(frame_generator(config_generator(n_frames, width, height, zoom_ratio, z_real, z_imag))))
 

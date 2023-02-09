@@ -7,8 +7,7 @@ import sieve
         "ffmpeg-python==0.2.0"
     ],
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
-    python_version="3.8",
-    persist_output=True
+    python_version="3.8"
 )
 def VideoSplitter(video: sieve.Video) -> sieve.Image:
     # use ffmpeg to extract all frames in video as bmp files and return the path to the folder

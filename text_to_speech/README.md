@@ -1,4 +1,4 @@
-# Stable Diffusion Walker
+# Tortoise Text-to-Speech
 
 Generates audio that sounds like Morgan Freeman using TortoiseTTS given a piece of text.
 

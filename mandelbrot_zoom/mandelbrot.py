@@ -17,11 +17,28 @@ class MandelbrotZoomConfig(sieve.Struct):
     zoom_ratio: float # amount to zoom in by end of video
     max_iter: int # number of iterations to run
 """
+real = -0.92233278103709470 # cool mini mandelbrot point
+im = 0.3102598350874
 
 def default_config():
-    real = -0.92233278103709470 # cool mini mandelbrot point
-    im = 0.3102598350874
     return sieve.Struct(n_frames=200, width=720, height=480, z_real=real, z_imag=im, initial_zoom=4., zoom_ratio=700., max_iter=80)
+
+
+def unwrap(x):
+    return list(x)[0]
+
+@sieve.function(name="config_generator", gpu=False, python_version="3.8", iterator_input=True)
+def config_generator(n_frames: int, width: int, height: int, zoom_ratio: float, z_real: float, z_imag: float) -> sieve.Struct:
+    cfg = default_config()
+    cfg.n_frames = unwrap(n_frames)
+    cfg.width = unwrap(width)
+    cfg.height = unwrap(height)
+    cfg.zoom_ratio = unwrap(zoom_ratio)
+    if z_real != 0. and z_imag != 0:
+        cfg.z_real = unwrap(z_real)
+        cfg.z_imag = unwrap(z_imag)
+
+    return cfg
 
 def mandelbrot_iter(z, max_iter):
     c = z
@@ -94,15 +111,16 @@ def frame_combine(it: sieve.Image) -> sieve.Video:
     return sieve.Video(path=video_path)
 
 @sieve.workflow(name="mandelbrot-wf")
-def mandelbrot_wf(info: sieve.Struct) -> sieve.Video:
-    return frame_combine(mandelbrot(frame_generator(info)))
+def mandelbrot_wf(n_frames: int, width: int, height: int, zoom_ratio: float, z_real: float, z_imag: float) -> sieve.Video:
+    return frame_combine(mandelbrot(frame_generator(config_generator(n_frames, width, height, zoom_ratio, z_real, z_imag))))
 
 
 if __name__ == "__main__":
     sieve.upload(frame_generator)
     sieve.upload(mandelbrot)
     sieve.upload(frame_combine)
+    sieve.upload(config_generator)
     sieve.deploy(mandelbrot_wf)
 
-    sieve.push(mandelbrot_wf, inputs={"info": default_config()})
+    sieve.push(mandelbrot_wf, inputs={"n_frames": 200, "width": 720, "height": 480, "zoom_ratio": 700, "z_real": real, "z_imag": im})
 

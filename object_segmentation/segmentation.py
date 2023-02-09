@@ -63,6 +63,10 @@ class InstanceSegmentation:
             color = self.class_colors[class_id]
             self.draw_mask(init_mask, mask, color, score, box)
         output_image = self.blend_mask_image(image_copy, init_mask, color, score, box)
+        if hasattr(image, "fps") and hasattr(image, "frame_number"):
+            return sieve.Image(array=output_image, fps=image.fps, frame_number=image.frame_number)
+        if hasattr(image, "fps"):
+            return sieve.Image(array=output_image, fps=image.fps)
         if hasattr(image, "frame_number"):
             return sieve.Image(array=output_image, frame_number=image.frame_number)
         return sieve.Image(array=output_image)

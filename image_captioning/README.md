@@ -1,6 +1,6 @@
 # Image Captioning
 
-Generates a video that walks through the latent space of the stable diffusion embeddings given a start prompt and end prompt.
+Generates a one-sentence English description given an input image.
 
 ## Deploying
 Follow our [getting started guide](https://www.sievedata.com/dashboard/welcome) to get your Sieve API key and install the Sieve Python client.

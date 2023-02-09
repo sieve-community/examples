@@ -14,6 +14,6 @@ pip install https://mango.sievedata.com/v1/client_package/sievedata-0.0.1.1.2-py
 2. Deploy a workflow to Sieve
 ```
 git clone git@github.com:sieve-community/examples.git
-cd examples/whisper
+cd examples/audio_transcription
 sieve deploy
 ```

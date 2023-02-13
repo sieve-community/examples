@@ -1,6 +1,6 @@
 # Video Lipsyncing
 
-Lip syncs an input video to an input audio track using [Wav2Lip](https://github.com/sieve-community/wav2lip/tree/main/Wav2Lip).
+Lip syncs an input video to an input audio track using [Wav2Lip](https://github.com/Rudrabha/Wav2Lip).
 
 ## Deploying
 Follow our [getting started guide](https://www.sievedata.com/dashboard/welcome) to get your Sieve API key and install the Sieve Python client.

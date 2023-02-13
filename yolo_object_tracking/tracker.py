@@ -36,7 +36,6 @@ def SORT(it: List) -> Dict:
 
     # object id key and object value where object is a list of boxes
     objects = {}
-
     for i in separated_by_class:
         number_to_uuid = {}
         boxes = []
@@ -45,8 +44,9 @@ def SORT(it: List) -> Dict:
             for box in separated_by_class[i][frame_number]:
                 boxes.append([box['box'][0], box['box'][1], box['box'][2], box['box'][3], box['score']])
             if len(boxes) == 0:
-                continue
-            boxes = np.array(boxes)
+                boxes = np.empty((0, 5))
+            else:
+                boxes = np.array(boxes)
             trackers = mot_tracker.update(boxes)
             for d in trackers:
                 if d[4] not in number_to_uuid:
@@ -61,4 +61,3 @@ def SORT(it: List) -> Dict:
             boxes = []
 
     yield objects
-    yield len(objects.keys())

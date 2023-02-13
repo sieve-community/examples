@@ -21,8 +21,11 @@ class FaceDetector:
         outputs = []
         if results.detections:
             for detection in results.detections:
+                ratio_box = [detection.location_data.relative_bounding_box.xmin, detection.location_data.relative_bounding_box.ymin, detection.location_data.relative_bounding_box.width, detection.location_data.relative_bounding_box.height]
+                # box x1, y1, x2, y2
+                box = [int(ratio_box[0] * img.width), int(ratio_box[1] * img.height), int((ratio_box[0] + ratio_box[2]) * img.width), int((ratio_box[1] + ratio_box[3]) * img.height)]
                 outputs.append({
-                    "box": [detection.location_data.relative_bounding_box.xmin, detection.location_data.relative_bounding_box.ymin, detection.location_data.relative_bounding_box.width, detection.location_data.relative_bounding_box.height],
+                    "box": box,
                     "class_name": "face",
                     "score": detection.score[0],
                     "frame_number": None if not hasattr(img, "frame_number") else img.frame_number

@@ -31,7 +31,8 @@ from typing import Dict
 )
 class Wav2Lip:
     def __setup__(self):
-        from utils import run_wav_on_face
+        from utils import Model
+        self.model = Model("/root/.cache/models/wav2lip/wav2lip.pth")
 
     def __predict__(
         self,
@@ -39,10 +40,7 @@ class Wav2Lip:
         audio: sieve.Audio,
         faces_dict: Dict
     ):
-        import cv2
-        from utils import run_wav_on_face
         for vid, aud, faces in zip(video, audio, faces_dict):
-            fps = vid.fps
 
             longest_face_id = None
             for face_id, face in faces.items():
@@ -56,7 +54,6 @@ class Wav2Lip:
             audio_file = aud.path
             video_file = vid.path
             output_filename = "results/result_voice.mp4"
+            output_filename = self.model.predict(video_file, audio_file, output_filename, 1, interpolated_faces, faces[0]['frame_number'])
 
-            run_wav_on_face(video_file, audio_file, output_filename, 1, interpolated_faces, faces[0]['frame_number'])
-
-            yield sieve.Video(path="results/result_voice.mp4")
+            yield sieve.Video(path=output_filename)

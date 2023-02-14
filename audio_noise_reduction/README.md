@@ -1,6 +1,6 @@
 # Audio Noise Reduction
 
-Removes a lot of background noise from an input audio track using [FullSubNet+](https://github.com/hit-thusz-RookieCJ/FullSubNet-plus).
+Removes a lot of background noise and distraction from an input audio track using [FullSubNet+](https://github.com/hit-thusz-RookieCJ/FullSubNet-plus).
 
 ## Deploying
 Follow our [getting started guide](https://www.sievedata.com/dashboard/welcome) to get your Sieve API key and install the Sieve Python client.
@@ -21,8 +21,7 @@ sieve deploy
 ## Example Audio
 
 ### Original Audio
-https://user-images.githubusercontent.com/11367688/218600458-bd808893-9980-4ed3-9c99-d1a3b38947b2.mov
+[noisy.webm](https://user-images.githubusercontent.com/11367688/218657325-a1287063-9c4c-4f5d-847a-98fd7c26f255.webm)
 
-### Lipsynced Audio
-https://user-images.githubusercontent.com/11367688/218600468-2fc3c465-d54b-4961-8e5b-ca638127ae2c.mp4
-
+### Cleaned Audio
+[fullsubnet.webm](https://user-images.githubusercontent.com/11367688/218657335-f5060714-4d22-4d73-8b6d-85d1f38c1481.webm)

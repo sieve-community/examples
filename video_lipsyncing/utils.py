@@ -100,6 +100,7 @@ class Model():
             return checkpoint
 
         def load_model(path):
+            print("Loading Wav2Lip model...")
             model = Wav2Lip()
             print("Load checkpoint from: {}".format(path))
             checkpoint = _load(path)
@@ -114,35 +115,16 @@ class Model():
         self.crop = [0, -1, 0, -1]
 
         self.model = load_model(checkpoint_path)
+        print("Model loaded successfully!")
     
     def predict(self, face, audio_file, outfile, resize_factor, faces, start_frame):
         t = time.time()
         if not os.path.isfile(face):
             raise ValueError('--face argument must be a valid path to video/image file')
+       
         video_stream = cv2.VideoCapture(face)
         fps = video_stream.get(cv2.CAP_PROP_FPS)
-
-        print('Reading video frames...')
-
-        full_frames = []
-        while 1:
-            still_reading, frame = video_stream.read()
-            if not still_reading:
-                video_stream.release()
-                break
-            if resize_factor > 1:
-                frame = cv2.resize(frame, (frame.shape[1]//resize_factor, frame.shape[0]//resize_factor))
-
-                y1, y2, x1, x2 = self.crop
-                if x2 == -1: x2 = frame.shape[1]
-                if y2 == -1: y2 = frame.shape[0]
-
-                frame = frame[y1:y2, x1:x2]
-
-            full_frames.append(frame)
-
-        print ("Number of frames available for inference: "+str(len(full_frames)))
-
+        
         if not audio_file.endswith('.wav'):
             print('Extracting raw audio...')
             command = 'ffmpeg -y -i \'{}\' -strict -2 {}'.format(audio_file, 'temp/temp.wav')
@@ -170,7 +152,28 @@ class Model():
 
         print("Length of mel chunks: {}".format(len(mel_chunks)))
 
-        full_frames = full_frames[:len(mel_chunks)]
+        print('Reading video frames...')
+
+        full_frames = []
+        while len(full_frames) < len(mel_chunks):
+            still_reading, frame = video_stream.read()
+            if not still_reading:
+                video_stream.release()
+                break
+            if resize_factor > 1:
+                frame = cv2.resize(frame, (frame.shape[1]//resize_factor, frame.shape[0]//resize_factor))
+
+                y1, y2, x1, x2 = self.crop
+                if x2 == -1: x2 = frame.shape[1]
+                if y2 == -1: y2 = frame.shape[0]
+
+                frame = frame[y1:y2, x1:x2]
+
+            full_frames.append(frame)
+
+        print("Number of frames available for inference: "+str(len(full_frames)))
+
+        # full_frames = full_frames[:len(mel_chunks)]
 
         batch_size = wav2lip_batch_size
         gen = datagen(full_frames.copy(), mel_chunks, faces, start_frame)

@@ -1,6 +1,9 @@
 # Talking Head Avatars
 
-Given an input video, input audio, and input avatar image, this workflow makes the avatar image into a talking person that looks like they're saying the audio with the visual motions of the person in the video (TODO: explanation on how).
+Given an input video, input audio, and input avatar image, this workflow makes the avatar image into a talking person that looks like they're saying the audio with the visual motions of the person in the video.
+- Detect faces and track
+- Use [Wav2lip](https://github.com/Rudrabha/Wav2Lip) to lipsync a driving video
+- Use [this](https://github.com/yoyo-nb/Thin-Plate-Spline-Motion-Model) talking head model to take the lipsync as input and generate an avatar
 
 ## Deploying
 Follow our [getting started guide](https://www.sievedata.com/dashboard/welcome) to get your Sieve API key and install the Sieve Python client.

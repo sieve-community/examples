@@ -21,11 +21,20 @@ cd examples/talking_head_avatars
 sieve deploy
 ```
 
-## Example Video
+## Example Videos
 
-https://user-images.githubusercontent.com/11367688/219099107-9ae8cd41-01ad-49cc-afd3-5f863e5df4f7.mp4
+| Avatar Image | Talking Avatar |
+| --- | --- |
+| ![stock-man-whi](https://user-images.githubusercontent.com/11367688/219148160-155afbae-f611-4998-b414-6e80d0fc4ed2.jpg) | <video src="https://user-images.githubusercontent.com/11367688/219148404-285fdab3-6926-4dc8-8af3-055f6b57c76c.mp4">
+| ![stock-woman-asian](https://user-images.githubusercontent.com/11367688/219148385-8db01e8f-9c14-4b5b-8681-eb6f54fda334.jpg) | <video src="https://user-images.githubusercontent.com/11367688/219148409-a80cb815-c34c-40ca-92d0-ed5a4ee5605f.mp4">
+| ![Bob_Iger_hi](https://user-images.githubusercontent.com/11367688/219144501-479ad9e9-5264-4d78-a05b-7dcca9bc538f.jpg) | <video src="https://user-images.githubusercontent.com/11367688/219144374-93f482c6-0d17-4841-a85b-a30821299741.mp4">
 
 
 
-https://user-images.githubusercontent.com/11367688/219099121-d7a7f0a0-9ae2-4155-964a-028f77fac565.mp4
+
+
+
+
+
+
 

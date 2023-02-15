@@ -54,7 +54,7 @@ class Wav2Lip:
 
             audio_file = aud.path
             video_file = vid.path
-            output_filename = f'results-{uuid.uuid4()}/result_voice.mp4'
+            output_filename = f'results/result_voice-{uuid.uuid4()}.mp4'
             output_filename = self.model.predict(video_file, audio_file, output_filename, 1, interpolated_faces, faces[0]['frame_number'])
 
             yield sieve.Video(path=output_filename)

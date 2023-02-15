@@ -49,7 +49,8 @@ def compute_bbox(tube_bbox, frame_shape, increase_area=0.1):
     ],
     run_commands=[
         "mkdir -p /root/.cache/lip/models/",
-        "wget -c 'https://storage.googleapis.com/sieve-public-model-assets/thinplate/vox.pth.tar' -P /root/.cache/lip/models/"
+        "wget -c 'https://storage.googleapis.com/sieve-public-model-assets/thinplate/vox.pth.tar' -P /root/.cache/lip/models/",
+        "wget -c 'https://storage.googleapis.com/sieve-public-model-assets/gpen/GPEN-BFR-512.pth' -P /root/.cache/lip/models/"
     ],
     iterator_input=True,
     persist_output=True
@@ -101,6 +102,7 @@ class ThinplateAvatar:
     def __predict__(self, imgs: sieve.Image, videos: sieve.Video) -> sieve.Video:
         import cv2
         import subprocess
+        import numpy as np
         
         for img, video in zip(imgs, videos):
             print(img.width, img.height)

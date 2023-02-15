@@ -5,6 +5,7 @@ from skimage.transform import resize
 from skimage import img_as_ubyte
 import torch
 import uuid
+import numpy as np
 
 from demo import load_checkpoints
 from demo import make_animation_batched
@@ -44,6 +45,8 @@ class PlateTalkingHead():
                 checkpoint_path=checkpoint_path,
                 device=self.device,
             )
+        from face_enhancer import FaceEnhancement
+        self.gpen = FaceEnhancement()
 
     def predict(self, source_image, driving_video, fps):
         orig_img = imageio.imread(str(source_image))
@@ -84,11 +87,23 @@ class PlateTalkingHead():
             mode=predict_mode,
         )
         
+        temp_path = f'{uuid.uuid4()}.mp4'
+
+        if self.gpen:
+            for i, frame in enumerate(predictions):
+                # make frame np uint8
+                frame = img_as_ubyte(frame)
+                img_out, _, _ = self.gpen.process(frame, np.array([
+                    [0, 0, 256, 256, 0.99]
+                ], dtype=np.float32))
+                predictions[i] = img_out
+                print(f'gpen {i}')
+        
         # save resulting video
         out_path = f"{uuid.uuid4()}.mp4"
 
         imageio.mimsave(
-            str(out_path), [img_as_ubyte(frame) for frame in predictions], fps=fps
+            str(out_path), [frame for frame in predictions], fps=fps
         )
         return out_path
 

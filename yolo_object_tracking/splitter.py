@@ -25,4 +25,4 @@ def VideoSplitter(video: sieve.Video) -> sieve.Image:
     filenames.sort()
     for i, filename in enumerate(filenames):
         print(os.path.join(temp_dir, filename), i)
-        yield sieve.Image(path=os.path.join(temp_dir, filename), frame_number=i)
+        yield sieve.Image(path=os.path.join(temp_dir, filename), frame_number=i, fps=video.fps)

@@ -30,6 +30,8 @@ class Yolo:
                 cls_name = results.names[int(cls)]
                 box = [float(i) for i in box]
                 score = float(conf)
+                if score < 0.7:
+                    continue
                 outputs.append({
                     "box": box,
                     "class_name": cls_name,

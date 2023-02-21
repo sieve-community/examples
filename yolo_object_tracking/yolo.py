@@ -15,7 +15,10 @@ from typing import List, Dict
         "seaborn==0.11.2"
     ],
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
-    python_version="3.8"
+    python_version="3.8",
+    run_commands=[
+        "python -c \"import torch; print(torch.hub.load('ultralytics/yolov5', 'yolov5l'))\""
+    ]
 )
 class Yolo:
     def __setup__(self):

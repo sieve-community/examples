@@ -32,7 +32,7 @@ class FullSubNet():
     def __setup__(self):
         from speech_enhance.tools.denoise_hf_clone_voice import start
 
-    def __predict__(self, audio: sieve.Audio):
+    def __predict__(self, audio: sieve.Audio) -> sieve.Audio:
         from speech_enhance.tools.denoise_hf_clone_voice import start
         result = start(to_list_files=[audio.path])
         return sieve.Audio(path=result[0])

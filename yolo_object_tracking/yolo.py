@@ -17,13 +17,13 @@ from typing import List, Dict
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
     python_version="3.8",
     run_commands=[
-        "python -c \"import torch; print(torch.hub.load('ultralytics/yolov5', 'yolov5l'))\""
+        "python -c \"import torch; print(torch.hub.load('ultralytics/yolov5', 'yolov5s'))\""
     ]
 )
 class Yolo:
     def __setup__(self):
         import torch
-        self.yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5l')
+        self.yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
 
     def __predict__(self, img: sieve.Image) -> List:
         results = self.yolo_model(img.array)

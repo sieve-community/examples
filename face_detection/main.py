@@ -35,3 +35,9 @@ class FaceDetector:
 @sieve.workflow(name="mediapipe-face-detection")
 def mediapipe_face_detection(image: sieve.Image) -> List:
     return FaceDetector()(image)
+
+@sieve.workflow(name="mediapipe-face-detection-video")
+def mediapipe_face_detection_vid(vid: sieve.Video) -> List:
+    video_splitter = sieve.reference("sieve-developer/video-splitter")
+    frames = video_splitter(vid)
+    return FaceDetector()(frames)

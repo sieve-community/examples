@@ -15,10 +15,8 @@ def draw_boxes(images: sieve.Image, boxes: List) -> sieve.Image:
     import cv2
     import uuid
 
-    images = []
     image_paths = []
     for im in images:
-        images.append(im)
         image_paths.append(im)
 
     l = []
@@ -26,7 +24,6 @@ def draw_boxes(images: sieve.Image, boxes: List) -> sieve.Image:
         if len(i) > 0:
             l.append(i)
 
-    
     boxes_by_frame_number = sorted(l, key=lambda k: k[0]['frame_number'])
     images_by_frame_number = sorted(image_paths, key=lambda k: k.frame_number)
 

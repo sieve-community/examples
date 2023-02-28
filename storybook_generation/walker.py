@@ -22,26 +22,35 @@ class StableDiffusionVideo:
         import torch
         from stable_diffusion_videos import StableDiffusionWalkPipeline
 
-        # load stable diffusion model from local cache
+        # Load stable diffusion model from local cache
         self.pipeline = StableDiffusionWalkPipeline.from_pretrained(
             "/root/.cache/models/stable-diffusion-v1-4",
             torch_dtype=torch.float16,
             revision="fp16",
         ).to("cuda")
+
+        # Keep global ID to sort outputs
+        self.video_number = 0
     
     def __predict__(self, prompt_pair: tuple) -> sieve.Video:
         import torch
         from stable_diffusion_videos import StableDiffusionWalkPipeline
 
+        # Unpack prompt pair
         prompt1, prompt2 = prompt_pair[0], prompt_pair[1]
 
-        # generate and store video output
+        # Generate and store video output
         video_path = self.pipeline.walk(
             [prompt1, prompt2],
             [42, 1337],
             fps=5,
             num_interpolation_steps=15,
             height=512,
-            width=512,
+            width=768,
         )
-        yield sieve.Video(path=video_path)
+
+        # Increment global id
+        self.video_number += 1
+
+        # Return video
+        yield sieve.Video(path=video_path, video_number=self.video_number)

@@ -9,15 +9,13 @@ import numpy as np
 
 from demo import load_checkpoints
 from demo import make_animation_batched
-from ffhq_dataset.face_alignment import image_align
+from ffhq_dataset.face_alignment import image_align, image_align_rotate
 from ffhq_dataset.landmarks_detector import LandmarksDetector
+
+import cv2
 
 
 warnings.filterwarnings("ignore")
-
-print('hey')
-
-print('bye')
 
 LANDMARKS_DETECTOR = LandmarksDetector()
 
@@ -49,17 +47,31 @@ class PlateTalkingHead():
         self.gpen = FaceEnhancement()
 
     def predict(self, source_image, driving_video, fps):
-        orig_img = imageio.imread(str(source_image))
         dataset_name = "vox"
 
-        predict_mode = "relative"  # ['standard', 'relative', 'avd']
-        # find_best_frame = False
+        predict_mode = "relative"
 
         pixel = 384 if dataset_name == "ted" else 256
 
         if dataset_name == "vox":
             # first run face alignment
-            align_image(str(source_image), 'aligned.png')
+            angle, crop = align_image_rotate(str(source_image), 'aligned.png')
+
+            # load source image and align it
+            whole_image = cv2.imread(str(source_image))
+            center = ((crop[3] - crop[1]) // 2, (crop[2] - crop[0]) // 2)
+            h, w = whole_image.shape[:2]
+            image_center = (w//2, h//2)
+            M = cv2.getRotationMatrix2D(center, (angle), 1.0)
+            abs_cos = abs(M[0,0]) 
+            abs_sin = abs(M[0,1])
+            bound_w = int(h * abs_sin + w * abs_cos)
+            bound_h = int(h * abs_cos + w * abs_sin)
+            M[0, 2] += bound_w/2 - image_center[0]
+            M[1, 2] += bound_h/2 - image_center[1]
+            whole_image = cv2.warpAffine(whole_image, M, (bound_w, bound_h))
+            reverse_angle_matrix = cv2.getRotationMatrix2D(center, (-angle), 1.0)
+            whole_image = cv2.cvtColor(whole_image, cv2.COLOR_BGR2RGB)
             source_image = imageio.imread('aligned.png')
         else:
             source_image = imageio.imread(str(source_image))
@@ -89,17 +101,17 @@ class PlateTalkingHead():
         
         temp_path = f'{uuid.uuid4()}.mp4'
 
-        if self.gpen:
-            for i, frame in enumerate(predictions):
-                # make frame np uint8
-                frame = img_as_ubyte(frame)
-                img_out, _, _ = self.gpen.process(frame, np.array([
-                    [0, 0, 256, 256, 0.99]
-                ], dtype=np.float32))
-                predictions[i] = img_out
-                print(f'gpen {i}')
-        
-        # save resulting video
+        border_crop = 0.1
+        for i in range(len(predictions)):
+            talking = img_as_ubyte(cv2.resize(predictions[i], (crop[2] - crop[0], crop[3] - crop[1])))
+            tmp = whole_image.copy()
+            tmp[crop[1]:crop[3], crop[0]:crop[2], :] = talking
+            tmp = cv2.warpAffine(tmp, reverse_angle_matrix, (tmp.shape[1], tmp.shape[0]))
+
+            tmp = tmp[int(tmp.shape[0] * border_crop):int(tmp.shape[0] * (1 - border_crop)), int(tmp.shape[1] * border_crop):int(tmp.shape[1] * (1 - border_crop)), :]
+
+            predictions[i] = img_as_ubyte(tmp)
+
         out_path = f"{uuid.uuid4()}.mp4"
 
         imageio.mimsave(
@@ -108,7 +120,6 @@ class PlateTalkingHead():
         return out_path
 
 
-def align_image(raw_img_path, aligned_face_path):
+def align_image_rotate(raw_img_path, aligned_face_path):
     for i, face_landmarks in enumerate(LANDMARKS_DETECTOR.get_landmarks(raw_img_path), start=1):
-        image_align(raw_img_path, aligned_face_path, face_landmarks)
-
+        return image_align_rotate(raw_img_path, aligned_face_path, face_landmarks)

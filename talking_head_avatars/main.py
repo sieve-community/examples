@@ -146,10 +146,6 @@ class ThinplateAvatar:
 
             yield sieve.Video(path=final_path)
 
-@sieve.workflow(name='thinplate_talking_head')
-def thinplate_talking_head(img: sieve.Image, video: sieve.Video) -> sieve.Video:
-    return ThinplateAvatar()(img, video)
-
 @sieve.workflow(name='talking_head_avatar_generation')
 def thinplate_talking_head(driving_video: sieve.Video, driving_audio: sieve.Audio, avatar_image: sieve.Image) -> sieve.Video:
     images = sieve.reference("sieve-developer/video-splitter")(driving_video)

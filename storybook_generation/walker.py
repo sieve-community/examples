@@ -3,7 +3,7 @@ import sieve
 @sieve.Model(
     name="run_stable_diff_walk",
     python_packages=[
-        "torch==1.8.1",
+        "torch==1.13.1",
         "stable_diffusion_videos==0.8.1",
         "accelerate==0.16.0"
     ],
@@ -15,7 +15,6 @@ import sieve
         "git lfs install",
         "git clone https://huggingface.co/CompVis/stable-diffusion-v1-4 /root/.cache/models/stable-diffusion-v1-4",
     ],
-    iterator_input=True,
     persist_output=True
 )
 class StableDiffusionVideo:
@@ -30,11 +29,11 @@ class StableDiffusionVideo:
             revision="fp16",
         ).to("cuda")
     
-    def __predict__(self, prompt1: str, prompt2: str) -> sieve.Video:
+    def __predict__(self, prompt_pair: tuple) -> sieve.Video:
         import torch
         from stable_diffusion_videos import StableDiffusionWalkPipeline
 
-        prompt1, prompt2 = list(prompt1)[0], list(prompt2)[0] # current workaround for iterator inputs
+        prompt1, prompt2 = prompt_pair[0], prompt_pair[1]
 
         # generate and store video output
         video_path = self.pipeline.walk(
@@ -45,5 +44,4 @@ class StableDiffusionVideo:
             height=512,
             width=512,
         )
-
-        return sieve.Video(path=video_path)
+        yield sieve.Video(path=video_path)

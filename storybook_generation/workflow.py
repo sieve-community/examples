@@ -26,5 +26,5 @@ def storybook_generation(prompt: str) -> sieve.Video:
     script = prompt_to_script(prompt)
     prompt_pair = create_prompt_pairs(script)
     videos = StableDiffusionVideo()(prompt_pair)
-    combined_video = videos #combiner(videos)
+    combined_video = combiner(videos)
     return combined_video

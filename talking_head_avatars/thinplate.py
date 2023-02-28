@@ -43,8 +43,8 @@ class PlateTalkingHead():
                 checkpoint_path=checkpoint_path,
                 device=self.device,
             )
-        from face_enhancer import FaceEnhancement
-        self.gpen = FaceEnhancement()
+        # from face_enhancer import FaceEnhancement
+        # self.gpen = FaceEnhancement()
 
     def predict(self, source_image, driving_video, fps):
         dataset_name = "vox"

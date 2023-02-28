@@ -4,8 +4,7 @@ Sieve workflow to generate a storybook video from a piece of writing.
 
 import sieve
 from walker import StableDiffusionVideo
-from combiner import combiner
-from captioner import captioner
+from caption_combine import caption_and_combine
 
 # Creates a cleaned up list of sentences from a piece of writing
 @sieve.function(name="prompt-to-script")
@@ -25,12 +24,11 @@ def create_prompt_pairs(script: list) -> tuple:
 def storybook_generation(prompt: str) -> sieve.Video:
     # Create a script (list of sentences) and pair them up
     script = prompt_to_script(prompt)
-    prompt_pair = create_prompt_pairs(script)
+    prompt_pairs = create_prompt_pairs(script)
 
-    # Generate videos and caption them
-    videos = StableDiffusionVideo()(prompt_pair)
-    captioned_videos = captioner(videos, prompt_pair)
+    # Generate videos with StableDiffusionWalker
+    videos = StableDiffusionVideo()(prompt_pairs)
 
-    # Return a concatenated video
-    combined_video = combiner(captioned_videos)
+    # Return a captioned and concatenated video
+    combined_video = caption_and_combine(videos, prompt_pairs)
     return combined_video

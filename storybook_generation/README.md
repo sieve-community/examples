@@ -1,6 +1,9 @@
 # Storybook Generation
 This workflow generates a video story from a paragraph of text. It uses `StableDiffusionWalker` on pairwise sentences to generate video clips, captions them with each sentence, and stitches them together into a video.
 
+## Examples
+Here's a good starter prompt: `Once upon a time, there was a small bird named Poppy. Poppy was a curious bird who loved to explore the world around her. One day, as she was flying over the fields, she noticed a beautiful flower in the distance. Poppy flew closer to the flower and was amazed by its vibrant colors and sweet fragrance. She landed on the flower and started to sip the nectar from its center.`
+
 ## Deploying
 Follow our [getting started guide](https://www.sievedata.com/dashboard/welcome) to get your Sieve API key and install the Sieve Python client.
 

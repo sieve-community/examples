@@ -13,18 +13,18 @@ import sieve
     persist_output=True
 )
 def caption_and_combine(videos, prompt_pairs) -> sieve.Video:
-    from moviepy.editor import VideoFileClip, ImageClip, concatenate_videoclips
+    from moviepy.editor import ImageClip, concatenate_videoclips
     import cv2
     import textwrap
     import uuid
 
-    # Sort videos by global id
+    # Sort videos by global ID
     videos = sorted(videos, key=lambda video: video.video_number)
 
     # Add captions
     images = []
     for v, prompt in zip(videos, prompt_pairs):
-        # Add caption
+        print("Creating video with caption: ", prompt[0])
         cap = cv2.VideoCapture(v.path)
         while cap.isOpened():
             # Capture frames in the video
@@ -52,9 +52,12 @@ def caption_and_combine(videos, prompt_pairs) -> sieve.Video:
                             (255,255,0), 
                             font_thickness, 
                             lineType = cv2.LINE_AA)
-                
+            
+            # Add the frame to the list of images
             images.append(frame)
-        
+    
+    # Combine the images into a video
+    print("Combining all frames into video...")
     clips = [ImageClip(m).set_duration(0.25) for m in images]
     video = concatenate_videoclips(clips)
     video_path = f"{uuid.uuid4()}.mp4"

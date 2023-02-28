@@ -40,6 +40,7 @@ class StableDiffusionVideo:
         prompt1, prompt2 = prompt_pair[0], prompt_pair[1]
 
         # Generate and store video output
+        print("Generating video with prompts: " + prompt1 + " | " + prompt2)
         video_path = self.pipeline.walk(
             [prompt1, prompt2],
             [42, 1337],

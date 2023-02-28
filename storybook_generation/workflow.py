@@ -23,12 +23,15 @@ def create_prompt_pairs(script: list) -> tuple:
 @sieve.workflow(name="storybook_generation")
 def storybook_generation(prompt: str) -> sieve.Video:
     # Create a script (list of sentences) and pair them up
+    print("Generating script and prompt pairs...")
     script = prompt_to_script(prompt)
     prompt_pairs = create_prompt_pairs(script)
 
     # Generate videos with StableDiffusionWalker
+    print("Generating videos...")
     videos = StableDiffusionVideo()(prompt_pairs)
 
     # Return a captioned and concatenated video
+    print("Generating storybook...")
     combined_video = caption_and_combine(videos, prompt_pairs)
     return combined_video

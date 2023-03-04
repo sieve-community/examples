@@ -21,7 +21,7 @@ def get_smoothened_boxes(boxes, T):
 
 def face_detect(images, predictions):
 	batch_size = 8
-	
+
 	results = []
 	pady1, pady2, padx1, padx2 = (0, 15, 0, 0)
 	for rect, image in zip(predictions, images):
@@ -33,7 +33,7 @@ def face_detect(images, predictions):
 		y2 = min(image.shape[0], rect[3] + pady2)
 		x1 = max(0, rect[0] - padx1)
 		x2 = min(image.shape[1], rect[2] + padx2)
-		
+
 		results.append([x1, y1, x2, y2])
 
 	boxes = np.array(results)
@@ -116,17 +116,18 @@ class Model():
 
         self.model = load_model(checkpoint_path)
         print("Model loaded successfully!")
-    
+
     def predict(self, face, audio_file, outfile, resize_factor, faces, start_frame):
         t = time.time()
         if not os.path.isfile(face):
             raise ValueError('--face argument must be a valid path to video/image file')
-       
+
         video_stream = cv2.VideoCapture(face)
         fps = video_stream.get(cv2.CAP_PROP_FPS)
 
-        os.mkdir('temp') #Make the temp directory in case it doesn't exist
-        
+        if not os.path.exists('temp'):
+            os.mkdir('temp') #Make the temp directory in case it doesn't exist
+
         if not audio_file.endswith('.wav'):
             print('Extracting raw audio...')
             command = 'ffmpeg -y -i \'{}\' -strict -2 {}'.format(audio_file, 'temp/temp.wav')
@@ -142,7 +143,7 @@ class Model():
             raise ValueError('Mel contains nan! Using a TTS voice? Add a small epsilon noise to the wav file and try again')
 
         mel_chunks = []
-        mel_idx_multiplier = 80./fps 
+        mel_idx_multiplier = 80./fps
         i = 0
         while 1:
             start_idx = int(i * mel_idx_multiplier)
@@ -182,13 +183,13 @@ class Model():
         batch_size = wav2lip_batch_size
         gen = datagen(full_frames.copy(), mel_chunks, faces, start_frame)
 
-        for i, (img_batch, mel_batch, frames, coords) in enumerate(tqdm(gen, 
+        for i, (img_batch, mel_batch, frames, coords) in enumerate(tqdm(gen,
                                                 total=int(np.ceil(float(len(mel_chunks))/batch_size)))):
             if i == 0:
                 print ("Model loaded")
 
                 frame_h, frame_w = full_frames[0].shape[:-1]
-                out = cv2.VideoWriter(vid_file, 
+                out = cv2.VideoWriter(vid_file,
                                         cv2.VideoWriter_fourcc(*'DIVX'), fps, (frame_w, frame_h))
 
             img_batch = torch.FloatTensor(np.transpose(img_batch, (0, 3, 1, 2))).to(device)
@@ -198,7 +199,7 @@ class Model():
                 pred = self.model(mel_batch, img_batch)
 
             pred = pred.cpu().numpy().transpose(0, 2, 3, 1) * 255.
-            
+
             for p, f, c in zip(pred, frames, coords):
                 y1, y2, x1, x2 = c
                 p = p[1*(p.shape[0]//2):p.shape[0]]

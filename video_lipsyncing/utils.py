@@ -124,6 +124,8 @@ class Model():
        
         video_stream = cv2.VideoCapture(face)
         fps = video_stream.get(cv2.CAP_PROP_FPS)
+
+        os.mkdir('temp') #Make the temp directory in case it doesn't exist
         
         if not audio_file.endswith('.wav'):
             print('Extracting raw audio...')
@@ -153,6 +155,8 @@ class Model():
         print("Length of mel chunks: {}".format(len(mel_chunks)))
 
         print('Reading video frames...')
+
+        vid_file = 'temp/result.avi'
 
         full_frames = []
         while len(full_frames) < len(mel_chunks):
@@ -184,7 +188,7 @@ class Model():
                 print ("Model loaded")
 
                 frame_h, frame_w = full_frames[0].shape[:-1]
-                out = cv2.VideoWriter('temp/result.avi', 
+                out = cv2.VideoWriter(vid_file, 
                                         cv2.VideoWriter_fourcc(*'DIVX'), fps, (frame_w, frame_h))
 
             img_batch = torch.FloatTensor(np.transpose(img_batch, (0, 3, 1, 2))).to(device)
@@ -206,8 +210,8 @@ class Model():
         out.release()
         print("running model finished", time.time() - t)
 
-        command = 'ffmpeg -y -i \'{}\' -i \'{}\' -strict -2 -q:v 1 {}'.format(audio_file, 'temp/result.avi', outfile)
+        command = 'ffmpeg -y -i \'{}\' -i \'{}\' -strict -2 -q:v 1 {}'.format(audio_file, vid_file, outfile)
+        # Call subprocess print stdout
         subprocess.call(command, shell=platform.system() != 'Windows')
         print("running ffmpeg finished", time.time() - t)
-
         return outfile

@@ -102,7 +102,7 @@ def consolidate_chapters(chapters: Dict) -> List[Dict]:
 
     openai.api_key = os.getenv("OPENAI_API_KEY")
 
-    PROMPT = "Here are chapter titles for a Youtube video and their timestamps. Can you consolidate them to less than 5 chapters with their merged timestamps and remove any off-topic ones? Your output should be a list of JSON dictionaries, each with the chapter name, start and end time. Here's an example chapter in JSON: {\"chapter_name\": \"AI is taking over\", \"start_time\": 400.55, \"end_time\": 500.67}\n\nChapters:"
+    PROMPT = "Here are chapter titles for a Youtube video and their timestamps. Can you consolidate them to less than 5 chapters with their merged timestamps and remove any off-topic ones? Your output should be a list of JSON dictionaries, each with the chapter name, start and end time. Here's an example chapter in JSON: {\"name\": \"AI Cannot Replace Online Creators\", \"start_time\": 400.55, \"end_time\": 500.67}\n\nChapters:"
 
     for chapter in chapters:
         PROMPT += f"\n{chapter['start']}-{chapter['end']}: {chapter['chapter']}"

@@ -7,7 +7,8 @@ from segmentation import InstanceSegmentation
 class ImageWithFrameNumber(sieve.Image):
     frame_number: int
 
-
+# sievedata.com/machine-type=n1-standard-4-T4
+# sievedata.com/machine-type=n1-standard-4-T4
 @sieve.workflow(name="object-segmentation")
 def segmentation(a: sieve.Video):
     m = VideoSplitter(a)

@@ -17,4 +17,17 @@ def yolo_visualize(video: sieve.Video) -> Tuple[sieve.Video, Dict]:
     yolo_outputs = Yolo()(images)
     visualized = draw_boxes(images, yolo_outputs)
     combined = sieve.reference("sieve-developer/frame-combiner")(visualized)
-    return combined, SORT(yolo_outputs)
+    sink = sieve.reference("sieve-developer/general-sink")(combined)
+    return sink, SORT(yolo_outputs)
+
+
+if __name__ == "__main__":
+    sieve.push(
+        yolosplit,
+        {
+            "video": sieve.Video(
+                url="https://storage.googleapis.com/sieve-test-videos-central/01-lebron-dwade.mp4"
+            )
+        },
+        wait=True,
+    )

@@ -10,6 +10,11 @@ import sieve
     python_version="3.8"
 )
 def VideoSplitter(video: sieve.Video) -> sieve.Image:
+    '''
+    :param video: a Sieve video to split up
+    :return: a generator of Sieve images at the provided video FPS
+    '''
+
     # use ffmpeg to extract all frames in video as bmp files and return the path to the folder
     import tempfile
     temp_dir = tempfile.mkdtemp()

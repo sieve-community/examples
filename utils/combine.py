@@ -15,11 +15,15 @@ import sieve
     iterator_input=True,
     persist_output=True,
 )
-def frame_combine(it: sieve.Image) -> sieve.Video:
+def frame_combine(images: sieve.Image) -> sieve.Video:
+    '''
+    :param images: an generator of Sieve images
+    :return: a Sieve video with the frames stiched together
+    '''
     import uuid
     import ffmpeg
     l = []
-    for i in it:
+    for i in images:
         l.append(i)
         print(i.path, i.frame_number)
     sorted_by_frame_number = sorted(l, key=lambda k: k.frame_number)

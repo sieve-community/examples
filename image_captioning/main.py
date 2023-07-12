@@ -24,6 +24,10 @@ class ImageCaptioner:
         self.clean_text = lambda x: x.replace('<|endoftext|>','').split('\n')[0]
 
     def __predict__(self, img: sieve.Image) -> str:
+        '''
+        :param img: Image to caption
+        :return: Generated caption of the image
+        '''
         image = self.feature_extractor(img.array, return_tensors="pt").pixel_values.to('cuda')
         caption_ids = self.model.generate(image, max_length = 64)[0]
         caption_text = self.clean_text(self.tokenizer.decode(caption_ids))

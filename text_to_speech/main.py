@@ -7,9 +7,9 @@ import sieve
         "requests==2.28.1",
         "librosa==0.9.2",
         "numba==0.56.4",
-        "torch==1.8.1",
+        "torch==1.12.1",
+        "torchaudio==0.12.1",
         "wget==3.2",
-        "torchaudio==0.8.1"
     ],
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg", "libavcodec58"],
     python_version="3.8",

@@ -41,7 +41,11 @@ class InstanceSegmentation:
         huePartition = 1.0 / (n + 1)
         return (self.HSVToRGB(huePartition * value, 1.0, 0.5) for value in range(0, n))
 
-    def __predict__(self, image: sieve.Image):
+    def __predict__(self, image: sieve.Image) -> sieve.Image:
+        '''
+        :param image: Image to run segmentation on
+        :return: Image with segmentation mask overlayed
+        '''
         image_copy = image.array.copy()
         import cv2
         import numpy as np

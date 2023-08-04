@@ -40,7 +40,6 @@ def show_points(coords, labels, ax, marker_size=375):
         "pip install git+https://github.com/facebookresearch/segment-anything.git"
     ],
     iterator_input=True,
-    persist_output=True
 )
 class SegmentAnything:
     def __setup__(self):
@@ -51,6 +50,12 @@ class SegmentAnything:
         self.predictor = SamPredictor(sam)
 
     def __predict__(self, img: sieve.Image, x: int, y: int) -> sieve.Image:
+        '''
+        :param img: Image to run segmentation on
+        :param x: X coordinate to center segmentation on
+        :param y: Y coordinate to center segmentation on
+        :return: Image with segmentation mask
+        '''
         import cv2
         import numpy as np
         import matplotlib.pyplot as plt
@@ -78,6 +83,13 @@ class SegmentAnything:
             im.save(f'{i}.png')
             yield sieve.Image(path=f'{i}.png')
 
-@sieve.workflow(name="test-segment")
-def test_segment(img: sieve.Image, x: int, y: int) -> sieve.Image:
+@sieve.workflow(name="object-segmentation-by-point")
+def object_segmentation_by_point(img: sieve.Image, x: int, y: int) -> sieve.Image:
+    '''
+    :param img: Image to run segmentation on
+    :param x: X coordinate to center segmentation on
+    :param y: Y coordinate to center segmentation on
+    :return: Image with segmentation mask
+    '''
+
     return SegmentAnything()(img, x, y)

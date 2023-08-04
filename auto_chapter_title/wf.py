@@ -60,13 +60,12 @@ class TextTiling:
 
 @sieve.function(
     name="generate_chapters",
-    python_packages=["openai==0.26.5", "python-dotenv==0.21.1"]
+    python_packages=["openai==0.26.5", "python-dotenv==0.21.1"],
+    environment_variables=[sieve.Env(name="OPENAI_API_KEY", description="OpenAI API Key")],
 )
 def generate_chapters(segment: Dict) -> Dict:
     import os
     import openai
-    from dotenv import load_dotenv
-    load_dotenv()
 
     openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -89,7 +88,8 @@ def generate_chapters(segment: Dict) -> Dict:
 @sieve.function(
     name="consolidate_chapters",
     python_packages=["openai==0.26.5", "python-dotenv==0.21.1"],
-    iterator_input=True
+    iterator_input=True,
+    environment_variables=[sieve.Env(name="OPENAI_API_KEY", description="OpenAI API Key")],
 )
 def consolidate_chapters(chapters: Dict) -> List[Dict]:
     chapters = list(chapters)
@@ -97,8 +97,6 @@ def consolidate_chapters(chapters: Dict) -> List[Dict]:
     import os
     import openai
     import json
-    from dotenv import load_dotenv
-    load_dotenv()
 
     openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -132,6 +130,10 @@ def split_audio(vid: sieve.Video) -> sieve.Audio:
 
 @sieve.workflow(name="auto_chapter_title")
 def auto_chapter_title(vid: sieve.Video) -> List[Dict]:
+    '''
+    :param vid: A video to transcribe and split into chapters
+    :return: A list of chapter titles with their start and end times
+    '''
     audio = split_audio(vid)
     text = Whisper()(audio)
     sections = TextTiling()(text)

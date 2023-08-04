@@ -1,8 +1,7 @@
 import sieve
 
-
 @sieve.Model(
-    name="instance-segmentation",
+    name="pointrend_segmentation",
     gpu=True,
     python_packages=[
         "opencv-python==4.6.0.66",
@@ -10,6 +9,7 @@ import sieve
         "torch==1.9.0",
         "torchvision==0.10.0",
         "pixellib==0.7.1",
+        "pillow==9.0.0",
         "pycocotools==2.0.2",
     ],
     run_commands=[
@@ -23,7 +23,7 @@ class InstanceSegmentation:
         from pixellib.torchbackend.instance import instanceSegmentation
 
         self.model = instanceSegmentation()
-        self.model.load_model("/root/.cache/pointrend/models/pointrend_resnet50.pkl")
+        self.model.load_model("/root/.cache/pointrend/models/pointrend_resnet50.pkl", detection_speed="fast")
         self.class_names = self.model.class_names
         self.class_colors = list(self.getBrightDistinctColors(len(self.class_names)))
 
@@ -64,7 +64,7 @@ class InstanceSegmentation:
             class_id = class_ids[i]
             score = scores[i]
             box = boxes[i].cpu().numpy()
-            color = self.class_colors[class_id]
+            color = self.class_colors[class_id % len(self.class_colors)]
             self.draw_mask(init_mask, mask, color, score, box)
         output_image = self.blend_mask_image(image_copy, init_mask, color, score, box)
         if hasattr(image, "fps") and hasattr(image, "frame_number"):

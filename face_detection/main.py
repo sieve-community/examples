@@ -17,8 +17,14 @@ class FaceDetector:
         self.face_detection = self.mp_face_detection.FaceDetection(min_detection_confidence=0.5)
 
     def __predict__(self, img: sieve.Image) -> List:
+        '''
+        :param img: Image to detect faces in
+        :return: List of faces with their bounding boxes, classes, and scores
+        '''
+        print("Starting prediction...")
         results = self.face_detection.process(cv2.cvtColor(img.array, cv2.COLOR_BGR2RGB))
         outputs = []
+        print("Finished prediction, outputting...")
         if results.detections:
             for detection in results.detections:
                 ratio_box = [detection.location_data.relative_bounding_box.xmin, detection.location_data.relative_bounding_box.ymin, detection.location_data.relative_bounding_box.width, detection.location_data.relative_bounding_box.height]
@@ -32,12 +38,20 @@ class FaceDetector:
                 })
         return outputs
 
-@sieve.workflow(name="mediapipe-face-detection")
+@sieve.workflow(name="face-detection-image")
 def mediapipe_face_detection(image: sieve.Image) -> List:
+    '''
+    :param image: Image to detect faces in
+    :return: List of faces with their bounding boxes, classes, and scores
+    '''
     return FaceDetector()(image)
 
-@sieve.workflow(name="mediapipe-face-detection-video")
+@sieve.workflow(name="face-detection-video")
 def mediapipe_face_detection_vid(vid: sieve.Video) -> List:
-    video_splitter = sieve.reference("sieve-developer/video-splitter")
+    '''
+    :param vid: Video to detect faces in
+    :return: List of faces with their bounding boxes, classes, scores, and frame numbers
+    '''
+    video_splitter = sieve.reference("sieve/video-splitter")
     frames = video_splitter(vid)
     return FaceDetector()(frames)

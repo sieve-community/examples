@@ -2,7 +2,7 @@ import sieve
 from typing import List, Dict
 
 @sieve.function(
-    name="sort",
+    name="sort-tracker",
     gpu = False,
     python_version="3.8",
     iterator_input=True,
@@ -12,7 +12,12 @@ from typing import List, Dict
     ]
 )
 
-def SORT(it: List) -> Dict:
+def SORT(objects: List) -> Dict:
+    '''
+    :param objects: Generator of list of objects with their bounding boxes, classes, and scores
+    :return: Tracked objects keyed by object ID
+    '''
+
     from sort import Sort
     import numpy as np
     import uuid

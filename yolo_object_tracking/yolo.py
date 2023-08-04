@@ -2,7 +2,7 @@ import sieve
 from typing import List, Dict
 
 @sieve.Model(
-    name="yolo",
+    name="yolo-v5",
     gpu = True,
     python_packages=[
         "torch==1.8.1",
@@ -12,7 +12,8 @@ from typing import List, Dict
         "torch==1.8.1",
         "torchvision==0.9.1",
         "psutil==5.8.0",
-        "seaborn==0.11.2"
+        "seaborn==0.11.2",
+        "ultralytics==8.0.132",
     ],
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
     python_version="3.8",
@@ -26,6 +27,10 @@ class Yolo:
         self.yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
 
     def __predict__(self, img: sieve.Image) -> List:
+        '''
+        :param img: Image to detect objects in
+        :return: List of objects with their bounding boxes, classes, and scores
+        '''
         results = self.yolo_model(img.array)
         outputs = []
         for pred in reversed(results.pred):

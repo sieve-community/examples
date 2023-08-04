@@ -2,7 +2,7 @@ import sieve
 from typing import List, Dict
 
 @sieve.function(
-    name="draw_boxes",
+    name="draw-boxes",
     gpu = False,
     python_version="3.8",
     iterator_input=True,
@@ -11,6 +11,11 @@ from typing import List, Dict
     ]
 )
 def draw_boxes(images: sieve.Image, boxes: List) -> sieve.Image:
+    '''
+    :param images: Source image to draw boxes on
+    :param boxes: List of objects with their bounding boxes, classes, and scores
+    :return: Image with bounding boxes drawn
+    '''
     import numpy as np
     import cv2
     import uuid

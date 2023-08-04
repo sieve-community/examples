@@ -1,17 +1,14 @@
 import sieve
-from typing import Dict
 from bg import U2NetMask, U2NetBlur
-from combiner import frame_combine
-from splitter import VideoSplitter
 
 @sieve.workflow(name="video_background_mask")
-def background_mask(video: sieve.Video) -> Dict:
-    images = VideoSplitter(video)
+def background_mask(video: sieve.Video) -> sieve.Video:
+    images = sieve.reference("sieve/video-splitter")(video)
     masks = U2NetMask()(images)
-    return frame_combine(masks)
+    return sieve.reference("sieve/frame-combiner")(masks)
 
 @sieve.workflow(name="video_background_blur")
-def background_blur(video: sieve.Video) -> Dict:
-    images = VideoSplitter(video)
+def background_blur(video: sieve.Video) -> sieve.Video:
+    images = sieve.reference("sieve/video-splitter")(video)
     masks = U2NetBlur()(images)
-    return frame_combine(masks)
+    return sieve.reference("sieve/frame-combiner")(masks)

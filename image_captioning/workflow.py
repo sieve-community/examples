@@ -1,9 +1,11 @@
 import sieve
-from typing import List
 from main import ImageCaptioner
 
-
-@sieve.workflow(name="image_captioning")
-def image_captioning(image: sieve.Image) -> List:
+@sieve.workflow(name="image-captioning")
+def image_captioning(image: sieve.Image) -> str:
+    '''
+    :param img: Image to caption
+    :return: Generated caption of the image
+    '''
     captioner = ImageCaptioner()
     return captioner(image)

@@ -1,5 +1,6 @@
 import matplotlib
 import matplotlib.pyplot as plt
+
 matplotlib.use("Agg")
 
 import numpy as np
@@ -13,32 +14,31 @@ def plot_alignment(alignment, path):
 
     fig = plt.figure(figsize=(8, 6))
     ax = fig.add_subplot(111)
-    im = ax.imshow(alignment, aspect='auto', origin='lower',
-                   interpolation='none')
+    im = ax.imshow(alignment, aspect="auto", origin="lower", interpolation="none")
     fig.colorbar(im, ax=ax)
 
     plt.tight_layout()
-    plt.savefig(path, format='png')
+    plt.savefig(path, format="png")
     plt.close()
     return
 
 
 def plot_spectrogram(pred_spectrogram, plot_path, title="mel-spec", show=False):
     fig = plt.figure(figsize=(20, 10))
-    fig.text(0.5, 0.18, title, horizontalalignment='center', fontsize=16)
+    fig.text(0.5, 0.18, title, horizontalalignment="center", fontsize=16)
     vmin = np.min(pred_spectrogram)
     vmax = np.max(pred_spectrogram)
     ax2 = fig.add_subplot(111)
-    im = ax2.imshow(np.rot90(pred_spectrogram), interpolation='none',
-                    vmin=vmin, vmax=vmax)
-    char = fig.colorbar(mappable=im, shrink=0.65, orientation='horizontal',
-                        ax=ax2)
+    im = ax2.imshow(
+        np.rot90(pred_spectrogram), interpolation="none", vmin=vmin, vmax=vmax
+    )
+    char = fig.colorbar(mappable=im, shrink=0.65, orientation="horizontal", ax=ax2)
 
     # char.set_ticks(np.arange(vmin, vmax))
     char.set_ticks(np.arange(0, 1))
 
     plt.tight_layout()
-    plt.savefig(plot_path, format='png')
+    plt.savefig(plot_path, format="png")
     if show:
         plt.show()
     plt.close()
@@ -46,28 +46,25 @@ def plot_spectrogram(pred_spectrogram, plot_path, title="mel-spec", show=False):
     return
 
 
-def plot_two_spec(pred_spec, target_spec, pic_path, title=None,
-                  vmin=None, vmax=None):
+def plot_two_spec(pred_spec, target_spec, pic_path, title=None, vmin=None, vmax=None):
     # assert np.shape(pred_spec)[1] == 80 and np.shape(target_spec)[1] == 80
     fig = plt.figure(figsize=(12, 8))
-    fig.text(0.5, 0.18, title, horizontalalignment='center', fontsize=16)
+    fig.text(0.5, 0.18, title, horizontalalignment="center", fontsize=16)
     if vmin is None or vmax is None:
         vmin = min(np.min(pred_spec), np.min(target_spec))
         vmax = max(np.max(pred_spec), np.max(target_spec))
     ax1 = fig.add_subplot(211)
-    ax1.set_title('Predicted Mel-Spectrogram')
-    im = ax1.imshow(np.rot90(pred_spec), interpolation='none',
-                    vmin=vmin, vmax=vmax)
-    fig.colorbar(mappable=im, shrink=0.65, orientation='horizontal', ax=ax1)
+    ax1.set_title("Predicted Mel-Spectrogram")
+    im = ax1.imshow(np.rot90(pred_spec), interpolation="none", vmin=vmin, vmax=vmax)
+    fig.colorbar(mappable=im, shrink=0.65, orientation="horizontal", ax=ax1)
 
     ax2 = fig.add_subplot(212)
-    ax2.set_title('Target Mel-Spectrogram')
-    im = ax2.imshow(np.rot90(target_spec), interpolation='none',
-                    vmin=vmin, vmax=vmax)
-    fig.colorbar(mappable=im, shrink=0.65, orientation='horizontal', ax=ax2)
+    ax2.set_title("Target Mel-Spectrogram")
+    im = ax2.imshow(np.rot90(target_spec), interpolation="none", vmin=vmin, vmax=vmax)
+    fig.colorbar(mappable=im, shrink=0.65, orientation="horizontal", ax=ax2)
 
     plt.tight_layout()
-    plt.savefig(pic_path, format='png')
+    plt.savefig(pic_path, format="png")
     plt.close()
     log("save spec png to {}".format(pic_path))
     return
@@ -75,20 +72,20 @@ def plot_two_spec(pred_spec, target_spec, pic_path, title=None,
 
 def plot_line(path, x_list, y_list, label_list):
     assert len(x_list) == len(y_list) == len(label_list)
-    plt.title('Result Analysis')
+    plt.title("Result Analysis")
     for x_data, y_data, label in zip(x_list, y_list, label_list):
         plt.plot(x_data, y_data, label=label)
         # plt.plot(x2, y2, color='red', label='predict')
     plt.legend()  # 显示图例
-    plt.xlabel('frame-index')
-    plt.ylabel('value')
-    plt.savefig(path, format='png')
+    plt.xlabel("frame-index")
+    plt.ylabel("value")
+    plt.savefig(path, format="png")
     plt.close()
     return
 
 
 def plot_line_phone_time(path, time_pitch_index, pitch_seq, seq_label):
-    """ show phoneme and pitch in time"""
+    """show phoneme and pitch in time"""
     seq_str = []
     seq_index = []
     pre = seq_label[0]
@@ -102,30 +99,26 @@ def plot_line_phone_time(path, time_pitch_index, pitch_seq, seq_label):
             counter += 1
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
-    ax1.plot(time_pitch_index, pitch_seq, 'r')
-    ax1.set_ylabel('pitch')
+    ax1.plot(time_pitch_index, pitch_seq, "r")
+    ax1.set_ylabel("pitch")
     for i in range(len(seq_index)):
         plt.vlines(seq_index[i], ymin=0, ymax=700)
         plt.text(seq_index[i] - 1, 800, seq_str[i], rotation=39)
 
-    plt.savefig(path, format='png')
+    plt.savefig(path, format="png")
     return
 
 
 def plot_mel(mel, path, info=None):
     mel = mel.T
     fig, ax = plt.subplots()
-    im = ax.imshow(
-        mel,
-        aspect='auto',
-        origin='lower',
-        interpolation='none')
+    im = ax.imshow(mel, aspect="auto", origin="lower", interpolation="none")
     fig.colorbar(im, ax=ax)
-    xlabel = 'Decoder timestep'
+    xlabel = "Decoder timestep"
     if info is not None:
-        xlabel += '\n\n' + info
+        xlabel += "\n\n" + info
     plt.show()
-    plt.savefig(path, format='png')
+    plt.savefig(path, format="png")
     plt.close()
 
     return fig
@@ -155,7 +148,7 @@ def plot_one_mel_pitch_energy(mel, pitch, energy, stat_json_file, title, path):
         stats,
         [title],
     )
-    plt.savefig(path, format='png')
+    plt.savefig(path, format="png")
     plt.close()
 
 
@@ -167,7 +160,9 @@ def expand(values, durations):
 
 
 def plot_multi_mel_pitch_energy(data, stats, titles):
-    fig, axes = plt.subplots(len(data), 1, squeeze=False, figsize=(6.4, 3.0 * len(data)))
+    fig, axes = plt.subplots(
+        len(data), 1, squeeze=False, figsize=(6.4, 3.0 * len(data))
+    )
     if titles is None:
         titles = [None for i in range(len(data))]
     pitch_min, pitch_max, pitch_mean, pitch_std, energy_min, energy_max = stats
@@ -220,5 +215,5 @@ def plot_multi_mel_pitch_energy(data, stats, titles):
     return fig
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

@@ -16,7 +16,10 @@ from audio_zen.utils import prepare_empty_dir
 
 
 def load_wav_paths_from_scp(scp_path, to_abs=True):
-    wav_paths = [line.rstrip('\n') for line in open(os.path.abspath(os.path.expanduser(scp_path)), "r")]
+    wav_paths = [
+        line.rstrip("\n")
+        for line in open(os.path.abspath(os.path.expanduser(scp_path)), "r")
+    ]
     if to_abs:
         tmp = []
         for path in wav_paths:
@@ -25,10 +28,7 @@ def load_wav_paths_from_scp(scp_path, to_abs=True):
     return wav_paths
 
 
-def shrink_multi_channel_path(
-        full_dataset_list: list,
-        num_channels: int
-) -> list:
+def shrink_multi_channel_path(full_dataset_list: list, num_channels: int) -> list:
     """
 
     Args:
@@ -84,7 +84,9 @@ def pre_processing(est, ref, specific_dataset=None):
             for ref_path in reference_wav_paths:
                 for est_path in estimated_wav_paths:
                     est_basename = get_basename(est_path)
-                    if "clean_" + "_".join(est_basename.split("_")[-2:]) == get_basename(ref_path):
+                    if "clean_" + "_".join(
+                        est_basename.split("_")[-2:]
+                    ) == get_basename(ref_path):
                         reordered_estimated_wav_paths.append(est_path)
         elif specific_dataset == "dns_2":
             for ref_path in reference_wav_paths:
@@ -92,7 +94,7 @@ def pre_processing(est, ref, specific_dataset=None):
                     # synthetic_french_acejour_orleans_sb_64kb-01_jbq2HJt9QXw_snr14_tl-26_fileid_47
                     # synthetic_clean_fileid_47
                     est_basename = get_basename(est_path)
-                    file_id = est_basename.split('_')[-1]
+                    file_id = est_basename.split("_")[-1]
                     if f"synthetic_clean_fileid_{file_id}" == get_basename(ref_path):
                         reordered_estimated_wav_paths.append(est_path)
         elif specific_dataset == "maxhub_noisy":
@@ -107,7 +109,9 @@ def pre_processing(est, ref, specific_dataset=None):
                     ref_basename = get_basename(ref_path)
 
         else:
-            raise NotImplementedError(f"Not supported specific dataset {specific_dataset}.")
+            raise NotImplementedError(
+                f"Not supported specific dataset {specific_dataset}."
+            )
         estimated_wav_paths = reordered_estimated_wav_paths
 
     return reference_wav_paths, estimated_wav_paths
@@ -116,9 +120,9 @@ def pre_processing(est, ref, specific_dataset=None):
 def check_two_aligned_list(a, b):
     assert len(a) == len(b), "两个列表中的长度不等."
     for z, (i, j) in enumerate(zip(a, b), start=1):
-        assert get_basename(i) == get_basename(j), f"两个列表中存在不相同的文件名，行数为: {z}" \
-                                                   f"\n\t {i}" \
-                                                   f"\n\t{j}"
+        assert get_basename(i) == get_basename(j), (
+            f"两个列表中存在不相同的文件名，行数为: {z}" f"\n\t {i}" f"\n\t{j}"
+        )
 
 
 def compute_metric(reference_wav_paths, estimated_wav_paths, sr, metric_type="SI_SDR"):
@@ -142,27 +146,34 @@ def compute_metric(reference_wav_paths, estimated_wav_paths, sr, metric_type="SI
         est_wav_len = len(est_wav)
 
         if ref_wav_len != est_wav_len:
-            print(f"[Warning] ref {ref_wav_len} and est {est_wav_len} are not in the same length")
+            print(
+                f"[Warning] ref {ref_wav_len} and est {est_wav_len} are not in the same length"
+            )
             pass
 
-        return basename, metric_function(ref_wav[:len(est_wav)], est_wav)
+        return basename, metric_function(ref_wav[: len(est_wav)], est_wav)
 
     metrics_result_store = Parallel(n_jobs=n_jobs)(
-        delayed(calculate_metric)(ref, est) for ref, est in tqdm(zip(reference_wav_paths, estimated_wav_paths))
+        delayed(calculate_metric)(ref, est)
+        for ref, est in tqdm(zip(reference_wav_paths, estimated_wav_paths))
     )
     return metrics_result_store
+
 
 def takeSecond(elem):
     return elem[1]
 
+
 def make_rank(the_list):
     the_list.sort(key=takeSecond, reverse=True)
 
+
 def write_to_txt(filename, total_list):
-    with open(filename, 'w+') as temp_file:
+    with open(filename, "w+") as temp_file:
         for i1, sisdr in total_list:
-            string = i1 + ": " + str(sisdr) + '\n'
+            string = i1 + ": " + str(sisdr) + "\n"
             temp_file.write(string)
+
 
 def main(args):
     sr = args.sr
@@ -171,7 +182,9 @@ def main(args):
     specific_dataset = args.specific_dataset.lower()
 
     # 通过指定的 scp 文件或目录获取全部的 wav 样本
-    reference_wav_paths, estimated_wav_paths = pre_processing(args.estimated, args.reference, specific_dataset)
+    reference_wav_paths, estimated_wav_paths = pre_processing(
+        args.estimated, args.reference, specific_dataset
+    )
 
     # if export_dir:
     #     export_dir = Path(export_dir).expanduser().absolute()
@@ -181,7 +194,9 @@ def main(args):
     for metric_type in metric_types.split(","):
         # print(reference_wav_paths)
         # print(estimated_wav_paths)
-        metrics_result_store = compute_metric(reference_wav_paths, estimated_wav_paths, sr, metric_type=metric_type)
+        metrics_result_store = compute_metric(
+            reference_wav_paths, estimated_wav_paths, sr, metric_type=metric_type
+        )
 
         # Print result
         print(f"{metric_type}: {metrics_result_store}")
@@ -204,19 +219,31 @@ def main(args):
             #     f.write(data.export("xlsx"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="输入两个目录或列表，计算各种评价指标的均值",
-        epilog="python calculate_metrics.py -E 'est_dir' -R 'ref_dir' -M SI_SDR,STOI,WB_PESQ,NB_PESQ,SSNR,LSD,SRMR"
+        epilog="python calculate_metrics.py -E 'est_dir' -R 'ref_dir' -M SI_SDR,STOI,WB_PESQ,NB_PESQ,SSNR,LSD,SRMR",
     )
     parser.add_argument("-R", "--reference", required=True, type=str, help="")
     parser.add_argument("-E", "--estimated", required=True, type=str, help="")
-    parser.add_argument("-M", "--metric_types", required=True, type=str, help="哪个评价指标，要与 util.metrics 中的内容一致.")
+    parser.add_argument(
+        "-M",
+        "--metric_types",
+        required=True,
+        type=str,
+        help="哪个评价指标，要与 util.metrics 中的内容一致.",
+    )
     parser.add_argument("--sr", type=int, default=16000, help="采样率")
     parser.add_argument("-D", "--export_dir", type=str, default="", help="")
     parser.add_argument("--limit", type=int, default=None, help="[正在开发]从列表中读取文件的上限数量.")
     parser.add_argument("--offset", type=int, default=0, help="[正在开发]从列表中指定位置开始读取文件.")
-    parser.add_argument("-S", "--specific_dataset", type=str, default="", help="指定数据集类型，e.g. DNS_1, DNS_2, 大小写均可")
+    parser.add_argument(
+        "-S",
+        "--specific_dataset",
+        type=str,
+        default="",
+        help="指定数据集类型，e.g. DNS_1, DNS_2, 大小写均可",
+    )
     args = parser.parse_args()
     main(args)
 

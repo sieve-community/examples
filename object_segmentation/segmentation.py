@@ -1,5 +1,6 @@
 import sieve
 
+
 @sieve.Model(
     name="pointrend_segmentation",
     gpu=True,
@@ -14,8 +15,8 @@ import sieve
     ],
     run_commands=[
         "mkdir -p /root/.cache/pointrend/models/",
-        "wget https://storage.googleapis.com/mango-public-models/pointrend_resnet50.pkl -P /root/.cache/pointrend/models"
-    ]
+        "wget https://storage.googleapis.com/mango-public-models/pointrend_resnet50.pkl -P /root/.cache/pointrend/models",
+    ],
 )
 class InstanceSegmentation:
     def __setup__(self):
@@ -23,7 +24,10 @@ class InstanceSegmentation:
         from pixellib.torchbackend.instance import instanceSegmentation
 
         self.model = instanceSegmentation()
-        self.model.load_model("/root/.cache/pointrend/models/pointrend_resnet50.pkl", detection_speed="fast")
+        self.model.load_model(
+            "/root/.cache/pointrend/models/pointrend_resnet50.pkl",
+            detection_speed="fast",
+        )
         self.class_names = self.model.class_names
         self.class_colors = list(self.getBrightDistinctColors(len(self.class_names)))
 
@@ -42,10 +46,10 @@ class InstanceSegmentation:
         return (self.HSVToRGB(huePartition * value, 1.0, 0.5) for value in range(0, n))
 
     def __predict__(self, image: sieve.Image) -> sieve.Image:
-        '''
+        """
         :param image: Image to run segmentation on
         :return: Image with segmentation mask overlayed
-        '''
+        """
         image_copy = image.array.copy()
         import cv2
         import numpy as np
@@ -68,7 +72,9 @@ class InstanceSegmentation:
             self.draw_mask(init_mask, mask, color, score, box)
         output_image = self.blend_mask_image(image_copy, init_mask, color, score, box)
         if hasattr(image, "fps") and hasattr(image, "frame_number"):
-            return sieve.Image(array=output_image, fps=image.fps, frame_number=image.frame_number)
+            return sieve.Image(
+                array=output_image, fps=image.fps, frame_number=image.frame_number
+            )
         if hasattr(image, "fps"):
             return sieve.Image(array=output_image, fps=image.fps)
         if hasattr(image, "frame_number"):

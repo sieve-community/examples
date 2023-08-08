@@ -10,9 +10,9 @@ from audio_zen.utils import basename
 
 class Dataset(BaseDataset):
     def __init__(
-            self,
-            dataset_dir_list,
-            sr,
+        self,
+        dataset_dir_list,
+        sr,
     ):
         """
         Construct DNS validation set
@@ -30,7 +30,9 @@ class Dataset(BaseDataset):
 
         for dataset_dir in dataset_dir_list:
             dataset_dir = Path(dataset_dir).expanduser().absolute()
-            noisy_files_list += librosa.util.find_files((dataset_dir / "noisy").as_posix())
+            noisy_files_list += librosa.util.find_files(
+                (dataset_dir / "noisy").as_posix()
+            )
 
         self.length = len(noisy_files_list)
         self.noisy_files_list = noisy_files_list
@@ -84,9 +86,15 @@ class Dataset(BaseDataset):
                 reverb_remark = "with_reverb"
             clean_filename = f"clean_fileid_{file_id}"
 
-        clean_file_path = noisy_file_path.replace(f"noisy/{noisy_filename}", f"clean/{clean_filename}")
+        clean_file_path = noisy_file_path.replace(
+            f"noisy/{noisy_filename}", f"clean/{clean_filename}"
+        )
 
-        noisy = load_wav(os.path.abspath(os.path.expanduser(noisy_file_path)), sr=self.sr)
-        clean = load_wav(os.path.abspath(os.path.expanduser(clean_file_path)), sr=self.sr)
+        noisy = load_wav(
+            os.path.abspath(os.path.expanduser(noisy_file_path)), sr=self.sr
+        )
+        clean = load_wav(
+            os.path.abspath(os.path.expanduser(clean_file_path)), sr=self.sr
+        )
 
         return noisy, clean, reverb_remark + noisy_filename, speech_type

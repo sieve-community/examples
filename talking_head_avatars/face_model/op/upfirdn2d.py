@@ -7,25 +7,25 @@ from torch.autograd import Function
 from torch.utils.cpp_extension import load, _import_module_from_library
 
 # if running GPEN without cuda, please comment line 10-18
-if platform.system() == 'Linux' and torch.cuda.is_available():
+if platform.system() == "Linux" and torch.cuda.is_available():
     module_path = os.path.dirname(__file__)
     upfirdn2d_op = load(
-        'upfirdn2d',
+        "upfirdn2d",
         sources=[
-            os.path.join(module_path, 'upfirdn2d.cpp'),
-            os.path.join(module_path, 'upfirdn2d_kernel.cu'),
+            os.path.join(module_path, "upfirdn2d.cpp"),
+            os.path.join(module_path, "upfirdn2d_kernel.cu"),
         ],
     )
 
 
-#upfirdn2d_op = _import_module_from_library('upfirdn2d', '/tmp/torch_extensions/upfirdn2d', True)
+# upfirdn2d_op = _import_module_from_library('upfirdn2d', '/tmp/torch_extensions/upfirdn2d', True)
+
 
 class UpFirDn2dBackward(Function):
     @staticmethod
     def forward(
         ctx, grad_output, kernel, grad_kernel, up, down, pad, g_pad, in_size, out_size
     ):
-
         up_x, up_y = up
         down_x, down_y = down
         g_pad_x0, g_pad_x1, g_pad_y0, g_pad_y1 = g_pad
@@ -65,7 +65,7 @@ class UpFirDn2dBackward(Function):
 
     @staticmethod
     def backward(ctx, gradgrad_input):
-        kernel, = ctx.saved_tensors
+        (kernel,) = ctx.saved_tensors
 
         gradgrad_input = gradgrad_input.reshape(-1, ctx.in_size[2], ctx.in_size[3], 1)
 
@@ -146,13 +146,15 @@ class UpFirDn2d(Function):
         return grad_input, None, None, None, None
 
 
-def upfirdn2d(input, kernel, up=1, down=1, pad=(0, 0), device='cpu'):
-    if platform.system() == 'Linux' and torch.cuda.is_available() and device != 'cpu':
+def upfirdn2d(input, kernel, up=1, down=1, pad=(0, 0), device="cpu"):
+    if platform.system() == "Linux" and torch.cuda.is_available() and device != "cpu":
         out = UpFirDn2d.apply(
             input, kernel, (up, up), (down, down), (pad[0], pad[1], pad[0], pad[1])
         )
     else:
-        out = upfirdn2d_native(input, kernel, up, up, down, down, pad[0], pad[1], pad[0], pad[1])
+        out = upfirdn2d_native(
+            input, kernel, up, up, down, down, pad[0], pad[1], pad[0], pad[1]
+        )
 
     return out
 
@@ -191,4 +193,3 @@ def upfirdn2d_native(
     )
     # out = out.permute(0, 2, 3, 1)
     return out[:, :, ::down_y, ::down_x]
-

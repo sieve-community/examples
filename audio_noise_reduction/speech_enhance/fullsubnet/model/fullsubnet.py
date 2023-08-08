@@ -7,23 +7,26 @@ from audio_zen.model.module.sequence_model import SequenceModel
 
 # for log
 from utils.logger import log
-print=log
+
+print = log
+
 
 class Model(BaseModel):
-    def __init__(self,
-                 num_freqs,
-                 look_ahead,
-                 sequence_model,
-                 fb_num_neighbors,
-                 sb_num_neighbors,
-                 fb_output_activate_function,
-                 sb_output_activate_function,
-                 fb_model_hidden_size,
-                 sb_model_hidden_size,
-                 norm_type="offline_laplace_norm",
-                 num_groups_in_drop_band=2,
-                 weight_init=True,
-                 ):
+    def __init__(
+        self,
+        num_freqs,
+        look_ahead,
+        sequence_model,
+        fb_num_neighbors,
+        sb_num_neighbors,
+        fb_output_activate_function,
+        sb_output_activate_function,
+        fb_model_hidden_size,
+        sb_model_hidden_size,
+        norm_type="offline_laplace_norm",
+        num_groups_in_drop_band=2,
+        weight_init=True,
+    ):
         """
         FullSubNet model (cIRM mask)
 
@@ -34,7 +37,10 @@ class Model(BaseModel):
             sequence_model: Chose one sequence model as the basic model (GRU, LSTM)
         """
         super().__init__()
-        assert sequence_model in ("GRU", "LSTM"), f"{self.__class__.__name__} only support GRU and LSTM."
+        assert sequence_model in (
+            "GRU",
+            "LSTM",
+        ), f"{self.__class__.__name__} only support GRU and LSTM."
 
         self.fb_model = SequenceModel(
             input_size=num_freqs,
@@ -43,7 +49,7 @@ class Model(BaseModel):
             num_layers=2,
             bidirectional=False,
             sequence_model=sequence_model,
-            output_activate_function=fb_output_activate_function
+            output_activate_function=fb_output_activate_function,
         )
 
         self.sb_model = SequenceModel(
@@ -53,7 +59,7 @@ class Model(BaseModel):
             num_layers=2,
             bidirectional=False,
             sequence_model=sequence_model,
-            output_activate_function=sb_output_activate_function
+            output_activate_function=sb_output_activate_function,
         )
 
         self.sb_num_neighbors = sb_num_neighbors
@@ -78,21 +84,33 @@ class Model(BaseModel):
             return: [B, 2, F, T]
         """
         assert noisy_mag.dim() == 4
-        noisy_mag = functional.pad(noisy_mag, [0, self.look_ahead])  # Pad the look ahead
+        noisy_mag = functional.pad(
+            noisy_mag, [0, self.look_ahead]
+        )  # Pad the look ahead
         batch_size, num_channels, num_freqs, num_frames = noisy_mag.size()
-        assert num_channels == 1, f"{self.__class__.__name__} takes the mag feature as inputs."
+        assert (
+            num_channels == 1
+        ), f"{self.__class__.__name__} takes the mag feature as inputs."
 
         # Fullband model
-        fb_input = self.norm(noisy_mag).reshape(batch_size, num_channels * num_freqs, num_frames)
-        fb_output = self.fb_model(fb_input).reshape(batch_size, 1, num_freqs, num_frames)
+        fb_input = self.norm(noisy_mag).reshape(
+            batch_size, num_channels * num_freqs, num_frames
+        )
+        fb_output = self.fb_model(fb_input).reshape(
+            batch_size, 1, num_freqs, num_frames
+        )
 
         # Unfold the output of the fullband model, [B, N=F, C, F_f, T]
         fb_output_unfolded = self.unfold(fb_output, num_neighbor=self.fb_num_neighbors)
-        fb_output_unfolded = fb_output_unfolded.reshape(batch_size, num_freqs, self.fb_num_neighbors * 2 + 1, num_frames)
+        fb_output_unfolded = fb_output_unfolded.reshape(
+            batch_size, num_freqs, self.fb_num_neighbors * 2 + 1, num_frames
+        )
 
         # Unfold noisy input, [B, N=F, C, F_s, T]
         noisy_mag_unfolded = self.unfold(noisy_mag, num_neighbor=self.sb_num_neighbors)
-        noisy_mag_unfolded = noisy_mag_unfolded.reshape(batch_size, num_freqs, self.sb_num_neighbors * 2 + 1, num_frames)
+        noisy_mag_unfolded = noisy_mag_unfolded.reshape(
+            batch_size, num_freqs, self.sb_num_neighbors * 2 + 1, num_frames
+        )
 
         # Concatenation, [B, F, (F_s + F_f), T]
         sb_input = torch.cat([noisy_mag_unfolded, fb_output_unfolded], dim=2)
@@ -100,21 +118,29 @@ class Model(BaseModel):
 
         # Speeding up training without significant performance degradation. These will be updated to the paper later.
         if batch_size > 1:
-            sb_input = drop_band(sb_input.permute(0, 2, 1, 3), num_groups=self.num_groups_in_drop_band)  # [B, (F_s + F_f), F//num_groups, T]
+            sb_input = drop_band(
+                sb_input.permute(0, 2, 1, 3), num_groups=self.num_groups_in_drop_band
+            )  # [B, (F_s + F_f), F//num_groups, T]
             num_freqs = sb_input.shape[2]
-            sb_input = sb_input.permute(0, 2, 1, 3)  # [B, F//num_groups, (F_s + F_f), T]
+            sb_input = sb_input.permute(
+                0, 2, 1, 3
+            )  # [B, F//num_groups, (F_s + F_f), T]
 
         sb_input = sb_input.reshape(
             batch_size * num_freqs,
             (self.sb_num_neighbors * 2 + 1) + (self.fb_num_neighbors * 2 + 1),
-            num_frames
+            num_frames,
         )
 
         # [B * F, (F_s + F_f), T] => [B * F, 2, T] => [B, F, 2, T]
         sb_mask = self.sb_model(sb_input)
-        sb_mask = sb_mask.reshape(batch_size, num_freqs, 2, num_frames).permute(0, 2, 1, 3).contiguous()
+        sb_mask = (
+            sb_mask.reshape(batch_size, num_freqs, 2, num_frames)
+            .permute(0, 2, 1, 3)
+            .contiguous()
+        )
 
-        output = sb_mask[:, :, :, self.look_ahead:]
+        output = sb_mask[:, :, :, self.look_ahead :]
         return output
 
 

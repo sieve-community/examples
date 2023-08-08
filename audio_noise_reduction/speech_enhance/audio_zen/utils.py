@@ -8,12 +8,19 @@ import torch
 
 # for log
 from utils.logger import log
-print=log
+
+print = log
+
 
 def load_checkpoint(checkpoint_path, device):
     _, ext = os.path.splitext(os.path.basename(checkpoint_path))
-    assert ext in (".pth", ".tar"), "Only support ext and tar extensions of l1 checkpoint."
-    model_checkpoint = torch.load(os.path.abspath(os.path.expanduser(checkpoint_path)), map_location=device)
+    assert ext in (
+        ".pth",
+        ".tar",
+    ), "Only support ext and tar extensions of l1 checkpoint."
+    model_checkpoint = torch.load(
+        os.path.abspath(os.path.expanduser(checkpoint_path)), map_location=device
+    )
 
     if ext == ".pth":
         print(f"Loading {checkpoint_path}.")
@@ -33,7 +40,9 @@ def prepare_empty_dir(dirs, resume=False):
     """
     for dir_path in dirs:
         if resume:
-            assert dir_path.exists(), "In resume mode, you must be have an old experiment dir."
+            assert (
+                dir_path.exists()
+            ), "In resume mode, you must be have an old experiment dir."
         else:
             dir_path.mkdir(parents=True, exist_ok=True)
 
@@ -107,7 +116,8 @@ def print_tensor_info(tensor, flag="Tensor"):
         f"{flag}\n"
         f"\t"
         f"max: {floor_tensor(torch.max(tensor))}, min: {float(torch.min(tensor))}, "
-        f"mean: {floor_tensor(torch.mean(tensor))}, std: {floor_tensor(torch.std(tensor))}")
+        f"mean: {floor_tensor(torch.mean(tensor))}, std: {floor_tensor(torch.std(tensor))}"
+    )
 
 
 def set_requires_grad(nets, requires_grad=False):
@@ -199,7 +209,9 @@ def prepare_device(n_gpu: int, keep_reproducibility=False):
         if keep_reproducibility:
             print("Using CuDNN deterministic mode in the experiment.")
             torch.backends.cudnn.benchmark = False  # ensures that CUDA selects the same convolution algorithm each time
-            torch.set_deterministic(True)  # configures PyTorch only to use deterministic implementation
+            torch.set_deterministic(
+                True
+            )  # configures PyTorch only to use deterministic implementation
         else:
             # causes cuDNN to benchmark multiple convolution algorithms and select the fastest
             torch.backends.cudnn.benchmark = True

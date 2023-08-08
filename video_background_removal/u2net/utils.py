@@ -12,6 +12,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 from PIL import Image
 
+
 # ==========================dataset load==========================
 class RescaleT(object):
     def __init__(self, output_size):
@@ -108,7 +109,6 @@ class ToTensor(object):
     """Convert ndarrays in sample to Tensors."""
 
     def __call__(self, sample):
-
         imidx, image, label = sample["imidx"], sample["image"], sample["label"]
 
         tmpImg = np.zeros((image.shape[0], image.shape[1], 3))
@@ -150,7 +150,6 @@ class ToTensorLab(object):
         self.flag = flag
 
     def __call__(self, sample):
-
         imidx, image, label = sample["imidx"], sample["image"], sample["label"]
 
         tmpLbl = np.zeros(label.shape)
@@ -286,7 +285,6 @@ class SalObjDataset(Dataset):
         return len(self.image_name_list)
 
     def __getitem__(self, idx):
-
         # image = Image.open(self.image_name_list[idx])#io.imread(self.image_name_list[idx])
         # label = Image.open(self.label_name_list[idx])#io.imread(self.label_name_list[idx])
 

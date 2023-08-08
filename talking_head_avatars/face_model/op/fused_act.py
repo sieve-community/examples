@@ -8,18 +8,18 @@ from torch.autograd import Function
 from torch.utils.cpp_extension import load, _import_module_from_library
 
 # if running GPEN without cuda, please comment line 11-19
-if platform.system() == 'Linux' and torch.cuda.is_available():
+if platform.system() == "Linux" and torch.cuda.is_available():
     module_path = os.path.dirname(__file__)
     fused = load(
-        'fused',
+        "fused",
         sources=[
-            os.path.join(module_path, 'fused_bias_act.cpp'),
-            os.path.join(module_path, 'fused_bias_act_kernel.cu'),
+            os.path.join(module_path, "fused_bias_act.cpp"),
+            os.path.join(module_path, "fused_bias_act_kernel.cu"),
         ],
     )
 
 
-#fused = _import_module_from_library('fused', '/tmp/torch_extensions/fused', True)
+# fused = _import_module_from_library('fused', '/tmp/torch_extensions/fused', True)
 
 
 class FusedLeakyReLUFunctionBackward(Function):
@@ -46,7 +46,7 @@ class FusedLeakyReLUFunctionBackward(Function):
 
     @staticmethod
     def backward(ctx, gradgrad_input, gradgrad_bias):
-        out, = ctx.saved_tensors
+        (out,) = ctx.saved_tensors
         gradgrad_out = fused.fused_bias_act(
             gradgrad_input, gradgrad_bias, out, 3, 1, ctx.negative_slope, ctx.scale
         )
@@ -67,7 +67,7 @@ class FusedLeakyReLUFunction(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        out, = ctx.saved_tensors
+        (out,) = ctx.saved_tensors
 
         grad_input, grad_bias = FusedLeakyReLUFunctionBackward.apply(
             grad_output, out, ctx.negative_slope, ctx.scale
@@ -77,7 +77,7 @@ class FusedLeakyReLUFunction(Function):
 
 
 class FusedLeakyReLU(nn.Module):
-    def __init__(self, channel, negative_slope=0.2, scale=2 ** 0.5, device='cpu'):
+    def __init__(self, channel, negative_slope=0.2, scale=2**0.5, device="cpu"):
         super().__init__()
 
         self.bias = nn.Parameter(torch.zeros(channel))
@@ -86,11 +86,16 @@ class FusedLeakyReLU(nn.Module):
         self.device = device
 
     def forward(self, input):
-        return fused_leaky_relu(input, self.bias, self.negative_slope, self.scale, self.device)
+        return fused_leaky_relu(
+            input, self.bias, self.negative_slope, self.scale, self.device
+        )
 
 
-def fused_leaky_relu(input, bias, negative_slope=0.2, scale=2 ** 0.5, device='cpu'):
-    if platform.system() == 'Linux' and torch.cuda.is_available() and device != 'cpu':
+def fused_leaky_relu(input, bias, negative_slope=0.2, scale=2**0.5, device="cpu"):
+    if platform.system() == "Linux" and torch.cuda.is_available() and device != "cpu":
         return FusedLeakyReLUFunction.apply(input, bias, negative_slope, scale)
     else:
-        return scale * F.leaky_relu(input + bias.view((1, -1)+(1,)*(len(input.shape)-2)), negative_slope=negative_slope)
+        return scale * F.leaky_relu(
+            input + bias.view((1, -1) + (1,) * (len(input.shape) - 2)),
+            negative_slope=negative_slope,
+        )

@@ -97,12 +97,12 @@ def generate_dir_tree(synth_dir, dir_name_list, del_old=False):
 
 
 def str2bool(v):
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+    if v.lower() in ("yes", "true", "t", "y", "1"):
         return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+    elif v.lower() in ("no", "false", "f", "n", "0"):
         return False
     else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
+        raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
 def pad(input_ele, mel_max_length=None):
@@ -165,11 +165,13 @@ def get_mask_from_lengths(lengths, max_len=None):
     if max_len is None:
         max_len = torch.max(lengths).item()
 
-    ids = torch.arange(0, max_len).unsqueeze(0).expand(batch_size, -1).to(lengths.device)
+    ids = (
+        torch.arange(0, max_len).unsqueeze(0).expand(batch_size, -1).to(lengths.device)
+    )
     mask = ids >= lengths.unsqueeze(1).expand(-1, max_len)
 
     return mask
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

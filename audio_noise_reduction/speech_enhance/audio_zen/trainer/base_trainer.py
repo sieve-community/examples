@@ -20,11 +20,21 @@ from audio_zen.acoustics.utils import transform_pesq_range
 from audio_zen.utils import prepare_empty_dir, ExecutionTime
 from utils.logger import log
 
-plt.switch_backend('agg')
+plt.switch_backend("agg")
 
 
 class BaseTrainer:
-    def __init__(self, dist, rank, config, resume, only_validation, model, loss_function, optimizer):
+    def __init__(
+        self,
+        dist,
+        rank,
+        config,
+        resume,
+        only_validation,
+        model,
+        loss_function,
+        optimizer,
+    ):
         self.color_tool = colorful
         self.color_tool.use_style("solarized")
 
@@ -49,10 +59,18 @@ class BaseTrainer:
         hop_length = self.acoustic_config["hop_length"]
         win_length = self.acoustic_config["win_length"]
 
-        self.torch_stft = partial(stft, n_fft=n_fft, hop_length=hop_length, win_length=win_length)
-        self.torch_istft = partial(istft, n_fft=n_fft, hop_length=hop_length, win_length=win_length)
-        self.librosa_stft = partial(librosa.stft, n_fft=n_fft, hop_length=hop_length, win_length=win_length)
-        self.librosa_istft = partial(librosa.istft, hop_length=hop_length, win_length=win_length)
+        self.torch_stft = partial(
+            stft, n_fft=n_fft, hop_length=hop_length, win_length=win_length
+        )
+        self.torch_istft = partial(
+            istft, n_fft=n_fft, hop_length=hop_length, win_length=win_length
+        )
+        self.librosa_stft = partial(
+            librosa.stft, n_fft=n_fft, hop_length=hop_length, win_length=win_length
+        )
+        self.librosa_istft = partial(
+            librosa.istft, hop_length=hop_length, win_length=win_length
+        )
 
         # Trainer.train in the config
         self.train_config = config["trainer"]["train"]
@@ -61,13 +79,17 @@ class BaseTrainer:
         self.epochs = self.train_config["epochs"]
         self.save_checkpoint_interval = self.train_config["save_checkpoint_interval"]
         self.clip_grad_norm_value = self.train_config["clip_grad_norm_value"]
-        assert self.save_checkpoint_interval >= 1, "Check the 'save_checkpoint_interval' parameter in the config. It should be large than one."
+        assert (
+            self.save_checkpoint_interval >= 1
+        ), "Check the 'save_checkpoint_interval' parameter in the config. It should be large than one."
 
         # Trainer.validation in the config
         self.validation_config = config["trainer"]["validation"]
         self.validation_interval = self.validation_config["validation_interval"]
         self.save_max_metric_score = self.validation_config["save_max_metric_score"]
-        assert self.validation_interval >= 1, "Check the 'validation_interval' parameter in the config. It should be large than one."
+        assert (
+            self.validation_interval >= 1
+        ), "Check the 'validation_interval' parameter in the config. It should be large than one."
 
         # Trainer.visualization in the config
         self.visualization_config = config["trainer"]["visualization"]
@@ -75,7 +97,10 @@ class BaseTrainer:
         # In the 'train.py' file, if the 'resume' item is 'True', we will update the following args:
         self.start_epoch = 1
         self.best_score = -np.inf if self.save_max_metric_score else np.inf
-        self.save_dir = Path(config["meta"]["save_dir"]).expanduser().absolute() / config["meta"]["experiment_name"]
+        self.save_dir = (
+            Path(config["meta"]["save_dir"]).expanduser().absolute()
+            / config["meta"]["experiment_name"]
+        )
         self.checkpoints_dir = self.save_dir / "checkpoints"
         self.logs_dir = self.save_dir / "logs"
 
@@ -91,11 +116,13 @@ class BaseTrainer:
         if self.rank == 0:
             prepare_empty_dir([self.checkpoints_dir, self.logs_dir], resume=resume)
 
-            self.writer = SummaryWriter(self.logs_dir.as_posix(), max_queue=5, flush_secs=30)
+            self.writer = SummaryWriter(
+                self.logs_dir.as_posix(), max_queue=5, flush_secs=30
+            )
             self.writer.add_text(
                 tag="Configuration",
                 text_string=f"<pre>  \n{toml.dumps(config)}  \n</pre>",
-                global_step=1
+                global_step=1,
             )
 
             print(self.color_tool.cyan("The configurations are as follows: "))
@@ -103,7 +130,12 @@ class BaseTrainer:
             print(self.color_tool.cyan(toml.dumps(config)[:-1]))  # except "\n"
             print(self.color_tool.cyan("=" * 40))
 
-            with open((self.save_dir / f"{time.strftime('%Y-%m-%d %H:%M:%S')}.toml").as_posix(), "w") as handle:
+            with open(
+                (
+                    self.save_dir / f"{time.strftime('%Y-%m-%d %H:%M:%S')}.toml"
+                ).as_posix(),
+                "w",
+            ) as handle:
                 toml.dump(config, handle)
 
             self._print_networks([self.model])
@@ -116,7 +148,9 @@ class BaseTrainer:
             model_path (Path): The file path of the *.tar file
         """
         model_path = model_path.expanduser().absolute()
-        assert model_path.exists(), f"The file {model_path.as_posix()} is not exist. please check path."
+        assert (
+            model_path.exists()
+        ), f"The file {model_path.as_posix()} is not exist. please check path."
 
         model_checkpoint = torch.load(model_path.as_posix(), map_location="cpu")
         self.model.load_state_dict(model_checkpoint["model"], strict=False)
@@ -129,8 +163,12 @@ class BaseTrainer:
         """
         Resume the experiment from the latest checkpoint.
         """
-        latest_model_path = self.checkpoints_dir.expanduser().absolute() / "latest_model.tar"
-        assert latest_model_path.exists(), f"{latest_model_path} does not exist, can not load latest checkpoint."
+        latest_model_path = (
+            self.checkpoints_dir.expanduser().absolute() / "latest_model.tar"
+        )
+        assert (
+            latest_model_path.exists()
+        ), f"{latest_model_path} does not exist, can not load latest checkpoint."
 
         # Make sure all processes (GPUs) do not start loading before the saving is finished.
         # see https://stackoverflow.com/questions/59760328/how-does-torch-distributed-barrier-work
@@ -154,7 +192,9 @@ class BaseTrainer:
         # self.model.to(self.rank)
 
         if self.rank == 0:
-            print(f"Model checkpoint loaded. Training will begin at {self.start_epoch} epoch.")
+            print(
+                f"Model checkpoint loaded. Training will begin at {self.start_epoch} epoch."
+            )
 
     def _save_checkpoint(self, epoch, is_best_epoch=False):
         """
@@ -174,7 +214,7 @@ class BaseTrainer:
             "epoch": epoch,
             "best_score": self.best_score,
             "optimizer": self.optimizer.state_dict(),
-            "scaler": self.scaler.state_dict()
+            "scaler": self.scaler.state_dict(),
         }
 
         if isinstance(self.model, torch.nn.parallel.DistributedDataParallel):
@@ -189,15 +229,24 @@ class BaseTrainer:
 
         # "model_{epoch_number}.pth"
         # Contains only model.
-        torch.save(state_dict["model"], (self.checkpoints_dir / f"model_{str(epoch).zfill(4)}.pth").as_posix())
+        torch.save(
+            state_dict["model"],
+            (self.checkpoints_dir / f"model_{str(epoch).zfill(4)}.pth").as_posix(),
+        )
 
         # If the model get a best metric score (means "is_best_epoch=True") in the current epoch,
         # the model checkpoint will be saved as "best_model.tar"
         # The newer best-scored checkpoint will overwrite the older one.
         if is_best_epoch:
-            print(self.color_tool.red(f"\t Found a best score in the {epoch} epoch, saving..."))
+            print(
+                self.color_tool.red(
+                    f"\t Found a best score in the {epoch} epoch, saving..."
+                )
+            )
             log(f"\t Found a best score in the {epoch} epoch, saving...")
-            torch.save(state_dict, (self.checkpoints_dir / f"best_model.tar").as_posix())
+            torch.save(
+                state_dict, (self.checkpoints_dir / f"best_model.tar").as_posix()
+            )
 
     def _is_best_epoch(self, score, save_max_metric_score=True):
         """
@@ -214,7 +263,9 @@ class BaseTrainer:
 
     @staticmethod
     def _print_networks(models: list):
-        print(f"This project contains {len(models)} models, the number of the parameters is: ")
+        print(
+            f"This project contains {len(models)} models, the number of the parameters is: "
+        )
 
         params_of_all_networks = 0
         for idx, model in enumerate(models, start=1):
@@ -225,7 +276,9 @@ class BaseTrainer:
             print(f"\tNetwork {idx}: {params_of_network / 1e6} million.")
             params_of_all_networks += params_of_network
 
-        print(f"The amount of parameters in the project is {params_of_all_networks / 1e6} million.")
+        print(
+            f"The amount of parameters in the project is {params_of_all_networks / 1e6} million."
+        )
 
     def _set_models_to_train_mode(self):
         self.model.train()
@@ -240,14 +293,32 @@ class BaseTrainer:
         win_length = self.acoustic_config["win_length"]
         sr = self.acoustic_config["sr"]
 
-        self.writer.add_audio(f"{mark}_Speech/{name}_Noisy", noisy, epoch, sample_rate=sr)
-        self.writer.add_audio(f"{mark}_Speech/{name}_Enhanced", enhanced, epoch, sample_rate=sr)
-        self.writer.add_audio(f"{mark}_Speech/{name}_Clean", clean, epoch, sample_rate=sr)
+        self.writer.add_audio(
+            f"{mark}_Speech/{name}_Noisy", noisy, epoch, sample_rate=sr
+        )
+        self.writer.add_audio(
+            f"{mark}_Speech/{name}_Enhanced", enhanced, epoch, sample_rate=sr
+        )
+        self.writer.add_audio(
+            f"{mark}_Speech/{name}_Clean", clean, epoch, sample_rate=sr
+        )
 
         # Visualize the spectrogram of noisy speech, clean speech, and enhanced speech
-        noisy_mag, _ = librosa.magphase(self.librosa_stft(noisy, n_fft=n_fft, hop_length=hop_length, win_length=win_length))
-        enhanced_mag, _ = librosa.magphase(self.librosa_stft(enhanced, n_fft=n_fft, hop_length=hop_length, win_length=win_length))
-        clean_mag, _ = librosa.magphase(self.librosa_stft(clean, n_fft=n_fft, hop_length=hop_length, win_length=win_length))
+        noisy_mag, _ = librosa.magphase(
+            self.librosa_stft(
+                noisy, n_fft=n_fft, hop_length=hop_length, win_length=win_length
+            )
+        )
+        enhanced_mag, _ = librosa.magphase(
+            self.librosa_stft(
+                enhanced, n_fft=n_fft, hop_length=hop_length, win_length=win_length
+            )
+        )
+        clean_mag, _ = librosa.magphase(
+            self.librosa_stft(
+                clean, n_fft=n_fft, hop_length=hop_length, win_length=win_length
+            )
+        )
         fig, axes = plt.subplots(3, 1, figsize=(6, 6))
         for k, mag in enumerate([noisy_mag, enhanced_mag, clean_mag]):
             axes[k].set_title(
@@ -256,11 +327,26 @@ class BaseTrainer:
                 f"max: {np.max(mag):.3f}, "
                 f"min: {np.min(mag):.3f}"
             )
-            librosa.display.specshow(librosa.amplitude_to_db(mag), cmap="magma", y_axis="linear", ax=axes[k], sr=sr)
+            librosa.display.specshow(
+                librosa.amplitude_to_db(mag),
+                cmap="magma",
+                y_axis="linear",
+                ax=axes[k],
+                sr=sr,
+            )
         plt.tight_layout()
         self.writer.add_figure(f"{mark}_Spectrogram/{name}", fig, epoch)
 
-    def metrics_visualization(self, noisy_list, clean_list, enhanced_list, metrics_list, epoch, num_workers=10, mark=""):
+    def metrics_visualization(
+        self,
+        noisy_list,
+        clean_list,
+        enhanced_list,
+        metrics_list,
+        epoch,
+        num_workers=10,
+        mark="",
+    ):
         """
         Get metrics on validation dataset by paralleling.
 
@@ -269,29 +355,40 @@ class BaseTrainer:
              used for checking if the current epoch is a "best epoch."
             2. If you want to use a new metric, you must register it in "util.metrics" file.
         """
-        assert "STOI" in metrics_list and "WB_PESQ" in metrics_list, "'STOI' and 'WB_PESQ' must be existence."
+        assert (
+            "STOI" in metrics_list and "WB_PESQ" in metrics_list
+        ), "'STOI' and 'WB_PESQ' must be existence."
 
         # Check if the metric is registered in "util.metrics" file.
         for i in metrics_list:
-            assert i in metrics.REGISTERED_METRICS.keys(), f"{i} is not registered, please check 'util.metrics' file."
+            assert (
+                i in metrics.REGISTERED_METRICS.keys()
+            ), f"{i} is not registered, please check 'util.metrics' file."
 
         stoi_mean = 0.0
         wb_pesq_mean = 0.0
         for metric_name in metrics_list:
             score_on_noisy = Parallel(n_jobs=num_workers)(
-                delayed(metrics.REGISTERED_METRICS[metric_name])(ref, est, sr=self.acoustic_config["sr"]) for ref, est in zip(clean_list, noisy_list)
+                delayed(metrics.REGISTERED_METRICS[metric_name])(
+                    ref, est, sr=self.acoustic_config["sr"]
+                )
+                for ref, est in zip(clean_list, noisy_list)
             )
             score_on_enhanced = Parallel(n_jobs=num_workers)(
-                delayed(metrics.REGISTERED_METRICS[metric_name])(ref, est, sr=self.acoustic_config["sr"]) for ref, est in zip(clean_list, enhanced_list)
+                delayed(metrics.REGISTERED_METRICS[metric_name])(
+                    ref, est, sr=self.acoustic_config["sr"]
+                )
+                for ref, est in zip(clean_list, enhanced_list)
             )
 
             # Add the mean value of the metric to tensorboard
             mean_score_on_noisy = np.mean(score_on_noisy)
             mean_score_on_enhanced = np.mean(score_on_enhanced)
-            self.writer.add_scalars(f"{mark}_Validation/{metric_name}", {
-                "Noisy": mean_score_on_noisy,
-                "Enhanced": mean_score_on_enhanced
-            }, epoch)
+            self.writer.add_scalars(
+                f"{mark}_Validation/{metric_name}",
+                {"Noisy": mean_score_on_noisy, "Enhanced": mean_score_on_enhanced},
+                epoch,
+            )
 
             if metric_name == "STOI":
                 stoi_mean = mean_score_on_enhanced
@@ -313,7 +410,9 @@ class BaseTrainer:
                 self._set_models_to_eval_mode()
                 metric_score = self._validation_epoch(epoch)
 
-                if self._is_best_epoch(metric_score, save_max_metric_score=self.save_max_metric_score):
+                if self._is_best_epoch(
+                    metric_score, save_max_metric_score=self.save_max_metric_score
+                ):
                     self._save_checkpoint(epoch, is_best_epoch=True)
 
                 # Skip the following regular training, saving checkpoints, and validation
@@ -325,17 +424,25 @@ class BaseTrainer:
             self._train_epoch(epoch)
 
             #  Regular save checkpoints
-            if self.rank == 0 and self.save_checkpoint_interval != 0 and (epoch % self.save_checkpoint_interval == 0):
+            if (
+                self.rank == 0
+                and self.save_checkpoint_interval != 0
+                and (epoch % self.save_checkpoint_interval == 0)
+            ):
                 self._save_checkpoint(epoch)
 
             # Regular validation
             if self.rank == 0 and (epoch % self.validation_interval == 0):
-                print(f"[{timer.duration()} seconds] Training has finished, validation is in progress...")
+                print(
+                    f"[{timer.duration()} seconds] Training has finished, validation is in progress..."
+                )
 
                 self._set_models_to_eval_mode()
                 metric_score = self._validation_epoch(epoch)
 
-                if self._is_best_epoch(metric_score, save_max_metric_score=self.save_max_metric_score):
+                if self._is_best_epoch(
+                    metric_score, save_max_metric_score=self.save_max_metric_score
+                ):
                     self._save_checkpoint(epoch, is_best_epoch=True)
 
             print(f"[{timer.duration()} seconds] This epoch is finished.")

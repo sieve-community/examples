@@ -1,5 +1,6 @@
 import sieve
 
+
 @sieve.Model(
     name="tortoise-tts",
     python_packages=[
@@ -23,11 +24,11 @@ import sieve
         "wget -c 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/vocoder.pth' -P /root/.cache/tortoise/models/",
         "wget -c 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/rlg_auto.pth' -P /root/.cache/tortoise/models/",
         "wget -c 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/rlg_diffuser.pth' -P /root/.cache/tortoise/models/",
-        "pip install -e 'git+https://github.com/sieve-community/tortoise-tts.git@0cf6febaa52f67c3a8cd882330625606efa2b13d#egg=TorToiSe'"
+        "pip install -e 'git+https://github.com/sieve-community/tortoise-tts.git@0cf6febaa52f67c3a8cd882330625606efa2b13d#egg=TorToiSe'",
     ],
     persist_output=True,
     gpu=True,
-    machine_type='a100'
+    machine_type="a100",
 )
 class TortoiseTTS:
     def __setup__(self):
@@ -36,6 +37,7 @@ class TortoiseTTS:
         from tortoise.utils.audio import load_voices, load_audio
         from tortoise.utils.text import split_and_recombine_text
         import torch
+
         self.tts = TextToSpeech(models_dir=MODELS_DIR)
 
     def __predict__(self, text: str) -> sieve.Audio:
@@ -46,23 +48,30 @@ class TortoiseTTS:
         import torch
         import os
 
-        if '|' in text:
-            print("Found the '|' character in your text, which I will use as a cue for where to split it up. If this was not"
-                "your intent, please remove all '|' characters from the input.")
-            texts = text.split('|')
+        if "|" in text:
+            print(
+                "Found the '|' character in your text, which I will use as a cue for where to split it up. If this was not"
+                "your intent, please remove all '|' characters from the input."
+            )
+            texts = text.split("|")
         else:
             texts = split_and_recombine_text(text)
 
-        voice_sel = ['freeman']
+        voice_sel = ["freeman"]
         voice_samples, conditioning_latents = load_voices(voice_sel)
         all_parts = []
         for j, text in enumerate(texts):
-            gen = self.tts.tts_with_preset(text, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
-                                    preset="ultra_fast", k=1, use_deterministic_seed=1)
+            gen = self.tts.tts_with_preset(
+                text,
+                voice_samples=voice_samples,
+                conditioning_latents=conditioning_latents,
+                preset="ultra_fast",
+                k=1,
+                use_deterministic_seed=1,
+            )
             gen = gen.squeeze(0).cpu()
             all_parts.append(gen)
 
         full_audio = torch.cat(all_parts, dim=-1)
-        torchaudio.save(os.path.join('combined.wav'), full_audio, 24000)
-        return sieve.Audio(path='combined.wav')
-    
+        torchaudio.save(os.path.join("combined.wav"), full_audio, 24000)
+        return sieve.Audio(path="combined.wav")

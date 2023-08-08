@@ -16,12 +16,13 @@ import sieve
     persist_output=True,
 )
 def frame_combine(images: sieve.Image) -> sieve.Video:
-    '''
+    """
     :param images: an generator of Sieve images
     :return: a Sieve video with the frames stiched together
-    '''
+    """
     import uuid
     import ffmpeg
+
     l = []
     for i in images:
         l.append(i)
@@ -29,15 +30,20 @@ def frame_combine(images: sieve.Image) -> sieve.Video:
     sorted_by_frame_number = sorted(l, key=lambda k: k.frame_number)
     image_paths = [i.path for i in sorted_by_frame_number]
 
-    if hasattr(l[0], 'fps'):
+    if hasattr(l[0], "fps"):
         fps = l[0].fps
     else:
         fps = 30
 
     video_path = f"{uuid.uuid4()}.mp4"
-    process = ffmpeg.input('pipe:', r=str(fps), f='image2pipe').output(video_path, vcodec='libx264', pix_fmt='yuv420p').overwrite_output().run_async(pipe_stdin=True)
+    process = (
+        ffmpeg.input("pipe:", r=str(fps), f="image2pipe")
+        .output(video_path, vcodec="libx264", pix_fmt="yuv420p")
+        .overwrite_output()
+        .run_async(pipe_stdin=True)
+    )
     for in_file in image_paths:
-        with open(in_file, 'rb') as f:
+        with open(in_file, "rb") as f:
             jpeg_data = f.read()
             process.stdin.write(jpeg_data)
 

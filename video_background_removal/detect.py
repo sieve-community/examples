@@ -9,6 +9,7 @@ from skimage import transform
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 # from torch.autograd import Variable
 
 from torchvision import transforms  # , utils
@@ -17,7 +18,6 @@ from u2net import utils, model
 
 
 def load_model(model_name: str = "u2netp"):
-
     if model_name == "u2netp":
         net = model.U2NETP(3, 1)
     elif model_name == "u2net":
@@ -31,10 +31,14 @@ def load_model(model_name: str = "u2netp"):
             net.load_state_dict(torch.load("/root/.cache/lip/models/u2netp.pth"))
             net.to(torch.device("cuda"))
         else:
-            net.load_state_dict(torch.load("/root/.cache/lip/models/u2netp.pth", map_location="cpu"))
+            net.load_state_dict(
+                torch.load("/root/.cache/lip/models/u2netp.pth", map_location="cpu")
+            )
     except FileNotFoundError:
         raise FileNotFoundError(
-            errno.ENOENT, os.strerror(errno.ENOENT), "/root/.cache/lip/models/u2netp.pth"
+            errno.ENOENT,
+            os.strerror(errno.ENOENT),
+            "/root/.cache/lip/models/u2netp.pth",
         )
 
     net.eval()
@@ -72,13 +76,13 @@ def preprocess(image):
 
 
 def predict(net, item):
-
     sample = preprocess(item)
 
     with torch.no_grad():
-
         if torch.cuda.is_available():
-            inputs_test = torch.cuda.FloatTensor(sample["image"].unsqueeze(0).float().cuda())
+            inputs_test = torch.cuda.FloatTensor(
+                sample["image"].unsqueeze(0).float().cuda()
+            )
         else:
             inputs_test = torch.FloatTensor(sample["image"].unsqueeze(0).float())
 

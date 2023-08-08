@@ -1,9 +1,10 @@
 import sieve
 from typing import List, Dict
 
+
 @sieve.Model(
     name="yolo-v5",
-    gpu = True,
+    gpu=True,
     python_packages=[
         "torch==1.8.1",
         "pandas==1.5.2",
@@ -19,18 +20,19 @@ from typing import List, Dict
     python_version="3.8",
     run_commands=[
         "python -c \"import torch; print(torch.hub.load('ultralytics/yolov5', 'yolov5s'))\""
-    ]
+    ],
 )
 class Yolo:
     def __setup__(self):
         import torch
-        self.yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+
+        self.yolo_model = torch.hub.load("ultralytics/yolov5", "yolov5s")
 
     def __predict__(self, img: sieve.Image) -> List:
-        '''
+        """
         :param img: Image to detect objects in
         :return: List of objects with their bounding boxes, classes, and scores
-        '''
+        """
         results = self.yolo_model(img.array)
         outputs = []
         for pred in reversed(results.pred):
@@ -40,10 +42,14 @@ class Yolo:
                 score = float(conf)
                 if score < 0.7:
                     continue
-                outputs.append({
-                    "box": box,
-                    "class_name": cls_name,
-                    "score": score,
-                    "frame_number": None if not hasattr(img, "frame_number") else img.frame_number
-                })
+                outputs.append(
+                    {
+                        "box": box,
+                        "class_name": cls_name,
+                        "score": score,
+                        "frame_number": None
+                        if not hasattr(img, "frame_number")
+                        else img.frame_number,
+                    }
+                )
         return outputs

@@ -4,22 +4,38 @@ from torch.cuda.amp import autocast
 from tqdm import tqdm
 
 from audio_zen.acoustics.feature import mag_phase, drop_band
-from audio_zen.acoustics.mask import build_complex_ideal_ratio_mask, decompress_cIRM, build_ideal_ratio_mask
+from audio_zen.acoustics.mask import (
+    build_complex_ideal_ratio_mask,
+    decompress_cIRM,
+    build_ideal_ratio_mask,
+)
 from audio_zen.trainer.base_trainer import BaseTrainer
 from utils.logger import log
 
-plt.switch_backend('agg')
+plt.switch_backend("agg")
 
 
 class Trainer(BaseTrainer):
-    def __init__(self, dist, rank, config, resume, only_validation, model, loss_function, optimizer, train_dataloader,
-                 validation_dataloader):
-        super().__init__(dist, rank, config, resume, only_validation, model, loss_function, optimizer)
+    def __init__(
+        self,
+        dist,
+        rank,
+        config,
+        resume,
+        only_validation,
+        model,
+        loss_function,
+        optimizer,
+        train_dataloader,
+        validation_dataloader,
+    ):
+        super().__init__(
+            dist, rank, config, resume, only_validation, model, loss_function, optimizer
+        )
         self.train_dataloader = train_dataloader
         self.valid_dataloader = validation_dataloader
 
     def _train_epoch(self, epoch):
-
         loss_total = 0.0
         progress_bar = None
 
@@ -39,11 +55,15 @@ class Trainer(BaseTrainer):
             noisy_mag, _ = mag_phase(noisy_complex)
             clean_mag, _ = mag_phase(clean_complex)
 
-            ground_truth_IRM = build_ideal_ratio_mask(noisy_mag, clean_mag)  # [B, F, T, 1]
-            ground_truth_cIRM = build_complex_ideal_ratio_mask(noisy_complex, clean_complex)  # [B, F, T, 2]
+            ground_truth_IRM = build_ideal_ratio_mask(
+                noisy_mag, clean_mag
+            )  # [B, F, T, 1]
+            ground_truth_cIRM = build_complex_ideal_ratio_mask(
+                noisy_complex, clean_complex
+            )  # [B, F, T, 2]
             ground_truth_cIRM = drop_band(
                 ground_truth_cIRM.permute(0, 3, 1, 2),  # [B, 2, F ,T]
-                self.model.module.num_groups_in_drop_band
+                self.model.module.num_groups_in_drop_band,
             ).permute(0, 2, 3, 1)
 
             with autocast(enabled=self.use_amp):
@@ -51,12 +71,15 @@ class Trainer(BaseTrainer):
                 RM, cRM = self.model(noisy_complex)
                 RM = RM.permute(0, 2, 3, 1)
                 cRM = cRM.permute(0, 2, 3, 1)
-                loss = self.alpha * self.loss_function(ground_truth_cIRM, cRM) + (1 - self.alpha) * self.loss_function(
-                    ground_truth_IRM, RM)
+                loss = self.alpha * self.loss_function(ground_truth_cIRM, cRM) + (
+                    1 - self.alpha
+                ) * self.loss_function(ground_truth_IRM, RM)
 
             self.scaler.scale(loss).backward()
             self.scaler.unscale_(self.optimizer)
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.clip_grad_norm_value)
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(), self.clip_grad_norm_value
+            )
             self.scaler.step(self.optimizer)
             self.scaler.update()
 
@@ -67,8 +90,12 @@ class Trainer(BaseTrainer):
                 progress_bar.refresh()
 
         if self.rank == 0:
-            log(f"[Train] Epoch {epoch}, Loss {loss_total / len(self.train_dataloader)}")
-            self.writer.add_scalar(f"Loss/Train", loss_total / len(self.train_dataloader), epoch)
+            log(
+                f"[Train] Epoch {epoch}, Loss {loss_total / len(self.train_dataloader)}"
+            )
+            self.writer.add_scalar(
+                f"Loss/Train", loss_total / len(self.train_dataloader), epoch
+            )
 
     @torch.no_grad()
     def _validation_epoch(self, epoch):
@@ -81,16 +108,33 @@ class Trainer(BaseTrainer):
         visualization_metrics = self.visualization_config["metrics"]
 
         loss_total = 0.0
-        loss_list = {"With_reverb": 0.0, "No_reverb": 0.0, }
-        item_idx_list = {"With_reverb": 0, "No_reverb": 0, }
-        noisy_y_list = {"With_reverb": [], "No_reverb": [], }
-        clean_y_list = {"With_reverb": [], "No_reverb": [], }
-        enhanced_y_list = {"With_reverb": [], "No_reverb": [], }
+        loss_list = {
+            "With_reverb": 0.0,
+            "No_reverb": 0.0,
+        }
+        item_idx_list = {
+            "With_reverb": 0,
+            "No_reverb": 0,
+        }
+        noisy_y_list = {
+            "With_reverb": [],
+            "No_reverb": [],
+        }
+        clean_y_list = {
+            "With_reverb": [],
+            "No_reverb": [],
+        }
+        enhanced_y_list = {
+            "With_reverb": [],
+            "No_reverb": [],
+        }
         validation_score_list = {"With_reverb": 0.0, "No_reverb": 0.0}
 
         # speech_type in ("with_reverb", "no_reverb")
         for i, (noisy, clean, name, speech_type) in enumerate(self.valid_dataloader):
-            assert len(name) == 1, "The batch size for the validation stage must be one."
+            assert (
+                len(name) == 1
+            ), "The batch size for the validation stage must be one."
             name = name[0]
             speech_type = speech_type[0]
 
@@ -106,18 +150,26 @@ class Trainer(BaseTrainer):
             # noisy_input = torch.stack([noisy_complex.real, noisy_complex.imag], dim=1)
 
             IRM = build_ideal_ratio_mask(noisy_mag, clean_mag)  # [B, F, T, 1]
-            cIRM = build_complex_ideal_ratio_mask(noisy_complex, clean_complex)  # [B, F, T, 2]
+            cIRM = build_complex_ideal_ratio_mask(
+                noisy_complex, clean_complex
+            )  # [B, F, T, 2]
 
             RM, cRM = self.model(noisy_complex)
             RM = RM.permute(0, 2, 3, 1)
             cRM = cRM.permute(0, 2, 3, 1)
 
-            loss = self.alpha * self.loss_function(cIRM, cRM) + (1 - self.alpha) * self.loss_function(IRM, RM)
+            loss = self.alpha * self.loss_function(cIRM, cRM) + (
+                1 - self.alpha
+            ) * self.loss_function(IRM, RM)
 
             cRM = decompress_cIRM(cRM)
 
-            enhanced_real = cRM[..., 0] * noisy_complex.real - cRM[..., 1] * noisy_complex.imag
-            enhanced_imag = cRM[..., 1] * noisy_complex.real + cRM[..., 0] * noisy_complex.imag
+            enhanced_real = (
+                cRM[..., 0] * noisy_complex.real - cRM[..., 1] * noisy_complex.imag
+            )
+            enhanced_imag = (
+                cRM[..., 1] * noisy_complex.real + cRM[..., 0] * noisy_complex.imag
+            )
             enhanced_complex = torch.stack((enhanced_real, enhanced_imag), dim=-1)
             enhanced = self.torch_istft(enhanced_complex, length=noisy.size(-1))
 
@@ -133,7 +185,9 @@ class Trainer(BaseTrainer):
             item_idx_list[speech_type] += 1
 
             if item_idx_list[speech_type] <= visualization_n_samples:
-                self.spec_audio_visualization(noisy, enhanced, clean, name, epoch, mark=speech_type)
+                self.spec_audio_visualization(
+                    noisy, enhanced, clean, name, epoch, mark=speech_type
+                )
 
             noisy_y_list[speech_type].append(noisy)
             clean_y_list[speech_type].append(clean)
@@ -143,29 +197,54 @@ class Trainer(BaseTrainer):
                 progress_bar.update(1)
 
         log(f"[Test] Epoch {epoch}, Loss {loss_total / len(self.valid_dataloader)}")
-        self.writer.add_scalar(f"Loss/Validation_Total", loss_total / len(self.valid_dataloader), epoch)
+        self.writer.add_scalar(
+            f"Loss/Validation_Total", loss_total / len(self.valid_dataloader), epoch
+        )
 
         for speech_type in ("With_reverb", "No_reverb"):
-            log(f"[Test] Epoch {epoch}, {speech_type}, Loss {loss_list[speech_type] / len(self.valid_dataloader)}")
-            self.writer.add_scalar(f"Loss/{speech_type}", loss_list[speech_type] / len(self.valid_dataloader), epoch)
+            log(
+                f"[Test] Epoch {epoch}, {speech_type}, Loss {loss_list[speech_type] / len(self.valid_dataloader)}"
+            )
+            self.writer.add_scalar(
+                f"Loss/{speech_type}",
+                loss_list[speech_type] / len(self.valid_dataloader),
+                epoch,
+            )
 
             validation_score_list[speech_type] = self.metrics_visualization(
-                noisy_y_list[speech_type], clean_y_list[speech_type], enhanced_y_list[speech_type],
-                visualization_metrics, epoch, visualization_num_workers, mark=speech_type
+                noisy_y_list[speech_type],
+                clean_y_list[speech_type],
+                enhanced_y_list[speech_type],
+                visualization_metrics,
+                epoch,
+                visualization_num_workers,
+                mark=speech_type,
             )
 
         return validation_score_list["No_reverb"]
 
 
 class Residual_Trainer(BaseTrainer):
-    def __init__(self, dist, rank, config, resume, only_validation, model, loss_function, optimizer, train_dataloader,
-                 validation_dataloader):
-        super().__init__(dist, rank, config, resume, only_validation, model, loss_function, optimizer)
+    def __init__(
+        self,
+        dist,
+        rank,
+        config,
+        resume,
+        only_validation,
+        model,
+        loss_function,
+        optimizer,
+        train_dataloader,
+        validation_dataloader,
+    ):
+        super().__init__(
+            dist, rank, config, resume, only_validation, model, loss_function, optimizer
+        )
         self.train_dataloader = train_dataloader
         self.valid_dataloader = validation_dataloader
 
     def _train_epoch(self, epoch):
-
         loss_total = 0.0
         progress_bar = None
 
@@ -185,7 +264,9 @@ class Residual_Trainer(BaseTrainer):
             noisy_mag, _ = mag_phase(noisy_complex)
             clean_mag, _ = mag_phase(clean_complex)
 
-            ground_truth_cIRM = build_complex_ideal_ratio_mask(noisy_complex, clean_complex)  # [B, F, T, 2]
+            ground_truth_cIRM = build_complex_ideal_ratio_mask(
+                noisy_complex, clean_complex
+            )  # [B, F, T, 2]
             # ground_truth_cIRM = drop_band(
             #     ground_truth_cIRM.permute(0, 3, 1, 2),  # [B, 2, F ,T]
             #     self.model.module.num_groups_in_drop_band
@@ -196,20 +277,24 @@ class Residual_Trainer(BaseTrainer):
             #     torch.stack([clean_complex.real, clean_complex.imag], dim=1),
             #     self.model.module.num_groups_in_drop_band).permute(0, 2, 3, 1)
 
-            ground_truth_complex = (torch.stack([clean_complex.real, clean_complex.imag], dim=1)).permute(0, 2, 3, 1)
+            ground_truth_complex = (
+                torch.stack([clean_complex.real, clean_complex.imag], dim=1)
+            ).permute(0, 2, 3, 1)
 
             with autocast(enabled=self.use_amp):
                 # [B, F, T] => model => [B, 1, F, T], [B, 2, F, T] => [B, F, T, 1], [B, F, T, 2]
                 cIRM, enhanced_complex = self.model(noisy_complex)
                 cIRM = cIRM.permute(0, 2, 3, 1)
                 enhanced_complex = enhanced_complex.permute(0, 2, 3, 1)
-                loss = self.alpha * self.loss_function(ground_truth_complex, enhanced_complex) + (
-                        1 - self.alpha) * self.loss_function(
-                    ground_truth_cIRM, cIRM)
+                loss = self.alpha * self.loss_function(
+                    ground_truth_complex, enhanced_complex
+                ) + (1 - self.alpha) * self.loss_function(ground_truth_cIRM, cIRM)
 
             self.scaler.scale(loss).backward()
             self.scaler.unscale_(self.optimizer)
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.clip_grad_norm_value)
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(), self.clip_grad_norm_value
+            )
             self.scaler.step(self.optimizer)
             self.scaler.update()
 
@@ -220,8 +305,12 @@ class Residual_Trainer(BaseTrainer):
                 progress_bar.refresh()
 
         if self.rank == 0:
-            log(f"[Train] Epoch {epoch}, Loss {loss_total / len(self.train_dataloader)}")
-            self.writer.add_scalar(f"Loss/Train", loss_total / len(self.train_dataloader), epoch)
+            log(
+                f"[Train] Epoch {epoch}, Loss {loss_total / len(self.train_dataloader)}"
+            )
+            self.writer.add_scalar(
+                f"Loss/Train", loss_total / len(self.train_dataloader), epoch
+            )
 
     @torch.no_grad()
     def _validation_epoch(self, epoch):
@@ -234,16 +323,33 @@ class Residual_Trainer(BaseTrainer):
         visualization_metrics = self.visualization_config["metrics"]
 
         loss_total = 0.0
-        loss_list = {"With_reverb": 0.0, "No_reverb": 0.0, }
-        item_idx_list = {"With_reverb": 0, "No_reverb": 0, }
-        noisy_y_list = {"With_reverb": [], "No_reverb": [], }
-        clean_y_list = {"With_reverb": [], "No_reverb": [], }
-        enhanced_y_list = {"With_reverb": [], "No_reverb": [], }
+        loss_list = {
+            "With_reverb": 0.0,
+            "No_reverb": 0.0,
+        }
+        item_idx_list = {
+            "With_reverb": 0,
+            "No_reverb": 0,
+        }
+        noisy_y_list = {
+            "With_reverb": [],
+            "No_reverb": [],
+        }
+        clean_y_list = {
+            "With_reverb": [],
+            "No_reverb": [],
+        }
+        enhanced_y_list = {
+            "With_reverb": [],
+            "No_reverb": [],
+        }
         validation_score_list = {"With_reverb": 0.0, "No_reverb": 0.0}
 
         # speech_type in ("with_reverb", "no_reverb")
         for i, (noisy, clean, name, speech_type) in enumerate(self.valid_dataloader):
-            assert len(name) == 1, "The batch size for the validation stage must be one."
+            assert (
+                len(name) == 1
+            ), "The batch size for the validation stage must be one."
             name = name[0]
             speech_type = speech_type[0]
 
@@ -255,16 +361,21 @@ class Residual_Trainer(BaseTrainer):
 
             # noisy_input = torch.stack([noisy_complex.real, noisy_complex.imag], dim=1)
 
-            cIRM = build_complex_ideal_ratio_mask(noisy_complex, clean_complex)  # [B, F, T, 2]
+            cIRM = build_complex_ideal_ratio_mask(
+                noisy_complex, clean_complex
+            )  # [B, F, T, 2]
             # [B, 2, F, T] => [B, F, T, 2]
-            ground_truth_complex = torch.stack([clean_complex.real, clean_complex.imag], dim=1).permute(0, 2, 3, 1)
+            ground_truth_complex = torch.stack(
+                [clean_complex.real, clean_complex.imag], dim=1
+            ).permute(0, 2, 3, 1)
 
             cRM, enhanced_complex = self.model(noisy_complex)
             cRM = cRM.permute(0, 2, 3, 1)
             enhanced_complex = enhanced_complex.permute(0, 2, 3, 1)
 
-            loss = self.alpha * self.loss_function(ground_truth_complex, enhanced_complex) + (
-                    1 - self.alpha) * self.loss_function(cIRM, cRM)
+            loss = self.alpha * self.loss_function(
+                ground_truth_complex, enhanced_complex
+            ) + (1 - self.alpha) * self.loss_function(cIRM, cRM)
 
             enhanced = self.torch_istft(enhanced_complex, length=noisy.size(-1))
 
@@ -280,7 +391,9 @@ class Residual_Trainer(BaseTrainer):
             item_idx_list[speech_type] += 1
 
             if item_idx_list[speech_type] <= visualization_n_samples:
-                self.spec_audio_visualization(noisy, enhanced, clean, name, epoch, mark=speech_type)
+                self.spec_audio_visualization(
+                    noisy, enhanced, clean, name, epoch, mark=speech_type
+                )
 
             noisy_y_list[speech_type].append(noisy)
             clean_y_list[speech_type].append(clean)
@@ -290,29 +403,54 @@ class Residual_Trainer(BaseTrainer):
                 progress_bar.update(1)
 
         log(f"[Test] Epoch {epoch}, Loss {loss_total / len(self.valid_dataloader)}")
-        self.writer.add_scalar(f"Loss/Validation_Total", loss_total / len(self.valid_dataloader), epoch)
+        self.writer.add_scalar(
+            f"Loss/Validation_Total", loss_total / len(self.valid_dataloader), epoch
+        )
 
         for speech_type in ("With_reverb", "No_reverb"):
-            log(f"[Test] Epoch {epoch}, {speech_type}, Loss {loss_list[speech_type] / len(self.valid_dataloader)}")
-            self.writer.add_scalar(f"Loss/{speech_type}", loss_list[speech_type] / len(self.valid_dataloader), epoch)
+            log(
+                f"[Test] Epoch {epoch}, {speech_type}, Loss {loss_list[speech_type] / len(self.valid_dataloader)}"
+            )
+            self.writer.add_scalar(
+                f"Loss/{speech_type}",
+                loss_list[speech_type] / len(self.valid_dataloader),
+                epoch,
+            )
 
             validation_score_list[speech_type] = self.metrics_visualization(
-                noisy_y_list[speech_type], clean_y_list[speech_type], enhanced_y_list[speech_type],
-                visualization_metrics, epoch, visualization_num_workers, mark=speech_type
+                noisy_y_list[speech_type],
+                clean_y_list[speech_type],
+                enhanced_y_list[speech_type],
+                visualization_metrics,
+                epoch,
+                visualization_num_workers,
+                mark=speech_type,
             )
 
         return validation_score_list["No_reverb"]
 
 
 class Trainer_Finetune(BaseTrainer):
-    def __init__(self, dist, rank, config, resume, only_validation, model, loss_function, optimizer, train_dataloader,
-                 validation_dataloader):
-        super().__init__(dist, rank, config, resume, only_validation, model, loss_function, optimizer)
+    def __init__(
+        self,
+        dist,
+        rank,
+        config,
+        resume,
+        only_validation,
+        model,
+        loss_function,
+        optimizer,
+        train_dataloader,
+        validation_dataloader,
+    ):
+        super().__init__(
+            dist, rank, config, resume, only_validation, model, loss_function, optimizer
+        )
         self.train_dataloader = train_dataloader
         self.valid_dataloader = validation_dataloader
 
     def _train_epoch(self, epoch):
-
         loss_total = 0.0
         progress_bar = None
 
@@ -329,10 +467,12 @@ class Trainer_Finetune(BaseTrainer):
             clean_complex = self.torch_stft(clean)
 
             noisy_mag, _ = mag_phase(noisy_complex)
-            ground_truth_cIRM = build_complex_ideal_ratio_mask(noisy_complex, clean_complex)  # [B, F, T, 2]
+            ground_truth_cIRM = build_complex_ideal_ratio_mask(
+                noisy_complex, clean_complex
+            )  # [B, F, T, 2]
             ground_truth_cIRM = drop_band(
                 ground_truth_cIRM.permute(0, 3, 1, 2),  # [B, 2, F ,T]
-                self.model.module.num_groups_in_drop_band
+                self.model.module.num_groups_in_drop_band,
             ).permute(0, 2, 3, 1)
 
             with autocast(enabled=self.use_amp):
@@ -346,7 +486,9 @@ class Trainer_Finetune(BaseTrainer):
 
             self.scaler.scale(loss).backward()
             self.scaler.unscale_(self.optimizer)
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.clip_grad_norm_value)
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(), self.clip_grad_norm_value
+            )
             self.scaler.step(self.optimizer)
             self.scaler.update()
 
@@ -357,8 +499,12 @@ class Trainer_Finetune(BaseTrainer):
                 progress_bar.refresh()
 
         if self.rank == 0:
-            log(f"[Train] Epoch {epoch}, Loss {loss_total / len(self.train_dataloader)}")
-            self.writer.add_scalar(f"Loss/Train", loss_total / len(self.train_dataloader), epoch)
+            log(
+                f"[Train] Epoch {epoch}, Loss {loss_total / len(self.train_dataloader)}"
+            )
+            self.writer.add_scalar(
+                f"Loss/Train", loss_total / len(self.train_dataloader), epoch
+            )
 
     @torch.no_grad()
     def _validation_epoch(self, epoch):
@@ -371,16 +517,33 @@ class Trainer_Finetune(BaseTrainer):
         visualization_metrics = self.visualization_config["metrics"]
 
         loss_total = 0.0
-        loss_list = {"With_reverb": 0.0, "No_reverb": 0.0, }
-        item_idx_list = {"With_reverb": 0, "No_reverb": 0, }
-        noisy_y_list = {"With_reverb": [], "No_reverb": [], }
-        clean_y_list = {"With_reverb": [], "No_reverb": [], }
-        enhanced_y_list = {"With_reverb": [], "No_reverb": [], }
+        loss_list = {
+            "With_reverb": 0.0,
+            "No_reverb": 0.0,
+        }
+        item_idx_list = {
+            "With_reverb": 0,
+            "No_reverb": 0,
+        }
+        noisy_y_list = {
+            "With_reverb": [],
+            "No_reverb": [],
+        }
+        clean_y_list = {
+            "With_reverb": [],
+            "No_reverb": [],
+        }
+        enhanced_y_list = {
+            "With_reverb": [],
+            "No_reverb": [],
+        }
         validation_score_list = {"With_reverb": 0.0, "No_reverb": 0.0}
 
         # speech_type in ("with_reverb", "no_reverb")
         for i, (noisy, clean, name, speech_type) in enumerate(self.valid_dataloader):
-            assert len(name) == 1, "The batch size for the validation stage must be one."
+            assert (
+                len(name) == 1
+            ), "The batch size for the validation stage must be one."
             name = name[0]
             speech_type = speech_type[0]
 
@@ -391,7 +554,9 @@ class Trainer_Finetune(BaseTrainer):
             clean_complex = self.torch_stft(clean)
 
             noisy_mag, _ = mag_phase(noisy_complex)
-            cIRM = build_complex_ideal_ratio_mask(noisy_complex, clean_complex)  # [B, F, T, 2]
+            cIRM = build_complex_ideal_ratio_mask(
+                noisy_complex, clean_complex
+            )  # [B, F, T, 2]
 
             noisy_mag = noisy_mag.unsqueeze(1)
             noisy_real = (noisy_complex.real).unsqueeze(1)
@@ -403,8 +568,12 @@ class Trainer_Finetune(BaseTrainer):
 
             cRM = decompress_cIRM(cRM)
 
-            enhanced_real = cRM[..., 0] * noisy_complex.real - cRM[..., 1] * noisy_complex.imag
-            enhanced_imag = cRM[..., 1] * noisy_complex.real + cRM[..., 0] * noisy_complex.imag
+            enhanced_real = (
+                cRM[..., 0] * noisy_complex.real - cRM[..., 1] * noisy_complex.imag
+            )
+            enhanced_imag = (
+                cRM[..., 1] * noisy_complex.real + cRM[..., 0] * noisy_complex.imag
+            )
             enhanced_complex = torch.stack((enhanced_real, enhanced_imag), dim=-1)
             enhanced = self.torch_istft(enhanced_complex, length=noisy.size(-1))
 
@@ -420,7 +589,9 @@ class Trainer_Finetune(BaseTrainer):
             item_idx_list[speech_type] += 1
 
             if item_idx_list[speech_type] <= visualization_n_samples:
-                self.spec_audio_visualization(noisy, enhanced, clean, name, epoch, mark=speech_type)
+                self.spec_audio_visualization(
+                    noisy, enhanced, clean, name, epoch, mark=speech_type
+                )
 
             noisy_y_list[speech_type].append(noisy)
             clean_y_list[speech_type].append(clean)
@@ -430,15 +601,28 @@ class Trainer_Finetune(BaseTrainer):
                 progress_bar.update(1)
 
         log(f"[Test] Epoch {epoch}, Loss {loss_total / len(self.valid_dataloader)}")
-        self.writer.add_scalar(f"Loss/Validation_Total", loss_total / len(self.valid_dataloader), epoch)
+        self.writer.add_scalar(
+            f"Loss/Validation_Total", loss_total / len(self.valid_dataloader), epoch
+        )
 
         for speech_type in ("With_reverb", "No_reverb"):
-            log(f"[Test] Epoch {epoch}, {speech_type}, Loss {loss_list[speech_type] / len(self.valid_dataloader)}")
-            self.writer.add_scalar(f"Loss/{speech_type}", loss_list[speech_type] / len(self.valid_dataloader), epoch)
+            log(
+                f"[Test] Epoch {epoch}, {speech_type}, Loss {loss_list[speech_type] / len(self.valid_dataloader)}"
+            )
+            self.writer.add_scalar(
+                f"Loss/{speech_type}",
+                loss_list[speech_type] / len(self.valid_dataloader),
+                epoch,
+            )
 
             validation_score_list[speech_type] = self.metrics_visualization(
-                noisy_y_list[speech_type], clean_y_list[speech_type], enhanced_y_list[speech_type],
-                visualization_metrics, epoch, visualization_num_workers, mark=speech_type
+                noisy_y_list[speech_type],
+                clean_y_list[speech_type],
+                enhanced_y_list[speech_type],
+                visualization_metrics,
+                epoch,
+                visualization_num_workers,
+                mark=speech_type,
             )
 
         return validation_score_list["No_reverb"]

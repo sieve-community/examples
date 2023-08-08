@@ -27,7 +27,7 @@ def stft(y, n_fft, hop_length, win_length):
         hop_length,
         win_length,
         window=torch.hann_window(n_fft).to(y.device),
-        return_complex=True
+        return_complex=True,
     )
 
 
@@ -59,7 +59,7 @@ def istft(features, n_fft, hop_length, win_length, length=None, use_mag_phase=Fa
         hop_length,
         win_length,
         window=torch.hann_window(n_fft).to(features.device),
-        length=length
+        length=length,
     )
 
 
@@ -83,10 +83,15 @@ def mc_stft(y_s, n_fft, hop_length, win_length):
         hop_length=hop_length,
         window=torch.hann_window(win_length, device=y_s.device),
         win_length=win_length,
-        return_complex=True
+        return_complex=True,
     )
 
-    return stft_coefficients.reshape(batch_size, num_channels, stft_coefficients.shape[-2], stft_coefficients.shape[-1])
+    return stft_coefficients.reshape(
+        batch_size,
+        num_channels,
+        stft_coefficients.shape[-2],
+        stft_coefficients.shape[-1],
+    )
 
 
 def mag_phase(complex_tensor):
@@ -101,7 +106,7 @@ def norm_amplitude(y, scalar=None, eps=1e-6):
 
 
 def tailor_dB_FS(y, target_dB_FS=-25, eps=1e-6):
-    rms = np.sqrt(np.mean(y ** 2))
+    rms = np.sqrt(np.mean(y**2))
     scalar = 10 ** (target_dB_FS / 20) / (rms + eps)
     y *= scalar
     return y, rms, scalar
@@ -115,7 +120,9 @@ def load_wav(file, sr=16000):
     if len(file) == 2:
         return file[-1]
     else:
-        return librosa.load(os.path.abspath(os.path.expanduser(file)), mono=False, sr=sr)[0]
+        return librosa.load(
+            os.path.abspath(os.path.expanduser(file)), mono=False, sr=sr
+        )[0]
 
 
 def aligned_subsample(data_a, data_b, sub_sample_length):
@@ -146,9 +153,11 @@ def aligned_subsample(data_a, data_b, sub_sample_length):
         return data_a, data_b
 
 
-def subsample(data, sub_sample_length, start_position: int = -1, return_start_position=False):
+def subsample(
+    data, sub_sample_length, start_position: int = -1, return_start_position=False
+):
     """
-    Randomly select fixed-length data from 
+    Randomly select fixed-length data from
 
     Args:
         data: **one-dimensional data**
@@ -201,7 +210,9 @@ def overlap_cat(chunk_list, dim=-1):
     return overlap_output
 
 
-def activity_detector(audio, fs=16000, activity_threshold=0.13, target_level=-25, eps=1e-6):
+def activity_detector(
+    audio, fs=16000, activity_threshold=0.13, target_level=-25, eps=1e-6
+):
     """
     Return the percentage of the time the audio signal is above an energy threshold
 
@@ -231,13 +242,17 @@ def activity_detector(audio, fs=16000, activity_threshold=0.13, target_level=-25
     while sample_start < len(audio):
         sample_end = min(sample_start + window_samples, len(audio))
         audio_win = audio[sample_start:sample_end]
-        frame_rms = 20 * np.log10(sum(audio_win ** 2) + eps)
-        frame_energy_prob = 1. / (1 + np.exp(-(a + b * frame_rms)))
+        frame_rms = 20 * np.log10(sum(audio_win**2) + eps)
+        frame_energy_prob = 1.0 / (1 + np.exp(-(a + b * frame_rms)))
 
         if frame_energy_prob > prev_energy_prob:
-            smoothed_energy_prob = frame_energy_prob * alpha_att + prev_energy_prob * (1 - alpha_att)
+            smoothed_energy_prob = frame_energy_prob * alpha_att + prev_energy_prob * (
+                1 - alpha_att
+            )
         else:
-            smoothed_energy_prob = frame_energy_prob * alpha_rel + prev_energy_prob * (1 - alpha_rel)
+            smoothed_energy_prob = frame_energy_prob * alpha_rel + prev_energy_prob * (
+                1 - alpha_rel
+            )
 
         if smoothed_energy_prob > activity_threshold:
             active_frames += 1
@@ -258,7 +273,9 @@ def drop_band(input, num_groups=2):
         return: [B, C, F // num_groups, T]
     """
     batch_size, _, num_freqs, _ = input.shape
-    assert batch_size > num_groups, f"Batch size = {batch_size}, num_groups = {num_groups}. The batch size should larger than the num_groups."
+    assert (
+        batch_size > num_groups
+    ), f"Batch size = {batch_size}, num_groups = {num_groups}. The batch size should larger than the num_groups."
 
     if num_groups <= 1:
         # No demand for grouping
@@ -267,29 +284,34 @@ def drop_band(input, num_groups=2):
     # Each sample must has the same number of the frequencies for parallel training.
     # Therefore, we need to drop those remaining frequencies in the high frequency part.
     if num_freqs % num_groups != 0:
-        input = input[..., :(num_freqs - (num_freqs % num_groups)), :]
+        input = input[..., : (num_freqs - (num_freqs % num_groups)), :]
         num_freqs = input.shape[2]
 
     output = []
     for group_idx in range(num_groups):
-        samples_indices = torch.arange(group_idx, batch_size, num_groups, device=input.device)
-        freqs_indices = torch.arange(group_idx, num_freqs, num_groups, device=input.device)
+        samples_indices = torch.arange(
+            group_idx, batch_size, num_groups, device=input.device
+        )
+        freqs_indices = torch.arange(
+            group_idx, num_freqs, num_groups, device=input.device
+        )
 
         selected_samples = torch.index_select(input, dim=0, index=samples_indices)
-        selected = torch.index_select(selected_samples, dim=2, index=freqs_indices)  # [B, C, F // num_groups, T]
+        selected = torch.index_select(
+            selected_samples, dim=2, index=freqs_indices
+        )  # [B, C, F // num_groups, T]
 
         output.append(selected)
 
     return torch.cat(output, dim=0)
 
 
-def init_stft_kernel(frame_len,
-                     frame_hop,
-                     num_fft=None,
-                     window="sqrt_hann"):
+def init_stft_kernel(frame_len, frame_hop, num_fft=None, window="sqrt_hann"):
     if window != "sqrt_hann":
-        raise RuntimeError("Now only support sqrt hanning window in order "
-                           "to make signal perfectly reconstructed")
+        raise RuntimeError(
+            "Now only support sqrt hanning window in order "
+            "to make signal perfectly reconstructed"
+        )
     if not num_fft:
         # FFT points
         fft_size = 2 ** math.ceil(math.log2(frame_len))
@@ -316,17 +338,9 @@ class CustomSTFTBase(nn.Module):
         2) Now haven't consider padding problems yet
     """
 
-    def __init__(self,
-                 frame_len,
-                 frame_hop,
-                 window="sqrt_hann",
-                 num_fft=None):
+    def __init__(self, frame_len, frame_hop, window="sqrt_hann", num_fft=None):
         super(CustomSTFTBase, self).__init__()
-        K = init_stft_kernel(
-            frame_len,
-            frame_hop,
-            num_fft=num_fft,
-            window=window)
+        K = init_stft_kernel(frame_len, frame_hop, num_fft=num_fft, window=window)
         self.K = nn.Parameter(K, requires_grad=False)
         self.stride = frame_hop
         self.window = window
@@ -340,12 +354,12 @@ class CustomSTFTBase(nn.Module):
     def check_nan(self):
         num_nan = torch.sum(torch.isnan(self.K))
         if num_nan:
-            raise RuntimeError(
-                "detect nan in STFT kernels: {:d}".format(num_nan))
+            raise RuntimeError("detect nan in STFT kernels: {:d}".format(num_nan))
 
     def extra_repr(self):
         return "window={0}, stride={1}, requires_grad={2}, kernel_size={3[0]}x{3[2]}".format(
-            self.window, self.stride, self.K.requires_grad, self.K.shape)
+            self.window, self.stride, self.K.requires_grad, self.K.shape
+        )
 
 
 class CustomSTFT(CustomSTFTBase):
@@ -364,8 +378,7 @@ class CustomSTFT(CustomSTFTBase):
         p: phase, N x F x T
         """
         if x.dim() not in [2, 3]:
-            raise RuntimeError("Expect 2D/3D tensor, but got {:d}D".format(
-                x.dim()))
+            raise RuntimeError("Expect 2D/3D tensor, but got {:d}D".format(x.dim()))
         self.check_nan()
         # if N x S, reshape N x 1 x S
         if x.dim() == 2:
@@ -374,7 +387,7 @@ class CustomSTFT(CustomSTFTBase):
         c = torch.nn.functional.conv1d(x, self.K, stride=self.stride, padding=0)
         # N x F x T
         r, i = torch.chunk(c, 2, dim=1)
-        m = (r ** 2 + i ** 2) ** 0.5
+        m = (r**2 + i**2) ** 0.5
         p = torch.atan2(i, r)
         return m, p, r, i
 
@@ -394,8 +407,7 @@ class CustomISTFT(CustomSTFTBase):
         s: N x C x S
         """
         if p.dim() != m.dim() or p.dim() not in [2, 3]:
-            raise RuntimeError("Expect 2D/3D tensor, but got {:d}D".format(
-                p.dim()))
+            raise RuntimeError("Expect 2D/3D tensor, but got {:d}D".format(p.dim()))
         self.check_nan()
         # if F x T, reshape 1 x F x T
         if p.dim() == 2:
@@ -406,7 +418,9 @@ class CustomISTFT(CustomSTFTBase):
         # N x 2F x T
         c = torch.cat([r, i], dim=1)
         # N x 2F x T
-        s = torch.nn.functional.conv_transpose1d(c, self.K, stride=self.stride, padding=0)
+        s = torch.nn.functional.conv_transpose1d(
+            c, self.K, stride=self.stride, padding=0
+        )
         if squeeze:
             s = torch.squeeze(s)
         return s
@@ -425,8 +439,7 @@ class ChannelWiseLayerNorm(nn.LayerNorm):
         x: BS x N x K
         """
         if x.dim() != 3:
-            raise RuntimeError("{} accept 3D tensor as input".format(
-                self.__name__))
+            raise RuntimeError("{} accept 3D tensor as input".format(self.__name__))
         # BS x N x K => BS x K x N
         x = torch.transpose(x, 1, 2)
         x = super(ChannelWiseLayerNorm, self).forward(x)
@@ -436,23 +449,25 @@ class ChannelWiseLayerNorm(nn.LayerNorm):
 
 class DirectionalFeatureComputer(nn.Module):
     def __init__(
-            self,
-            n_fft,
-            win_length,
-            hop_length,
-            input_features,
-            mic_pairs,
-            lps_channel,
-            use_cos_IPD=True,
-            use_sin_IPD=False,
-            eps=1e-8
+        self,
+        n_fft,
+        win_length,
+        hop_length,
+        input_features,
+        mic_pairs,
+        lps_channel,
+        use_cos_IPD=True,
+        use_sin_IPD=False,
+        eps=1e-8,
     ):
         super().__init__()
         self.eps = eps
         self.input_features = input_features
 
         # STFT setting
-        self.stft = CustomSTFT(frame_len=win_length, frame_hop=hop_length, num_fft=n_fft)
+        self.stft = CustomSTFT(
+            frame_len=win_length, frame_hop=hop_length, num_fft=n_fft
+        )
         self.num_freqs = n_fft // 2 + 1
 
         # IPD setting
@@ -466,11 +481,11 @@ class DirectionalFeatureComputer(nn.Module):
         self.lps_channel = lps_channel
 
         self.directional_feature_dim = 0
-        if 'LPS' in self.input_features:
+        if "LPS" in self.input_features:
             self.directional_feature_dim += self.num_freqs
             self.lps_layer_norm = ChannelWiseLayerNorm(self.num_freqs)
 
-        if 'IPD' in self.input_features:
+        if "IPD" in self.input_features:
             self.directional_feature_dim += self.num_freqs * self.num_mic_pairs
             if self.use_sin_IPD:
                 self.directional_feature_dim += self.num_freqs * self.num_mic_pairs
@@ -515,7 +530,9 @@ class DirectionalFeatureComputer(nn.Module):
 
         directional_feature = []
         if "LPS" in self.input_features:
-            lps = torch.log(magnitude[:, self.lps_channel, ...] ** 2 + self.eps)  # [B, F, K], the 4-th channel, which is counted from right to left.
+            lps = torch.log(
+                magnitude[:, self.lps_channel, ...] ** 2 + self.eps
+            )  # [B, F, K], the 4-th channel, which is counted from right to left.
             lps = self.lps_layer_norm(lps)
             directional_feature.append(lps)
 
@@ -534,23 +551,25 @@ class DirectionalFeatureComputer(nn.Module):
 
 class ChannelDirectionalFeatureComputer(nn.Module):
     def __init__(
-            self,
-            n_fft,
-            win_length,
-            hop_length,
-            input_features,
-            mic_pairs,
-            lps_channel,
-            use_cos_IPD=True,
-            use_sin_IPD=False,
-            eps=1e-8
+        self,
+        n_fft,
+        win_length,
+        hop_length,
+        input_features,
+        mic_pairs,
+        lps_channel,
+        use_cos_IPD=True,
+        use_sin_IPD=False,
+        eps=1e-8,
     ):
         super().__init__()
         self.eps = eps
         self.input_features = input_features
 
         # STFT setting
-        self.stft = CustomSTFT(frame_len=win_length, frame_hop=hop_length, num_fft=n_fft)
+        self.stft = CustomSTFT(
+            frame_len=win_length, frame_hop=hop_length, num_fft=n_fft
+        )
         self.num_freqs = n_fft // 2 + 1
 
         # IPD setting
@@ -564,10 +583,10 @@ class ChannelDirectionalFeatureComputer(nn.Module):
         self.lps_channel = lps_channel
 
         self.directional_feature_dim = 0
-        if 'LPS' in self.input_features:
+        if "LPS" in self.input_features:
             self.directional_feature_dim += 1
 
-        if 'IPD' in self.input_features:
+        if "IPD" in self.input_features:
             self.directional_feature_dim += self.num_mic_pairs
             if self.use_sin_IPD:
                 self.directional_feature_dim += self.num_mic_pairs
@@ -612,7 +631,9 @@ class ChannelDirectionalFeatureComputer(nn.Module):
 
         directional_feature = []
         if "LPS" in self.input_features:
-            lps = torch.log(magnitude[:, self.lps_channel, ...] ** 2 + self.eps)  # [B, F, K], the 4-th channel, which is counted from right to left.
+            lps = torch.log(
+                magnitude[:, self.lps_channel, ...] ** 2 + self.eps
+            )  # [B, F, K], the 4-th channel, which is counted from right to left.
             lps = lps[:, None, ...]
             directional_feature.append(lps)
 
@@ -629,6 +650,6 @@ class ChannelDirectionalFeatureComputer(nn.Module):
         return directional_feature, magnitude, phase, real, imag
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     ipt = torch.rand(70, 1, 257, 200)
     print(drop_band(ipt, 8).shape)

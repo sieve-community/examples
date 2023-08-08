@@ -7,6 +7,7 @@ import uuid
 import time
 from tempfile import gettempdir
 import warnings
+
 warnings.filterwarnings("ignore")
 
 TMP_PATH = f"{gettempdir()}/"  # Temp files, need clear
@@ -15,7 +16,9 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..")))
 from audio_zen.utils import initialize_module
 
 
-def start(to_list_files: list, ):
+def start(
+    to_list_files: list,
+):
     temp_file_dir_in = f"denoise_in_{uuid.uuid4().hex}"
     temp_file_dir_in_path = f"{TMP_PATH}{temp_file_dir_in}/"
     temp_file_dir_out = f"denoise_out_{uuid.uuid4().hex}"
@@ -35,10 +38,14 @@ def start(to_list_files: list, ):
     checkpoint_path = "/root/.cache/audio_enhance/models/best_model.tar"
     output_dir = temp_file_dir_out_path
     if len(dataset_dir_list) > 0:
-        print(f"use specified dataset_dir_list: {dataset_dir_list}, instead of in config")
+        print(
+            f"use specified dataset_dir_list: {dataset_dir_list}, instead of in config"
+        )
         configuration["dataset"]["args"]["dataset_dir_list"] = dataset_dir_list
 
-    inferencer_class = initialize_module(configuration["inferencer"]["path"], initialize=False)
+    inferencer_class = initialize_module(
+        configuration["inferencer"]["path"], initialize=False
+    )
     inferencer = inferencer_class(configuration, checkpoint_path, output_dir)
     inferencer()
 

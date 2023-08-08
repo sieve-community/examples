@@ -19,12 +19,14 @@ def build_ideal_ratio_mask(noisy_mag, clean_mag) -> torch.Tensor:
     """
     # noisy_mag_finetune = torch.sqrt(torch.square(noisy_mag) + EPSILON)
     # ratio_mask = clean_mag / noisy_mag_finetune
-    ratio_mask = clean_mag / (noisy_mag +  EPSILON)
+    ratio_mask = clean_mag / (noisy_mag + EPSILON)
     ratio_mask = ratio_mask[..., None]
     return compress_cIRM(ratio_mask, K=10, C=0.1)
 
 
-def build_complex_ideal_ratio_mask(noisy: torch.complex64, clean: torch.complex64) -> torch.Tensor:
+def build_complex_ideal_ratio_mask(
+    noisy: torch.complex64, clean: torch.complex64
+) -> torch.Tensor:
     """
 
     Args:
@@ -46,7 +48,7 @@ def build_complex_ideal_ratio_mask(noisy: torch.complex64, clean: torch.complex6
 
 def compress_cIRM(mask, K=10, C=0.1):
     """
-        Compress from (-inf, +inf) to [-K ~ K]
+    Compress from (-inf, +inf) to [-K ~ K]
     """
     if torch.is_tensor(mask):
         mask = -100 * (mask <= -100) + mask * (mask > -100)
@@ -58,7 +60,11 @@ def compress_cIRM(mask, K=10, C=0.1):
 
 
 def decompress_cIRM(mask, K=10, limit=9.9):
-    mask = limit * (mask >= limit) - limit * (mask <= -limit) + mask * (torch.abs(mask) < limit)
+    mask = (
+        limit * (mask >= limit)
+        - limit * (mask <= -limit)
+        + mask * (torch.abs(mask) < limit)
+    )
     mask = -K * torch.log((K - mask) / (K + mask))
     return mask
 

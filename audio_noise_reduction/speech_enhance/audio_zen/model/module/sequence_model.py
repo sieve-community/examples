@@ -2,16 +2,17 @@ import torch
 import torch.nn as nn
 from speech_enhance.audio_zen.model.module.causal_conv import TCNBlock
 
+
 class SequenceModel(nn.Module):
     def __init__(
-            self,
-            input_size,
-            output_size,
-            hidden_size,
-            num_layers,
-            bidirectional,
-            sequence_model="GRU",
-            output_activate_function="Tanh"
+        self,
+        input_size,
+        output_size,
+        hidden_size,
+        num_layers,
+        bidirectional,
+        sequence_model="GRU",
+        output_activate_function="Tanh",
     ):
         """
         序列模型，可选 LSTM 或 CRN，支持子带输入
@@ -54,19 +55,59 @@ class SequenceModel(nn.Module):
                 TCNBlock(in_channels=input_size, out_channels=input_size, dilation=2),
                 TCNBlock(in_channels=input_size, out_channels=input_size, dilation=5),
                 TCNBlock(in_channels=input_size, out_channels=input_size, dilation=9),
-                nn.ReLU()
+                nn.ReLU(),
             )
         elif self.sequence_model_type == "TCN-subband":
             self.sequence_model = nn.Sequential(
-                TCNBlock(in_channels=input_size, hidden_channel=hidden_size, out_channels=input_size, dilation=1),
-                TCNBlock(in_channels=input_size, hidden_channel=hidden_size, out_channels=input_size, dilation=2),
-                TCNBlock(in_channels=input_size, hidden_channel=hidden_size, out_channels=input_size, dilation=5),
-                TCNBlock(in_channels=input_size, hidden_channel=hidden_size, out_channels=input_size, dilation=9),
-                TCNBlock(in_channels=input_size, hidden_channel=hidden_size, out_channels=input_size, dilation=1),
-                TCNBlock(in_channels=input_size, hidden_channel=hidden_size, out_channels=input_size, dilation=2),
-                TCNBlock(in_channels=input_size, hidden_channel=hidden_size, out_channels=input_size, dilation=5),
-                TCNBlock(in_channels=input_size, hidden_channel=384, out_channels=input_size, dilation=9),
-                nn.ReLU()
+                TCNBlock(
+                    in_channels=input_size,
+                    hidden_channel=hidden_size,
+                    out_channels=input_size,
+                    dilation=1,
+                ),
+                TCNBlock(
+                    in_channels=input_size,
+                    hidden_channel=hidden_size,
+                    out_channels=input_size,
+                    dilation=2,
+                ),
+                TCNBlock(
+                    in_channels=input_size,
+                    hidden_channel=hidden_size,
+                    out_channels=input_size,
+                    dilation=5,
+                ),
+                TCNBlock(
+                    in_channels=input_size,
+                    hidden_channel=hidden_size,
+                    out_channels=input_size,
+                    dilation=9,
+                ),
+                TCNBlock(
+                    in_channels=input_size,
+                    hidden_channel=hidden_size,
+                    out_channels=input_size,
+                    dilation=1,
+                ),
+                TCNBlock(
+                    in_channels=input_size,
+                    hidden_channel=hidden_size,
+                    out_channels=input_size,
+                    dilation=2,
+                ),
+                TCNBlock(
+                    in_channels=input_size,
+                    hidden_channel=hidden_size,
+                    out_channels=input_size,
+                    dilation=5,
+                ),
+                TCNBlock(
+                    in_channels=input_size,
+                    hidden_channel=384,
+                    out_channels=input_size,
+                    dilation=9,
+                ),
+                nn.ReLU(),
             )
         else:
             raise NotImplementedError(f"Not implemented {sequence_model}")
@@ -91,7 +132,9 @@ class SequenceModel(nn.Module):
             elif output_activate_function == "ReLU6":
                 self.activate_function = nn.ReLU6()
             else:
-                raise NotImplementedError(f"Not implemented activation function {self.activate_function}")
+                raise NotImplementedError(
+                    f"Not implemented activation function {self.activate_function}"
+                )
 
         self.output_activate_function = output_activate_function
 
@@ -103,9 +146,12 @@ class SequenceModel(nn.Module):
             [B, F, T]
         """
         assert x.dim() == 3
-        if self.sequence_model_type == "TCN" or self.sequence_model_type == "TCN-subband":
+        if (
+            self.sequence_model_type == "TCN"
+            or self.sequence_model_type == "TCN-subband"
+        ):
             x = self.sequence_model(x)  # [B, F, T]
-            o = self.fc_output_layer(x.permute(0, 2, 1))    # [B, F, T] => [B, T, F]
+            o = self.fc_output_layer(x.permute(0, 2, 1))  # [B, F, T] => [B, T, F]
             if self.output_activate_function:
                 o = self.activate_function(o)
             o = o.permute(0, 2, 1)  # [B, T, F] => [B, F, T]
@@ -125,14 +171,14 @@ class SequenceModel(nn.Module):
 
 class Complex_SequenceModel(nn.Module):
     def __init__(
-            self,
-            input_size,
-            output_size,
-            hidden_size,
-            num_layers,
-            bidirectional,
-            sequence_model="GRU",
-            output_activate_function="Tanh"
+        self,
+        input_size,
+        output_size,
+        hidden_size,
+        num_layers,
+        bidirectional,
+        sequence_model="GRU",
+        output_activate_function="Tanh",
     ):
         """
         序列模型，可选 LSTM 或 CRN，支持子带输入
@@ -200,7 +246,9 @@ class Complex_SequenceModel(nn.Module):
             elif output_activate_function == "PReLU":
                 self.activate_function = nn.PReLU()
             else:
-                raise NotImplementedError(f"Not implemented activation function {self.activate_function}")
+                raise NotImplementedError(
+                    f"Not implemented activation function {self.activate_function}"
+                )
 
         self.output_activate_function = output_activate_function
 
@@ -254,10 +302,12 @@ def _print_networks(nets: list):
         print(f"\tNetwork {i}: {params_of_network / 1e6} million.")
         params_of_all_networks += params_of_network
 
-    print(f"The amount of parameters in the project is {params_of_all_networks / 1e6} million.")
+    print(
+        f"The amount of parameters in the project is {params_of_all_networks / 1e6} million."
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import datetime
 
     with torch.no_grad():
@@ -268,11 +318,15 @@ if __name__ == '__main__':
             hidden_size=256,
             bidirectional=False,
             num_layers=2,
-            sequence_model="LSTM"
+            sequence_model="LSTM",
         )
 
         start = datetime.datetime.now()
         opt = model(ipt)
         end = datetime.datetime.now()
         print(f"{end - start}")
-        _print_networks([model, ])
+        _print_networks(
+            [
+                model,
+            ]
+        )

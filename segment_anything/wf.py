@@ -3,17 +3,36 @@ from typing import Dict
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def show_mask(mask, ax, random_color=False):
-    color = np.array([30/255, 144/255, 255/255, 0.6])
+    color = np.array([30 / 255, 144 / 255, 255 / 255, 0.6])
     h, w = mask.shape[-2:]
     mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
     ax.imshow(mask_image)
 
+
 def show_points(coords, labels, ax, marker_size=375):
-    pos_points = coords[labels==1]
-    neg_points = coords[labels==0]
-    ax.scatter(pos_points[:, 0], pos_points[:, 1], color='green', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
-    ax.scatter(neg_points[:, 0], neg_points[:, 1], color='red', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)   
+    pos_points = coords[labels == 1]
+    neg_points = coords[labels == 0]
+    ax.scatter(
+        pos_points[:, 0],
+        pos_points[:, 1],
+        color="green",
+        marker="*",
+        s=marker_size,
+        edgecolor="white",
+        linewidth=1.25,
+    )
+    ax.scatter(
+        neg_points[:, 0],
+        neg_points[:, 1],
+        color="red",
+        marker="*",
+        s=marker_size,
+        edgecolor="white",
+        linewidth=1.25,
+    )
+
 
 @sieve.Model(
     name="segment-anything-point",
@@ -37,7 +56,7 @@ def show_points(coords, labels, ax, marker_size=375):
     run_commands=[
         "mkdir -p /root/.cache/sam/models/",
         "wget -c 'https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth' -P /root/.cache/sam/models/",
-        "pip install git+https://github.com/facebookresearch/segment-anything.git"
+        "pip install git+https://github.com/facebookresearch/segment-anything.git",
     ],
     iterator_input=True,
 )
@@ -45,17 +64,18 @@ class SegmentAnything:
     def __setup__(self):
         sam_checkpoint = "/root/.cache/sam/models/sam_vit_h_4b8939.pth"
         from segment_anything import sam_model_registry, SamPredictor
-        sam = sam_model_registry['default'](checkpoint=sam_checkpoint)
-        sam.to(device='cuda')
+
+        sam = sam_model_registry["default"](checkpoint=sam_checkpoint)
+        sam.to(device="cuda")
         self.predictor = SamPredictor(sam)
 
     def __predict__(self, img: sieve.Image, x: int, y: int) -> sieve.Image:
-        '''
+        """
         :param img: Image to run segmentation on
         :param x: X coordinate to center segmentation on
         :param y: Y coordinate to center segmentation on
         :return: Image with segmentation mask
-        '''
+        """
         import cv2
         import numpy as np
         import matplotlib.pyplot as plt
@@ -74,22 +94,23 @@ class SegmentAnything:
             point_labels=input_label,
             multimask_output=True,
         )
-        
-        color = np.array([255/255, 255/255, 255/255, 0.6])
+
+        color = np.array([255 / 255, 255 / 255, 255 / 255, 0.6])
         for i, (mask, score) in enumerate(zip(masks, scores)):
             h, w = mask.shape[-2:]
             mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
             im = Image.fromarray(mask_image)
-            im.save(f'{i}.png')
-            yield sieve.Image(path=f'{i}.png')
+            im.save(f"{i}.png")
+            yield sieve.Image(path=f"{i}.png")
+
 
 @sieve.workflow(name="object-segmentation-by-point")
 def object_segmentation_by_point(img: sieve.Image, x: int, y: int) -> sieve.Image:
-    '''
+    """
     :param img: Image to run segmentation on
     :param x: X coordinate to center segmentation on
     :param y: Y coordinate to center segmentation on
     :return: Image with segmentation mask
-    '''
+    """
 
     return SegmentAnything()(img, x, y)

@@ -5,35 +5,34 @@ from pypesq import pesq as nb_pesq
 from pystoi.stoi import stoi
 import librosa
 
+
 def _scale_bss_eval(references, estimate, idx, compute_sir_sar=True):
     """
     Helper for scale_bss_eval to avoid infinite recursion loop.
     """
     source = references[..., idx]
-    source_energy = (source ** 2).sum()
+    source_energy = (source**2).sum()
 
-    alpha = (
-            source @ estimate / source_energy
-    )
+    alpha = source @ estimate / source_energy
 
     e_true = source
     e_res = estimate - e_true
 
-    signal = (e_true ** 2).sum()
-    noise = (e_res ** 2).sum()
+    signal = (e_true**2).sum()
+    noise = (e_res**2).sum()
 
     snr = 10 * np.log10(signal / noise)
 
     e_true = source * alpha
     e_res = estimate - e_true
 
-    signal = (e_true ** 2).sum()
-    noise = (e_res ** 2).sum()
+    signal = (e_true**2).sum()
+    noise = (e_res**2).sum()
 
     si_sdr = 10 * np.log10(signal / noise)
 
     srr = -10 * np.log10((1 - (1 / alpha)) ** 2)
-    sd_sdr = snr + 10 * np.log10(alpha ** 2)
+    sd_sdr = snr + 10 * np.log10(alpha**2)
 
     si_sir = np.nan
     si_sar = np.nan
@@ -47,8 +46,8 @@ def _scale_bss_eval(references, estimate, idx, compute_sir_sar=True):
         e_interf = np.dot(references, b)
         e_artif = e_res - e_interf
 
-        si_sir = 10 * np.log10(signal / (e_interf ** 2).sum())
-        si_sar = 10 * np.log10(signal / (e_artif ** 2).sum())
+        si_sir = 10 * np.log10(signal / (e_interf**2).sum())
+        si_sar = 10 * np.log10(signal / (e_artif**2).sum())
 
     return si_sdr, si_sir, si_sar, sd_sdr, snr, srr
 
@@ -73,15 +72,17 @@ def SI_SDR(reference, estimation, sr=16000):
         SDR– Half- Baked or Well Done? (http://www.merl.com/publications/docs/TR2019-013.pdf)
     """
     estimation, reference = np.broadcast_arrays(estimation, reference)
-    reference_energy = np.sum(reference ** 2, axis=-1, keepdims=True)
+    reference_energy = np.sum(reference**2, axis=-1, keepdims=True)
 
-    optimal_scaling = np.sum(reference * estimation, axis=-1, keepdims=True) / reference_energy
+    optimal_scaling = (
+        np.sum(reference * estimation, axis=-1, keepdims=True) / reference_energy
+    )
 
     projection = optimal_scaling * reference
 
     noise = estimation - projection
 
-    ratio = np.sum(projection ** 2, axis=-1) / np.sum(noise ** 2, axis=-1)
+    ratio = np.sum(projection**2, axis=-1) / np.sum(noise**2, axis=-1)
     return 10 * np.log10(ratio)
 
 
@@ -110,19 +111,24 @@ def NB_PESQ(ref, est, sr=16000):
     # nb_pesq downsample to 8000 internally.
     return nb_pesq(nb_ref, nb_est, 8000)
 
+
 mos_metrics = None
+
+
 def MOSNET(ref, est, sr=16000):
     ##
     global mos_metrics
     if mos_metrics is None:
         import speechmetrics
+
         window_length = 10  # seconds
-        mos_metrics = speechmetrics.load('mosnet', window_length)
+        mos_metrics = speechmetrics.load("mosnet", window_length)
     ##
     scores = mos_metrics(est, rate=sr)
     avg_score = np.mean(scores["mosnet"])
-    #print(avg_score)
+    # print(avg_score)
     return avg_score
+
 
 # Only registered metric can be used.
 REGISTERED_METRICS = {
@@ -130,5 +136,5 @@ REGISTERED_METRICS = {
     "STOI": STOI,
     "WB_PESQ": WB_PESQ,
     "NB_PESQ": NB_PESQ,
-    "MOSNET": MOSNET
+    "MOSNET": MOSNET,
 }

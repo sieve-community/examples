@@ -14,7 +14,7 @@ from typing import List, Dict
         "torchvision==0.9.1",
         "psutil==5.8.0",
         "seaborn==0.11.2",
-        "ultralytics==8.0.132",
+        "ultralytics==8.0.149",
     ],
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
     python_version="3.8",

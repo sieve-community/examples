@@ -114,3 +114,16 @@ def object_segmentation_by_point(img: sieve.Image, x: int, y: int) -> sieve.Imag
     """
 
     return SegmentAnything()(img, x, y)
+
+
+if __name__ == "__main__":
+    sieve.push(
+        object_segmentation_by_point,
+        inputs={
+            "img": {
+                "url": "https://storage.googleapis.com/sieve-public-videos-grapefruit/sama_avatar1.jpeg"
+            },
+            "x": 100,
+            "y": 100,
+        },
+    )

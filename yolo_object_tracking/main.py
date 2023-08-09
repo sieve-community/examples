@@ -28,3 +28,14 @@ def yolo_visualize(video: sieve.Video) -> Tuple[sieve.Video, Dict]:
     visualized = draw_boxes(images, yolo_outputs)
     combined = sieve.reference("sieve/frame-combiner")(visualized)
     return combined, SORT(yolo_outputs)
+
+
+if __name__ == "__main__":
+    sieve.push(
+        yolosplit,
+        inputs={
+            "video": {
+                "url": "https://storage.googleapis.com/sieve-public-videos-grapefruit/bike.mp4"
+            }
+        },
+    )

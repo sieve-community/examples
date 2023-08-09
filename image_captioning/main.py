@@ -34,3 +34,24 @@ class ImageCaptioner:
         caption_ids = self.model.generate(image, max_length=64)[0]
         caption_text = self.clean_text(self.tokenizer.decode(caption_ids))
         return caption_text
+
+
+@sieve.workflow(name="image-captioning")
+def image_captioning(image: sieve.Image) -> str:
+    """
+    :param img: Image to caption
+    :return: Generated caption of the image
+    """
+    captioner = ImageCaptioner()
+    return captioner(image)
+
+
+if __name__ == "__main__":
+    sieve.push(
+        workflow="image-captioning",
+        inputs={
+            "image": {
+                "url": "https://storage.googleapis.com/sieve-public-videos-grapefruit/sama_avatar1.jpeg"
+            }
+        },
+    )

@@ -1,8 +1,5 @@
 import sieve
 from typing import Dict, List
-import mediapipe as mp
-import cv2
-
 
 @sieve.Model(
     name="mediapipe-face-detector",
@@ -12,6 +9,9 @@ import cv2
 )
 class FaceDetector:
     def __setup__(self):
+        import mediapipe as mp
+        import cv2
+
         self.mp_face_detection = mp.solutions.face_detection
         self.face_detection = self.mp_face_detection.FaceDetection(
             min_detection_confidence=0.5
@@ -22,6 +22,7 @@ class FaceDetector:
         :param img: Image to detect faces in
         :return: List of faces with their bounding boxes, classes, and scores
         """
+
         print("Starting prediction...")
         results = self.face_detection.process(
             cv2.cvtColor(img.array, cv2.COLOR_BGR2RGB)
@@ -77,4 +78,11 @@ def mediapipe_face_detection_vid(vid: sieve.Video) -> List:
 
 
 if __name__ == "__main__":
-    sieve.push(workflow="face-detection-image", inputs={"image": {"url": "https://storage.googleapis.com/sieve-public-videos-grapefruit/sama_avatar1.jpeg"}})
+    sieve.push(
+        workflow="face-detection-image",
+        inputs={
+            "image": {
+                "url": "https://storage.googleapis.com/sieve-public-videos-grapefruit/sama_avatar1.jpeg"
+            }
+        },
+    )

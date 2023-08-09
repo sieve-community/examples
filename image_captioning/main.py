@@ -1,6 +1,5 @@
 import sieve
 from typing import Dict, List
-import torch
 from transformers import AutoTokenizer, ViTFeatureExtractor, VisionEncoderDecoderModel
 
 
@@ -12,6 +11,8 @@ from transformers import AutoTokenizer, ViTFeatureExtractor, VisionEncoderDecode
 )
 class ImageCaptioner:
     def __setup__(self):
+        import torch
+
         device = "cuda"
         encoder_checkpoint = "nlpconnect/vit-gpt2-image-captioning"
         decoder_checkpoint = "nlpconnect/vit-gpt2-image-captioning"

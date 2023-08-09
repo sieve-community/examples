@@ -74,3 +74,7 @@ def mediapipe_face_detection_vid(vid: sieve.Video) -> List:
     video_splitter = sieve.reference("sieve/video-splitter")
     frames = video_splitter(vid)
     return FaceDetector()(frames)
+
+
+if __name__ == "__main__":
+    sieve.push(workflow="face-detection-image", inputs={"image": {"url": "https://storage.googleapis.com/sieve-public-videos-grapefruit/sama_avatar1.jpeg"}})

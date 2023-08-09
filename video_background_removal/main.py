@@ -14,3 +14,14 @@ def background_blur(video: sieve.Video) -> sieve.Video:
     images = sieve.reference("sieve/video-splitter")(video)
     masks = U2NetBlur()(images)
     return sieve.reference("sieve/frame-combiner")(masks)
+
+
+if __name__ == "__main__":
+    sieve.push(
+        background_mask,
+        inputs={
+            "video": {
+                "url": "https://storage.googleapis.com/sieve-public-videos-grapefruit/bike.mp4"
+            }
+        },
+    )

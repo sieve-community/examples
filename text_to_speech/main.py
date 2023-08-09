@@ -75,3 +75,9 @@ class TortoiseTTS:
         full_audio = torch.cat(all_parts, dim=-1)
         torchaudio.save(os.path.join("combined.wav"), full_audio, 24000)
         return sieve.Audio(path="combined.wav")
+
+
+# TODO: need to update this with newer models
+@sieve.workflow(name="text-to-speech")
+def tortoise_tts(text: str) -> sieve.Audio:
+    return TortoiseTTS()(text)

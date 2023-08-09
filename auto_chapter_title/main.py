@@ -156,3 +156,14 @@ def auto_chapter_title(vid: sieve.Video) -> List[Dict]:
     sections = TextTiling()(text)
     all_chapters = generate_chapters(sections)
     return consolidate_chapters(all_chapters)
+
+
+if __name__ == "__main__":
+    sieve.push(
+        workflow="auto_chapter_title",
+        inputs={
+            "vid": {
+                "url": "https://storage.googleapis.com/sieve-public-videos-grapefruit/The%20Truth%20About%20AI%20Getting%20Creative.mp4"
+            }
+        },
+    )

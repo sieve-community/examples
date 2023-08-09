@@ -1,7 +1,5 @@
 import sieve
 from typing import Dict, List
-from transformers import AutoTokenizer, ViTFeatureExtractor, VisionEncoderDecoderModel
-
 
 @sieve.Model(
     name="vit-gpt2-image-captioner",
@@ -12,6 +10,11 @@ from transformers import AutoTokenizer, ViTFeatureExtractor, VisionEncoderDecode
 class ImageCaptioner:
     def __setup__(self):
         import torch
+        from transformers import (
+            AutoTokenizer,
+            ViTFeatureExtractor,
+            VisionEncoderDecoderModel,
+        )
 
         device = "cuda"
         encoder_checkpoint = "nlpconnect/vit-gpt2-image-captioning"

@@ -1,9 +1,10 @@
 import sieve
-from segmentation import InstanceSegmentation
 
 
 @sieve.workflow(name="object-segmentation")
 def segmentation(video: sieve.Video) -> sieve.Video:
+    from segmentation import InstanceSegmentation
+
     """
     :param video: Video to segment objects from
     :return: Original video with segmented masks overlayed

@@ -11,8 +11,9 @@ if __name__ == "__main__":
     parser.add_argument("--deploy", action="store_true")
     parser.add_argument("--test", action="store_true")
     args = parser.parse_args()
+    ignore_dirs = [".git", ".github"]
 
-    dirs = [d for d in os.listdir(".") if os.path.isdir(d) and d != ".git"]
+    dirs = [d for d in os.listdir(".") if os.path.isdir(d) and d not in ignore_dirs]
     dirs.sort()
     if args.deploy:
         for d in dirs:
@@ -46,7 +47,7 @@ if __name__ == "__main__":
                 if proc.returncode != 0:
                     print("[red bold]Error running example: [/]" + d)
                     print(proc.stderr)
-                    break
+                    raise Exception("Error running example: " + d)
 
                 # Parse the job IDs from the output
                 found_job = False
@@ -81,6 +82,7 @@ if __name__ == "__main__":
                 print(f"[green bold]Job finished:[/] {test_name} {job_id}")
             elif status == "error":
                 print(f"[red bold]Job failed:[/] {test_name} {job_id}")
+                raise Exception(f"Job failed: {test_name} {job_id}")
             else:
                 job_ids.add((test_name, job_id))
                 time.sleep(10)
@@ -90,3 +92,4 @@ if __name__ == "__main__":
         else:
             print("[red bold]Some jobs failed to finish[/]")
             print(job_ids)
+            raise Exception(f"Some jobs timed out: {str(job_ids)}")

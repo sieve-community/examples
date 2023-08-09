@@ -1,6 +1,4 @@
 import sieve
-import imageio
-import uuid
 
 
 def compute_bbox(tube_bbox, frame_shape, increase_area=0.1):
@@ -130,6 +128,8 @@ class ThinplateAvatar:
         import cv2
         import subprocess
         import numpy as np
+        import imageio
+        import uuid
 
         for img, video in zip(imgs, videos):
             print(img.width, img.height)

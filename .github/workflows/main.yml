@@ -6,7 +6,7 @@ on:
     - cron:  '0 0 * * *'
 
 jobs:
-  job:
+  run_tests:
     runs-on: ubuntu-latest
     steps:
     - name: Check out repository code
@@ -23,4 +23,6 @@ jobs:
         python -m pip install https://mango.sievedata.com/v1/client_package/sievedata-0.0.1.1.2-py3-none-any.whl
 
     - name: Run script
+      env:
+        SIEVE_API_KEY: ${{ secrets.SIEVE_API_KEY }}
       run: python test.py --test

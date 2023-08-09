@@ -2,11 +2,11 @@ name: Test Public Examples
 
 on:
   workflow_dispatch:
-    - inputs:
-        api_url:
-          description: 'Sieve API URL'
-          required: false
-          default: 'https://mango.sievedata.com'
+    inputs:
+      api_url:
+        description: 'Sieve API URL'
+        required: false
+        default: 'https://mango.sievedata.com'
   schedule:   
     - cron:  '0 0 * * *'
 

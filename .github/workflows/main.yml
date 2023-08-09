@@ -1,0 +1,25 @@
+name: Test Public Examples
+
+on:
+  schedule:   
+    - cron:  '0 0 * * *'
+
+jobs:
+  job:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v2
+
+    - name: Set up Python environment
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install https://mango.sievedata.com/v1/client_package/sievedata-0.0.1.1.2-py3-none-any.whl
+
+    - name: Run script
+      run: python test.py --test

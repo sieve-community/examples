@@ -1,5 +1,5 @@
 import sieve
-from typing import List, Dict
+from typing import Dict
 
 
 @sieve.function(
@@ -9,7 +9,7 @@ from typing import List, Dict
     iterator_input=True,
     python_packages=["filterpy==1.4.5", "uuid==1.30"],
 )
-def SORT(objects: List) -> Dict:
+def SORT(objects: list) -> Dict:
     """
     :param objects: Generator of list of objects with their bounding boxes, classes, and scores
     :return: Tracked objects keyed by object ID

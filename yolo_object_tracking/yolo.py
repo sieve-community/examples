@@ -1,5 +1,4 @@
 import sieve
-from typing import List, Dict
 
 
 @sieve.Model(
@@ -28,7 +27,7 @@ class Yolo:
 
         self.yolo_model = torch.hub.load("ultralytics/yolov5", "yolov5s")
 
-    def __predict__(self, img: sieve.Image) -> List:
+    def __predict__(self, img: sieve.Image) -> list:
         """
         :param img: Image to detect objects in
         :return: List of objects with their bounding boxes, classes, and scores

@@ -17,6 +17,7 @@ if __name__ == "__main__":
         "talking_head_avatars",
         "text_to_speech",
         "video_lipsyncing",
+        "audio_transcription",
     ]
 
     dirs = [d for d in os.listdir(".") if os.path.isdir(d) and d not in ignore_dirs]
@@ -88,6 +89,7 @@ if __name__ == "__main__":
                 print(f"[green bold]Job finished:[/] {test_name} {job_id}")
             elif status == "error":
                 print(f"[red bold]Job failed:[/] {test_name} {job_id}")
+                print(job["error"])
                 raise Exception(f"Job failed: {test_name} {job_id}")
             else:
                 job_ids.add((test_name, job_id))

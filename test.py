@@ -11,7 +11,7 @@ if __name__ == "__main__":
     parser.add_argument("--deploy", action="store_true")
     parser.add_argument("--test", action="store_true")
     args = parser.parse_args()
-    ignore_dirs = [".git", ".github"]
+    ignore_dirs = [".git", ".github", "talking_head_avatars", "text_to_speech"]
 
     dirs = [d for d in os.listdir(".") if os.path.isdir(d) and d not in ignore_dirs]
     dirs.sort()

@@ -1,6 +1,7 @@
 import sieve
 from typing import Dict, List
 
+
 @sieve.Model(
     name="mediapipe-face-detector",
     gpu=False,

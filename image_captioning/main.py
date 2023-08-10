@@ -1,6 +1,7 @@
 import sieve
 from typing import Dict, List
 
+
 @sieve.Model(
     name="vit-gpt2-image-captioner",
     gpu=True,

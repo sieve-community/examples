@@ -15,4 +15,11 @@ def segmentation(video: sieve.Video) -> sieve.Video:
 
 
 if __name__ == "__main__":
-    sieve.push(workflow="object-segmentation", inputs={"video": {"url": ""}})
+    sieve.push(
+        workflow="object-segmentation",
+        inputs={
+            "video": {
+                "url": "https://storage.googleapis.com/sieve-public-videos-grapefruit/bike.mp4"
+            }
+        },
+    )

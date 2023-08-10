@@ -348,4 +348,13 @@ def point_tracking(video: sieve.Video, x: int, y: int) -> Dict:
 
 
 if __name__ == "__main__":
-    sieve.push(workflow="point-tracking", inputs={"video": {"url": ""}, "x": 0, "y": 0})
+    sieve.push(
+        workflow="point-tracking",
+        inputs={
+            "video": {
+                "url": "https://storage.googleapis.com/sieve-public-videos-grapefruit/bike.mp4"
+            },
+            "x": 100,
+            "y": 100,
+        },
+    )

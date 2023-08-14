@@ -7,5 +7,5 @@ from wav2lip import Wav2Lip
 def wav2lip(video: sieve.Video, audio: sieve.Audio):
     images = sieve.reference("sieve-developer/video-splitter")(video)
     faces = sieve.reference("sieve-developer/mediapipe-face-detector")(images)
-    tracked_faces = sieve.reference("sieve-developer/sort")(faces)
+    tracked_faces = sieve.reference("sieve-developer/sort-tracker")(faces)
     return Wav2Lip()(video, audio, tracked_faces)

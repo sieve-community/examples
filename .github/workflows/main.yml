@@ -2,6 +2,11 @@ name: Test Public Examples
 
 on:
   workflow_dispatch:
+    inputs:
+      api_url:
+        description: 'Sieve API URL'
+        required: false
+        default: 'https://mango.sievedata.com'
   schedule:   
     - cron:  '0 0 * * *'
 
@@ -22,7 +27,14 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install https://mango.sievedata.com/v1/client_package/sievedata-0.0.1.1.2-py3-none-any.whl
 
-    - name: Run script
+    - name: Deploy workflows & models
       env:
         SIEVE_API_KEY: ${{ secrets.SIEVE_API_KEY }}
+        SIEVE_API_URL: ${{ github.event.inputs.api_url || 'https://mango.sievedata.com' }}
+      run: python test.py --deploy
+
+    - name: Run sample tests
+      env:
+        SIEVE_API_KEY: ${{ secrets.SIEVE_API_KEY }}
+        SIEVE_API_URL: ${{ github.event.inputs.api_url || 'https://mango.sievedata.com' }}
       run: python test.py --test

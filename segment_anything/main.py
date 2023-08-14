@@ -1,7 +1,5 @@
 import sieve
 from typing import Dict
-import numpy as np
-import matplotlib.pyplot as plt
 
 
 def show_mask(mask, ax, random_color=False):
@@ -62,6 +60,9 @@ def show_points(coords, labels, ax, marker_size=375):
 )
 class SegmentAnything:
     def __setup__(self):
+        import numpy as np
+        import matplotlib.pyplot as plt
+
         sam_checkpoint = "/root/.cache/sam/models/sam_vit_h_4b8939.pth"
         from segment_anything import sam_model_registry, SamPredictor
 
@@ -114,3 +115,16 @@ def object_segmentation_by_point(img: sieve.Image, x: int, y: int) -> sieve.Imag
     """
 
     return SegmentAnything()(img, x, y)
+
+
+if __name__ == "__main__":
+    sieve.push(
+        object_segmentation_by_point,
+        inputs={
+            "img": {
+                "url": "https://storage.googleapis.com/sieve-public-videos-grapefruit/sama_avatar1.jpeg"
+            },
+            "x": 100,
+            "y": 100,
+        },
+    )

@@ -50,3 +50,14 @@ def audio_enhance(audio: sieve.Audio) -> sieve.Audio:
     :return: Denoised audio
     """
     return FullSubNet()(audio)
+
+
+if __name__ == "__main__":
+    sieve.push(
+        workflow="audio_noise_reduction",
+        inputs={
+            "audio": {
+                "url": "https://storage.googleapis.com/sieve-public-data/audio_noise_reduction/input.wav"
+            }
+        },
+    )

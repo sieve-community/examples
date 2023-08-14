@@ -1,8 +1,6 @@
 import sieve
-import torch
 import numpy as np
 import cv2
-from detect import load_model, predict
 
 
 def blur_img(img, factor=20):
@@ -47,9 +45,13 @@ def soft_blur_with_mask(image: np.ndarray, mask: np.ndarray, strength=10) -> np.
 )
 class U2NetMask:
     def __setup__(self):
+        from detect import load_model
+
         self.model = load_model()
 
     def __predict__(self, img: sieve.Image) -> sieve.Image:
+        from detect import predict
+
         frame_data = cv2.cvtColor(img.array, cv2.COLOR_BGR2RGB)
         width = frame_data.shape[1]
         height = frame_data.shape[0]
@@ -92,9 +94,13 @@ class U2NetMask:
 )
 class U2NetBlur:
     def __setup__(self):
+        from detect import load_model
+
         self.model = load_model()
 
     def __predict__(self, img: sieve.Image) -> sieve.Image:
+        from detect import predict
+
         frame_data = cv2.cvtColor(img.array, cv2.COLOR_BGR2RGB)
         width = frame_data.shape[1]
         height = frame_data.shape[0]

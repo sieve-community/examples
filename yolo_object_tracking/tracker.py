@@ -1,5 +1,5 @@
 import sieve
-from typing import List, Dict
+from typing import Dict
 
 
 @sieve.function(
@@ -9,7 +9,7 @@ from typing import List, Dict
     iterator_input=True,
     python_packages=["filterpy==1.4.5", "uuid==1.30"],
 )
-def SORT(objects: List) -> Dict:
+def SORT(objects: list) -> Dict:
     """
     :param objects: Generator of list of objects with their bounding boxes, classes, and scores
     :return: Tracked objects keyed by object ID
@@ -20,7 +20,7 @@ def SORT(objects: List) -> Dict:
     import uuid
 
     l = []
-    for i in it:
+    for i in objects:
         if len(i) > 0:
             l.append(i)
     sorted_by_frame_number = sorted(l, key=lambda k: k[0]["frame_number"])
@@ -37,7 +37,7 @@ def SORT(objects: List) -> Dict:
             separated_by_class[entity["class_name"]][frame_number].append(entity)
 
     # object id key and object value where object is a list of boxes
-    objects = {}
+    ids = {}
     for i in separated_by_class:
         number_to_uuid = {}
         boxes = []
@@ -61,9 +61,9 @@ def SORT(objects: List) -> Dict:
             for d in trackers:
                 if d[4] not in number_to_uuid:
                     number_to_uuid[d[4]] = str(uuid.uuid4())
-                if number_to_uuid[d[4]] not in objects:
-                    objects[number_to_uuid[d[4]]] = []
-                objects[number_to_uuid[d[4]]].append(
+                if number_to_uuid[d[4]] not in ids:
+                    ids[number_to_uuid[d[4]]] = []
+                ids[number_to_uuid[d[4]]].append(
                     {
                         "frame_number": frame_number,
                         "box": [d[0], d[1], d[2], d[3]],
@@ -72,4 +72,4 @@ def SORT(objects: List) -> Dict:
                 )
             boxes = []
 
-    yield objects
+    yield ids

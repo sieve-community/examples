@@ -1,5 +1,4 @@
 import sieve
-from typing import List, Dict
 
 
 @sieve.Model(
@@ -14,7 +13,7 @@ from typing import List, Dict
         "torchvision==0.9.1",
         "psutil==5.8.0",
         "seaborn==0.11.2",
-        "ultralytics==8.0.132",
+        "ultralytics==8.0.149",
     ],
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
     python_version="3.8",
@@ -28,7 +27,7 @@ class Yolo:
 
         self.yolo_model = torch.hub.load("ultralytics/yolov5", "yolov5s")
 
-    def __predict__(self, img: sieve.Image) -> List:
+    def __predict__(self, img: sieve.Image) -> list:
         """
         :param img: Image to detect objects in
         :return: List of objects with their bounding boxes, classes, and scores

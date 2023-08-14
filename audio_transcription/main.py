@@ -42,3 +42,14 @@ def whisper_wf(audio: sieve.Audio) -> sieve.Dict:
     """
     whisper = Whisper()
     return whisper(audio)
+
+
+if __name__ == "__main__":
+    sieve.push(
+        workflow="audio_transcription",
+        inputs={
+            "audio": {
+                "url": "https://storage.googleapis.com/sieve-public-data/audio_noise_reduction/input.wav"
+            }
+        },
+    )

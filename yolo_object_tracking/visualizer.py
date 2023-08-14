@@ -1,5 +1,4 @@
 import sieve
-from typing import List, Dict
 
 
 @sieve.function(
@@ -9,7 +8,7 @@ from typing import List, Dict
     iterator_input=True,
     python_packages=["uuid==1.30"],
 )
-def draw_boxes(images: sieve.Image, boxes: List) -> sieve.Image:
+def draw_boxes(images: sieve.Image, boxes: list) -> sieve.Image:
     """
     :param images: Source image to draw boxes on
     :param boxes: List of objects with their bounding boxes, classes, and scores

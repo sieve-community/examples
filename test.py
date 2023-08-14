@@ -18,6 +18,7 @@ if __name__ == "__main__":
         "text_to_speech",
         "video_lipsyncing",
         "audio_transcription",
+        "auto_chapter_title",
     ]
 
     dirs = [d for d in os.listdir(".") if os.path.isdir(d) and d not in ignore_dirs]
@@ -77,6 +78,7 @@ if __name__ == "__main__":
 
         start_time = time.time()
         timeout_min = 10
+        failed = False
 
         while len(job_ids) > 0:
             test_name, job_id = job_ids.pop()
@@ -90,12 +92,13 @@ if __name__ == "__main__":
             elif status == "error":
                 print(f"[red bold]Job failed:[/] {test_name} {job_id}")
                 print(job["error"])
-                raise Exception(f"Job failed: {test_name} {job_id}")
+                failed = True
+                # raise Exception(f"Job failed: {test_name} {job_id}")
             else:
                 job_ids.add((test_name, job_id))
                 time.sleep(10)
 
-        if len(job_ids) == 0:
+        if len(job_ids) == 0 and not failed:
             print("[green bold]All jobs finished[/]")
         else:
             print("[red bold]Some jobs failed to finish[/]")

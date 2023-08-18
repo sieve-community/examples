@@ -1,6 +1,14 @@
 import sieve
 
 
+metadata = sieve.Metadata(
+    description="Image segementation using the open-source PointRend model.",
+    code_url="https://github.com/sieve-community/examples/blob/main/object_segmentation/segmentation.py",
+    tags=["Segmentation", "Image"],
+    readme=open("README.md", "r").read(),
+)
+
+
 @sieve.Model(
     name="pointrend_segmentation",
     gpu=True,
@@ -17,6 +25,7 @@ import sieve
         "mkdir -p /root/.cache/pointrend/models/",
         "wget https://storage.googleapis.com/mango-public-models/pointrend_resnet50.pkl -P /root/.cache/pointrend/models",
     ],
+    metadata=metadata,
 )
 class InstanceSegmentation:
     def __setup__(self):

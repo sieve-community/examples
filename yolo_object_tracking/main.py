@@ -4,8 +4,16 @@ from yolo import Yolo
 from tracker import SORT
 from visualizer import draw_boxes
 
+metadata = sieve.Metadata(
+    title="Track Objects in Video",
+    description="Run hyperparallelized object tracking on video.",
+    code_url="https://github.com/sieve-community/examples/tree/main/yolo_object_tracking/main.py",
+    tags=["Tracking", "Video", "Detection"],
+    readme=open("README.md", "r").read(),
+)
 
-@sieve.workflow(name="object_tracking")
+
+@sieve.workflow(name="object_tracking", metadata=metadata)
 def yolosplit(video: sieve.Video) -> Dict:
     """
     :param video: Video of objects to be tracked
@@ -16,7 +24,7 @@ def yolosplit(video: sieve.Video) -> Dict:
     return SORT(yolo_outputs)
 
 
-@sieve.workflow(name="object_tracking_visualize")
+@sieve.workflow(name="object_tracking_visualize", metadata=metadata)
 def yolo_visualize(video: sieve.Video) -> Tuple[sieve.Video, Dict]:
     """
     :param video: Video of objects to be tracked

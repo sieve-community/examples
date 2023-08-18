@@ -29,7 +29,6 @@ import uuid
         "wget -c https://storage.googleapis.com/sieve-public-model-assets/wav2lip/wav2lip.pth -O /root/.cache/models/wav2lip/wav2lip.pth",
     ],
     iterator_input=True,
-    persist_output=True,
 )
 class Wav2Lip:
     def __setup__(self):

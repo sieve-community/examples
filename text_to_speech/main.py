@@ -26,7 +26,6 @@ import sieve
         "wget -c 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/rlg_diffuser.pth' -P /root/.cache/tortoise/models/",
         "pip install -e 'git+https://github.com/sieve-community/tortoise-tts.git@0cf6febaa52f67c3a8cd882330625606efa2b13d#egg=TorToiSe'",
     ],
-    persist_output=True,
     gpu=True,
     machine_type="a100",
 )

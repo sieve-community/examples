@@ -1,0 +1,15 @@
+*.pkl
+*.jpg
+*.pth
+*.pyc
+__pycache__
+*.h5
+*.pyc
+*.mkv
+*.gif
+*.mp4
+*.webm
+checkpoints/*
+results/*
+temp/*
+segments.txt

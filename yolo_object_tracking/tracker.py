@@ -1,6 +1,13 @@
 import sieve
 from typing import Dict
 
+metadata = sieve.Metadata(
+    description="Tracks objects using the SORT algorithm.",
+    code_url="https://github.com/sieve-community/examples/tree/main/yolo_object_tracking/tracker.py",
+    tags=["Tracking", "Video"],
+    readme=open("README.md", "r").read(),
+)
+
 
 @sieve.function(
     name="sort-tracker",
@@ -8,6 +15,7 @@ from typing import Dict
     python_version="3.8",
     iterator_input=True,
     python_packages=["filterpy==1.4.5", "uuid==1.30"],
+    metadata=metadata,
 )
 def SORT(objects: list) -> Dict:
     """

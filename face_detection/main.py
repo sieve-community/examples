@@ -1,17 +1,40 @@
 import sieve
 from typing import Dict, List
 
+readme_content = open("README.md", "r").read()
+wf_metadata = sieve.Metadata(
+    title="Detect Faces in Video",
+    description="Run standard face detection models hyperparallelized on video.",
+    image=sieve.Image(
+        url="https://developers.google.com/static/mediapipe/images/solutions/examples/face_detector.png"
+    ),
+    code_url="https://github.com/sieve-community/examples/tree/main/face_detection/wf.py",
+    tags=["Detection", "Video"],
+    readme=readme_content,
+)
+
+metadata = sieve.Metadata(
+    description="Detect faces in an image with MediaPipe.",
+    code_url="https://github.com/sieve-community/examples/tree/main/face_detection/wf.py",
+    tags=["Detection", "Image"],
+    readme=readme_content,
+)
+
 
 @sieve.Model(
     name="mediapipe-face-detector",
     gpu=False,
     python_version="3.8",
-    python_packages=["mediapipe==0.9.0"],
+    python_packages=[
+        "mediapipe==0.10.3",
+        "opencv-python-headless==4.5.5.64",
+    ],
+    system_packages=["libgl1"],
+    metadata=metadata,
 )
 class FaceDetector:
     def __setup__(self):
         import mediapipe as mp
-        import cv2
 
         self.mp_face_detection = mp.solutions.face_detection
         self.face_detection = self.mp_face_detection.FaceDetection(
@@ -23,6 +46,7 @@ class FaceDetector:
         :param img: Image to detect faces in
         :return: List of faces with their bounding boxes, classes, and scores
         """
+        import cv2
 
         print("Starting prediction...")
         results = self.face_detection.process(
@@ -67,7 +91,10 @@ def mediapipe_face_detection(image: sieve.Image) -> List:
     return FaceDetector()(image)
 
 
-@sieve.workflow(name="face-detection-video")
+@sieve.workflow(
+    name="face-detection-video",
+    metadata=wf_metadata,
+)
 def mediapipe_face_detection_vid(vid: sieve.Video) -> List:
     """
     :param vid: Video to detect faces in

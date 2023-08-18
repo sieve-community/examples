@@ -13,7 +13,6 @@ import sieve
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
     python_version="3.8",
     iterator_input=True,
-    persist_output=True,
 )
 def frame_combine(images: sieve.Image) -> sieve.Video:
     """

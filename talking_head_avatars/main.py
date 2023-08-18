@@ -61,7 +61,6 @@ def compute_bbox(tube_bbox, frame_shape, increase_area=0.1):
         "wget -c 'https://storage.googleapis.com/sieve-public-model-assets/gpen/GPEN-BFR-512.pth' -P /root/.cache/lip/models/",
     ],
     iterator_input=True,
-    persist_output=True,
 )
 class ThinplateAvatar:
     def __setup__(self):

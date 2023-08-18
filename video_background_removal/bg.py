@@ -2,6 +2,13 @@ import sieve
 import numpy as np
 import cv2
 
+metadata = sieve.Metadata(
+    description="Remove or blur the background from a video with U2Net.",
+    code_url="https://github.com/sieve-community/examples/tree/main/video_background_removal/bg.py",
+    tags=["Image", "Masking"],
+    readme=open("README.md", "r").read(),
+)
+
 
 def blur_img(img, factor=20):
     kW = int(img.shape[1] / factor)
@@ -25,7 +32,7 @@ def soft_blur_with_mask(image: np.ndarray, mask: np.ndarray, strength=10) -> np.
 
 
 @sieve.Model(
-    name="u2netp_mask",
+    name="u2netp",
     gpu=True,
     python_packages=[
         "six==1.16.0",
@@ -41,7 +48,8 @@ def soft_blur_with_mask(image: np.ndarray, mask: np.ndarray, strength=10) -> np.
         "mkdir -p /root/.cache/lip/models/",
         "wget -c 'https://storage.googleapis.com/sieve-public-model-assets/bg-removal/u2netp.pth' -P /root/.cache/lip/models/",
     ],
-    persist_output=True,
+    iterator_input=True,
+    metadata=metadata,
 )
 class U2NetMask:
     def __setup__(self):
@@ -49,56 +57,8 @@ class U2NetMask:
 
         self.model = load_model()
 
-    def __predict__(self, img: sieve.Image) -> sieve.Image:
-        from detect import predict
-
-        frame_data = cv2.cvtColor(img.array, cv2.COLOR_BGR2RGB)
-        width = frame_data.shape[1]
-        height = frame_data.shape[0]
-
-        output_image = predict(self.model, frame_data)
-        # resize to original size
-        output_image = cv2.resize(
-            output_image, (width, height), interpolation=cv2.INTER_CUBIC
-        )
-        if hasattr(img, "fps") and hasattr(img, "frame_number"):
-            return sieve.Image(
-                array=output_image, fps=img.fps, frame_number=img.frame_number
-            )
-        if hasattr(img, "fps"):
-            return sieve.Image(array=output_image, fps=img.fps)
-        if hasattr(img, "frame_number"):
-            return sieve.Image(array=output_image, frame_number=img.frame_number)
-        else:
-            return sieve.Image(array=output_image)
-
-
-@sieve.Model(
-    name="u2netp_blur",
-    gpu=True,
-    python_packages=[
-        "six==1.16.0",
-        "datetime==4.7",
-        "pillow==9.3.0",
-        "scikit-image==0.19.3",
-        "torch==1.8.1",
-        "torchvision==0.9.1",
-    ],
-    system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
-    python_version="3.8",
-    run_commands=[
-        "mkdir -p /root/.cache/lip/models/",
-        "wget -c 'https://storage.googleapis.com/sieve-public-model-assets/bg-removal/u2netp.pth' -P /root/.cache/lip/models/",
-    ],
-    persist_output=True,
-)
-class U2NetBlur:
-    def __setup__(self):
-        from detect import load_model
-
-        self.model = load_model()
-
-    def __predict__(self, img: sieve.Image) -> sieve.Image:
+    def __predict__(self, img: sieve.Image, blur: bool) -> sieve.Image:
+        img, blur = list(img)[0], list(blur)[0]
         from detect import predict
 
         frame_data = cv2.cvtColor(img.array, cv2.COLOR_BGR2RGB)
@@ -111,8 +71,10 @@ class U2NetBlur:
             output_image, (width, height), interpolation=cv2.INTER_CUBIC
         )
 
-        output_image = soft_blur_with_mask(frame_data, output_image, strength=10)
-        output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR)
+        if blur:
+            output_image = soft_blur_with_mask(frame_data, output_image, strength=10)
+            output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR)
+
         if hasattr(img, "fps") and hasattr(img, "frame_number"):
             return sieve.Image(
                 array=output_image, fps=img.fps, frame_number=img.frame_number

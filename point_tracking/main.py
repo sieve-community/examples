@@ -1,6 +1,13 @@
 import sieve
 from typing import Dict
 
+model_metadata = sieve.Metadata(
+    description="Track a point through a video using feature matching.",
+    code_url="https://github.com/sieve-community/examples/blob/main/point_tracking/main.py",
+    tags=["Tracking", "Video"],
+    readme=open("README.md", "r").read(),
+)
+
 
 @sieve.Model(
     name="klt_superglue_point_tracking",
@@ -12,6 +19,7 @@ from typing import Dict
         "wget -c 'https://storage.googleapis.com/mango-public-models/superglue/superglue_indoor.pth' -P /root/.cache/superglue/models/",
         "wget -c 'https://storage.googleapis.com/mango-public-models/superglue/superpoint_v1.pth' -P /root/.cache/superglue/models",
     ],
+    metadata=model_metadata,
 )
 class PointTrackingSuperGlue:
     def __setup__(self):
@@ -342,7 +350,16 @@ class PointTrackingSuperGlue:
             cap.release()
 
 
-@sieve.workflow(name="point-tracking")
+metadata = sieve.Metadata(
+    title="Motion Tracking",
+    description="Track a point through a video.",
+    code_url="https://github.com/sieve-community/examples/blob/main/point_tracking/main.py",
+    tags=["Tracking", "Video"],
+    readme=open("README.md", "r").read(),
+)
+
+
+@sieve.workflow(name="point-tracking", metadata=metadata)
 def point_tracking(video: sieve.Video, x: int, y: int) -> Dict:
     return PointTrackingSuperGlue()(video, x, y)
 

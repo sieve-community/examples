@@ -1,6 +1,13 @@
 import sieve
 from typing import Dict
 
+model_metadata = sieve.Metadata(
+    description="Object segmentation given a source point. Uses Segment Anything by Meta.",
+    code_url="https://github.com/sieve-community/examples/blob/main/segment_anything/main.py",
+    tags=["Segmentation", "Image"],
+    readme=open("README.md", "r").read(),
+)
+
 
 def show_mask(mask, ax, random_color=False):
     color = np.array([30 / 255, 144 / 255, 255 / 255, 0.6])
@@ -57,6 +64,7 @@ def show_points(coords, labels, ax, marker_size=375):
         "pip install git+https://github.com/facebookresearch/segment-anything.git",
     ],
     iterator_input=True,
+    metadata=model_metadata,
 )
 class SegmentAnything:
     def __setup__(self):
@@ -105,7 +113,16 @@ class SegmentAnything:
             yield sieve.Image(path=f"{i}.png")
 
 
-@sieve.workflow(name="object-segmentation-by-point")
+metadata = sieve.Metadata(
+    title="Segment Objects by Point",
+    description="Object segmentation given a source point on an image.",
+    code_url="https://github.com/sieve-community/examples/blob/main/segment_anything/main.py",
+    tags=["Segmentation", "Image"],
+    readme=open("README.md", "r").read(),
+)
+
+
+@sieve.workflow(name="object-segmentation-by-point", metadata=metadata)
 def object_segmentation_by_point(img: sieve.Image, x: int, y: int) -> sieve.Image:
     """
     :param img: Image to run segmentation on

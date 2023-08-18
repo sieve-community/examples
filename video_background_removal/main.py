@@ -1,18 +1,19 @@
 import sieve
-from bg import U2NetMask, U2NetBlur
+from bg import U2Net
+
+metadata = sieve.Metadata(
+    title="Remove Background from Video",
+    description="Remove the background from a video with U2Net.",
+    code_url="https://github.com/sieve-community/examples/tree/main/video_background_removal/main.py",
+    tags=["Video", "Masking"],
+    readme=open("README.md", "r").read(),
+)
 
 
-@sieve.workflow(name="video_background_mask")
-def background_mask(video: sieve.Video) -> sieve.Video:
+@sieve.workflow(name="video_background_removal", metadata=metadata)
+def background_mask(video: sieve.Video, blur: bool) -> sieve.Video:
     images = sieve.reference("sieve/video-splitter")(video)
-    masks = U2NetMask()(images)
-    return sieve.reference("sieve/frame-combiner")(masks)
-
-
-@sieve.workflow(name="video_background_blur")
-def background_blur(video: sieve.Video) -> sieve.Video:
-    images = sieve.reference("sieve/video-splitter")(video)
-    masks = U2NetBlur()(images)
+    masks = U2Net()(images, blur)
     return sieve.reference("sieve/frame-combiner")(masks)
 
 
@@ -22,6 +23,7 @@ if __name__ == "__main__":
         inputs={
             "video": {
                 "url": "https://storage.googleapis.com/sieve-public-videos-grapefruit/bike.mp4"
-            }
+            },
+            "blur": True,
         },
     )

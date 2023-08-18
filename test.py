@@ -19,6 +19,7 @@ if __name__ == "__main__":
         "video_lipsyncing",
         "audio_transcription",
         "auto_chapter_title",
+        "segment_anything",
     ]
 
     dirs = [d for d in os.listdir(".") if os.path.isdir(d) and d not in ignore_dirs]

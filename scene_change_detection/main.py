@@ -1,7 +1,22 @@
 import sieve
 
+model_metadata = sieve.Metadata(
+    description="Detect scene changes in a video with PySceneDetect.",
+    code_url="https://github.com/sieve-community/examples/blob/main/scene_change_detection/main.py",
+    tags=["Detection", "Video"],
+    readme=open("README.md", "r").read(),
+)
 
-@sieve.function(name="pyscenedetect", python_packages=["scenedetect[opencv]"])
+
+@sieve.function(
+    name="pyscenedetect",
+    python_packages=[
+        "scenedetect[opencv]",
+        "opencv-python-headless==4.5.5.64",
+    ],
+    system_packages=["libgl1"],
+    metadata=model_metadata,
+)
 def scene_detection(video: sieve.Video) -> list:
     """
     :param video: The video to detect scenes in
@@ -50,7 +65,16 @@ def scene_detection(video: sieve.Video) -> list:
     return scenes
 
 
-@sieve.workflow(name="scene_change_detection")
+metadata = sieve.Metadata(
+    title="Detect Scene Changes",
+    description="Detect scene changes in a video efficiently.",
+    code_url="https://github.com/sieve-community/examples/blob/main/scene_change_detection/main.py",
+    tags=["Detection", "Video"],
+    readme=open("README.md", "r").read(),
+)
+
+
+@sieve.workflow(name="scene_change_detection", metadata=metadata)
 def wf(video: sieve.Video) -> list:
     """
     :param video: The video to detect scenes in

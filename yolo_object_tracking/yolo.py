@@ -1,5 +1,12 @@
 import sieve
 
+metadata = sieve.Metadata(
+    description="Runs object detection with YOLOv5.",
+    code_url="https://github.com/sieve-community/examples/tree/main/yolo_object_tracking/yolo.py",
+    tags=["Tracking", "Video", "Detection"],
+    readme=open("README.md", "r").read(),
+)
+
 
 @sieve.Model(
     name="yolo-v5",
@@ -20,6 +27,7 @@ import sieve
     run_commands=[
         "python -c \"import torch; print(torch.hub.load('ultralytics/yolov5', 'yolov5s'))\""
     ],
+    metadata=metadata,
 )
 class Yolo:
     def __setup__(self):

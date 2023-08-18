@@ -1,12 +1,20 @@
 import sieve
 from typing import Dict, List
 
+metadata = sieve.Metadata(
+    description="Generate captions for an image with ViT and GPT-2.",
+    code_url="https://github.com/sieve-community/examples/tree/main/image_captioning/main.py",
+    tags=["Generation", "Image"],
+    readme=open("README.md", "r").read(),
+)
+
 
 @sieve.Model(
     name="vit-gpt2-image-captioner",
     gpu=True,
     python_version="3.8",
     python_packages=["torch==1.8.1", "transformers==4.23.1"],
+    metadata=metadata,
 )
 class ImageCaptioner:
     def __setup__(self):
@@ -41,7 +49,19 @@ class ImageCaptioner:
         return caption_text
 
 
-@sieve.workflow(name="image-captioning")
+wf_metadata = sieve.Metadata(
+    title="Caption an Image",
+    description="Understand and generate captions for images.",
+    code_url="https://github.com/sieve-community/examples/tree/main/image_captioning/main.py",
+    image=sieve.Image(
+        url="https://storage.googleapis.com/sieve-public-videos-grapefruit/sama_avatar1.jpeg"
+    ),
+    tags=["Generation", "Image"],
+    readme=open("README.md", "r").read(),
+)
+
+
+@sieve.workflow(name="image-captioning", metadata=wf_metadata)
 def image_captioning(image: sieve.Image) -> str:
     """
     :param img: Image to caption

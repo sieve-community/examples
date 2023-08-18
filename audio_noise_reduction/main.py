@@ -1,5 +1,12 @@
 import sieve
 
+model_metadata = sieve.Metadata(
+    description="Reduce noise in audio with FullSubNet.",
+    code_url="https://github.com/sieve-community/examples/tree/main/audio_noise_reduction/main.py",
+    tags=["Audio"],
+    readme=open("README.md", "r").read(),
+)
+
 
 @sieve.Model(
     name="fullsubnet",
@@ -27,6 +34,7 @@ import sieve
         "mkdir -p /root/.cache/audio_enhance/models",
         "wget -c 'https://storage.googleapis.com/sieve-public-model-assets/fullsubnet/best_model.tar' -P /root/.cache/audio_enhance/models/",
     ],
+    metadata=model_metadata,
 )
 class FullSubNet:
     def __setup__(self):
@@ -43,7 +51,16 @@ class FullSubNet:
         return sieve.Audio(path=result[0])
 
 
-@sieve.workflow(name="audio_noise_reduction")
+wf_metadata = sieve.Metadata(
+    title="Reduce Noise in Audio",
+    description="Make your audio sound clearer by reducing noise.",
+    code_url="https://github.com/sieve-community/examples/tree/main/audio_noise_reduction/main.py",
+    tags=["Audio"],
+    readme=open("README.md", "r").read(),
+)
+
+
+@sieve.workflow(name="audio_noise_reduction", metadata=wf_metadata)
 def audio_enhance(audio: sieve.Audio) -> sieve.Audio:
     """
     :param audio: A noisy audio input

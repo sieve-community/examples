@@ -43,7 +43,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": f"Status: `{status}`",
+                    "text": f"Status: `${{ github.action_status }}`",
                   },
                 },
                 {
@@ -91,7 +91,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": f"Status: `{status}`",
+                    "text": f"Status: `${{ github.action_status }}`",
                   },
                 },
                 {

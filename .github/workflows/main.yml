@@ -37,14 +37,7 @@ jobs:
               "blocks": [
                 {
                   "type": "section",
-                  "text": {"type": "mrkdwn", "text": "*Deploying & testing examples*"},
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": f"Status: `${{ github.action_status }}`",
-                  },
+                  "text": {"type": "mrkdwn", "text": "*Deploying & testing examples*"}
                 },
                 {
                   "type": "section",
@@ -85,22 +78,15 @@ jobs:
                     "type": "mrkdwn",
                     "text": f"*Examples deployed & tested { 'successfully' if status == 'success' else 'failed' }*",
                     "color": f"{ '#36a64f' if status == 'success' else '#ff0000' }"
-                  },
+                  }
                 },
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": f"Status: `${{ github.action_status }}`",
-                  },
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": f"Action: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Link>",
-                  },
-                },
+                    "text": f"Action: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Link>"
+                  }
+                }
               ]
             }
         env:

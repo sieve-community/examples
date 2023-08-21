@@ -14,7 +14,7 @@ metadata = sieve.Metadata(
     python_packages=[
         "torch==1.8.1",
         "pandas==1.5.2",
-        "opencv-python-headless==4.5.4.60",
+        "opencv-python-headless",
         "ipython==8.4.0",
         "torch==1.8.1",
         "torchvision==0.9.1",

@@ -31,7 +31,6 @@ jobs:
         if: always()
         uses: slackapi/slack-github-action@v1.14.0
         with:
-          channel-id: "C03QVLXJZPV"
           payload: |
             {
               "blocks": [
@@ -50,6 +49,7 @@ jobs:
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
       - name: Deploy workflows & models
         env:
@@ -67,7 +67,6 @@ jobs:
         if: always()
         uses: slackapi/slack-github-action@v1.14.0
         with:
-          channel-id: "C03QVLXJZPV"
           update-ts: ${{ steps.slack.outputs.ts }}
           payload: |
             {
@@ -91,3 +90,4 @@ jobs:
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

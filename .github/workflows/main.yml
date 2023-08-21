@@ -4,37 +4,80 @@ on:
   workflow_dispatch:
     inputs:
       api_url:
-        description: 'Sieve API URL'
+        description: "Sieve API URL"
         required: false
-        default: 'https://mango.sievedata.com'
-  schedule:   
-    - cron:  '0 0 * * *'
+        default: "https://mango.sievedata.com"
+  schedule:
+    - cron: "0 0 * * *"
 
 jobs:
   run_tests:
     runs-on: ubuntu-latest
     steps:
-    - name: Check out repository code
-      uses: actions/checkout@v2
+      - name: Check out repository code
+        uses: actions/checkout@v2
 
-    - name: Set up Python environment
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
+      - name: Set up Python environment
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install https://mango.sievedata.com/v1/client_package/sievedata-0.0.1.1.2-py3-none-any.whl
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install https://mango.sievedata.com/v1/client_package/sievedata-0.0.1.1.2-py3-none-any.whl
 
-    - name: Deploy workflows & models
-      env:
-        SIEVE_API_KEY: ${{ secrets.SIEVE_API_KEY }}
-        SIEVE_API_URL: ${{ github.event.inputs.api_url || 'https://mango.sievedata.com' }}
-      run: python test.py --deploy
+      - name: Notify Slack on start
+        if: always()
+        uses: slackapi/slack-github-action@v1.14.0
+        with:
+          channel-id: "C03QVLXJZPV"
+          payload: |
+            {
+              "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
-    - name: Run sample tests
-      env:
-        SIEVE_API_KEY: ${{ secrets.SIEVE_API_KEY }}
-        SIEVE_API_URL: ${{ github.event.inputs.api_url || 'https://mango.sievedata.com' }}
-      run: python test.py --test
+      - name: Deploy workflows & models
+        env:
+          SIEVE_API_KEY: ${{ secrets.SIEVE_API_KEY }}
+          SIEVE_API_URL: ${{ github.event.inputs.api_url || 'https://mango.sievedata.com' }}
+        run: python test.py --deploy
+
+      - name: Run sample tests
+        env:
+          SIEVE_API_KEY: ${{ secrets.SIEVE_API_KEY }}
+          SIEVE_API_URL: ${{ github.event.inputs.api_url || 'https://mango.sievedata.com' }}
+        run: python test.py --test
+
+      - name: Notify Slack on completion
+        if: always()
+        uses: slackapi/slack-github-action@v1.14.0
+        with:
+          channel-id: "C03QVLXJZPV"
+          update-ts: ${{ steps.slack.outputs.ts }}
+          payload: |
+            {
+              "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

@@ -75,8 +75,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Examples deployed & tested ${{ job.status == 'success' && 'successfully' || 'failed' }}*",
-                    "color": "${{ job.status == 'success' && '#36a64f' || '#ff0000' }}"
+                    "text": "*Examples deployed & tested: `${{ job.status == 'success' && 'successfully' || 'failed' }}`*",
                   }
                 },
                 {

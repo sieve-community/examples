@@ -29,7 +29,7 @@ jobs:
 
       - name: Notify Slack on start
         if: always()
-        uses: slackapi/slack-github-action@v1.14.0
+        uses: slackapi/slack-github-action@v1.24.0
         with:
           payload: |
             {

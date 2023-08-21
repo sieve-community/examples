@@ -35,8 +35,12 @@ jobs:
             {
               "blocks": [
                 {
-                  "type": "section",
-                  "text": {"type": "mrkdwn", "text": "*Deploying & testing examples*"}
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": ":8ball: Deploying & testing examples",
+                    "emoji": true
+                  }
                 },
                 {
                   "type": "section",
@@ -72,10 +76,11 @@ jobs:
             {
               "blocks": [
                 {
-                  "type": "section",
+                  "type": "header",
                   "text": {
-                    "type": "mrkdwn",
-                    "text": "*Examples deployed & tested: `${{ job.status == 'success' && 'successfully' || 'failed' }}`*",
+                    "type": "plain_text",
+                    "text": "${{ job.status == 'success' && ':white_check_mark:' || ':x:'}}  Examples deploy & test ${{ job.status }}",
+                    "emoji": true
                   }
                 },
                 {

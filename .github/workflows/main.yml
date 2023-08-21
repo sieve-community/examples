@@ -36,10 +36,7 @@ jobs:
               "blocks": [
                 {
                   "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Deploying & testing examples*"
-                  }
+                  "text": {"type": "mrkdwn", "text": "*Deploying & testing examples*"}
                 },
                 {
                   "type": "section",
@@ -68,26 +65,25 @@ jobs:
 
       - name: Notify Slack on completion
         if: always()
-        uses: slackapi/slack-github-action@v1.14.0
+        uses: slackapi/slack-github-action@v1.24.0
         with:
           update-ts: ${{ steps.slack.outputs.ts }}
           payload: |
             {
-              "text": "Deploying & testing examples",
               "blocks": [
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": f"*Examples deployed & tested { 'successfully' if status == 'success' else 'failed' }*",
-                    "color": f"{ '#36a64f' if status == 'success' else '#ff0000' }"
+                    "text": "*Examples deployed & tested ${{ job.status == 'success' && 'successfully' || 'failed' }}*",
+                    "color": "${{ job.status == 'success' && '#36a64f' || '#ff0000' }}"
                   }
                 },
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "Action: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Link>"
+                    "text": "Action: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Link>",
                   }
                 }
               ]

@@ -34,19 +34,29 @@ jobs:
           channel-id: "C03QVLXJZPV"
           payload: |
             {
-              "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
               "blocks": [
+                {
+                  "type": "section",
+                  "text": {"type": "mrkdwn", "text": "*Deploying & testing examples*"},
+                },
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
-                  }
-                }
+                    "text": f"Status: `{status}`",
+                  },
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": f"Action: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Link>",
+                  },
+                },
               ]
             }
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Deploy workflows & models
         env:
@@ -68,16 +78,30 @@ jobs:
           update-ts: ${{ steps.slack.outputs.ts }}
           payload: |
             {
-              "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
               "blocks": [
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
-                  }
-                }
+                    "text": f"*Examples deployed & tested { 'successfully' if status == 'success' else 'failed' }*",
+                    "color": f"{ '#36a64f' if status == 'success' else '#ff0000' }"
+                  },
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": f"Status: `{status}`",
+                  },
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": f"Action: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Link>",
+                  },
+                },
               ]
             }
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

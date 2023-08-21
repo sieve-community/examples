@@ -43,9 +43,9 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": f"Action: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Link>",
-                  },
-                },
+                    "text": "Action: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Link>"
+                  }
+                }
               ]
             }
         env:
@@ -84,7 +84,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": f"Action: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Link>"
+                    "text": "Action: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Link>"
                   }
                 }
               ]

@@ -51,7 +51,7 @@ def soft_blur_with_mask(image: np.ndarray, mask: np.ndarray, strength=10) -> np.
     iterator_input=True,
     metadata=metadata,
 )
-class U2NetMask:
+class U2Net:
     def __setup__(self):
         from detect import load_model
 

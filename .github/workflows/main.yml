@@ -33,6 +33,7 @@ jobs:
         with:
           payload: |
             {
+              "text": "Deploying & testing examples",
               "blocks": [
                 {
                   "type": "section",
@@ -70,6 +71,7 @@ jobs:
           update-ts: ${{ steps.slack.outputs.ts }}
           payload: |
             {
+              "text": "Deploying & testing examples",
               "blocks": [
                 {
                   "type": "section",

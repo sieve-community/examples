@@ -33,11 +33,13 @@ jobs:
         with:
           payload: |
             {
-              "text": "Deploying & testing examples",
               "blocks": [
                 {
                   "type": "section",
-                  "text": {"type": "mrkdwn", "text": "*Deploying & testing examples*"}
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Deploying & testing examples*"
+                  }
                 },
                 {
                   "type": "section",

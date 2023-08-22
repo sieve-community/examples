@@ -10,6 +10,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--deploy", action="store_true")
     parser.add_argument("--test", action="store_true")
+    parser.add_argument("--github", action="store_true")
     args = parser.parse_args()
     ignore_dirs = [
         ".git",
@@ -24,6 +25,7 @@ if __name__ == "__main__":
 
     dirs = [d for d in os.listdir(".") if os.path.isdir(d) and d not in ignore_dirs]
     dirs.sort()
+    dir_status = {}
     if args.deploy:
         for d in dirs:
             os.chdir(d)
@@ -40,6 +42,7 @@ if __name__ == "__main__":
 
             os.chdir("..")
             print("[green bold]Deployed directory: [/]" + d)
+            dir_status[d] = {"status": "deployed"}
 
         print("[green bold]Deployed all examples[/]")
 
@@ -64,7 +67,8 @@ if __name__ == "__main__":
                     if "id=" in line:
                         found_job = True
                         job_id = line.split("=")[1].split(" ")[0].strip()
-                        job_ids.add((d, job_id))
+                        curr_time = time.time()
+                        job_ids.add((d, curr_time, job_id))
 
                 if not found_job:
                     print("[red bold]No jobs submitted from: [/]" + d)
@@ -82,26 +86,44 @@ if __name__ == "__main__":
         failed = False
 
         while len(job_ids) > 0:
-            test_name, job_id = job_ids.pop()
+            test_name, time_started, job_id = job_ids.pop()
             job = sieve.get(job_id)
             status = job["status"]
             if time.time() - start_time > timeout_min * 60:
+                dir_status[d] = {
+                    "status": "failed",
+                    "error": "10 minute timeout reached",
+                }
                 print("[red bold]Timeout reached[/]")
                 break
             if status == "finished":
                 print(f"[green bold]Job finished:[/] {test_name} {job_id}")
+                dir_status[d] = {"status": "tested", "time": time.time() - time_started}
             elif status == "error":
                 print(f"[red bold]Job failed:[/] {test_name} {job_id}")
                 print(job["error"])
+                dir_status[d] = {"status": "failed", "error": job["error"]}
                 failed = True
                 # raise Exception(f"Job failed: {test_name} {job_id}")
             else:
-                job_ids.add((test_name, job_id))
+                job_ids.add((test_name, time_started, job_id))
                 time.sleep(10)
 
+        print(dir_status)
         if len(job_ids) == 0 and not failed:
             print("[green bold]All jobs finished[/]")
         else:
             print("[red bold]Some jobs failed to finish[/]")
             print(job_ids)
             raise Exception(f"Some jobs timed out: {str(job_ids)}")
+
+    if args.github:
+        env_file = os.getenv("GITHUB_ENV")
+        github_output = ""
+        for dir_name, status_info in dir_status.items():
+            if status_info["status"] == "failed":
+                github_output += f"* {dir_name} :x:\n"
+            else:
+                github_output += f"* {dir_name} :white_check_mark: {round(status_info['time'], 2)}s\n"
+        with open(env_file, "a") as f:
+            f.write(f"job_info={github_output}")

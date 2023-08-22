@@ -90,7 +90,7 @@ if __name__ == "__main__":
             job = sieve.get(job_id)
             status = job["status"]
             if time.time() - start_time > timeout_min * 60:
-                dir_status[d] = {
+                dir_status[test_name] = {
                     "status": "failed",
                     "error": "10 minute timeout reached",
                 }
@@ -98,11 +98,17 @@ if __name__ == "__main__":
                 break
             if status == "finished":
                 print(f"[green bold]Job finished:[/] {test_name} {job_id}")
-                dir_status[d] = {"status": "tested", "time": time.time() - time_started}
+                dir_status[test_name] = {
+                    "status": "tested",
+                    "time": time.time() - time_started,
+                }
             elif status == "error":
                 print(f"[red bold]Job failed:[/] {test_name} {job_id}")
                 print(job["error"])
-                dir_status[d] = {"status": "failed", "error": job["error"]}
+                dir_status[test_name] = {
+                    "status": "failed",
+                    "error": job["error"].split("\n")[-1],
+                }
                 failed = True
                 # raise Exception(f"Job failed: {test_name} {job_id}")
             else:
@@ -122,7 +128,7 @@ if __name__ == "__main__":
         github_output = ""
         for dir_name, status_info in dir_status.items():
             if status_info["status"] == "failed":
-                github_output += f"* {dir_name} :x:\n"
+                github_output += f"* {dir_name} :x: {status_info['error']}\n"
             else:
                 github_output += f"* {dir_name} :white_check_mark: {round(status_info['time'], 2)}s\n"
         with open(env_file, "a") as f:

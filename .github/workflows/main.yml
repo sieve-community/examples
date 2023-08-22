@@ -27,17 +27,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install https://mango.sievedata.com/v1/client_package/sievedata-0.0.1.1.2-py3-none-any.whl
 
-      - name: Deploy workflows & models
+      - name: Deploy & test examples
+        id: test
         env:
           SIEVE_API_KEY: ${{ secrets.SIEVE_API_KEY }}
           SIEVE_API_URL: ${{ github.event.inputs.api_url || 'https://mango.sievedata.com' }}
-        run: python test.py --deploy
-
-      - name: Run sample tests
-        env:
-          SIEVE_API_KEY: ${{ secrets.SIEVE_API_KEY }}
-          SIEVE_API_URL: ${{ github.event.inputs.api_url || 'https://mango.sievedata.com' }}
-        run: python test.py --test
+        run: |
+          python test.py --deploy --test --github
 
       - name: Notify Slack on completion
         if: always()
@@ -45,21 +41,33 @@ jobs:
         with:
           payload: |
             {
-              "blocks": [
+              "attachments": [
                 {
-                  "type": "header",
-                  "text": {
-                    "type": "plain_text",
-                    "text": "${{ job.status == 'success' && ':white_check_mark:' || ':x:'}}  Examples deploy & test ${{ job.status }}",
-                    "emoji": true
-                  }
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "Action: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Link>"
-                  }
+                  "color": "${{ job.status == 'success' && '#008000' || '#FF0000'}}",
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "${{ job.status == 'success' && ':white_check_mark:' || ':x:'}}  Examples deploy & test ${{ job.status }}",
+                        "emoji": true
+                      }
+                    },
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "${{ env.job_info }}"
+                      }
+                    },
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "Action: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Link>"
+                      }
+                    }
+                  ]
                 }
               ]
             }

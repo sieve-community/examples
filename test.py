@@ -129,7 +129,9 @@ if __name__ == "__main__":
         for dir_name, status_info in dir_status.items():
             if status_info["status"] == "failed":
                 github_output += f"* {dir_name} :x: {status_info['error']}\n"
-            else:
+            elif status_info["status"] == "deployed":
+                github_output += f"* {dir_name} :white_check_mark:\n"
+            elif status_info["status"] == "tested" and "time" in status_info:
                 github_output += f"* {dir_name} :white_check_mark: {round(status_info['time'], 2)}s\n"
         with open(env_file, "a") as f:
             f.write(f"job_info={github_output}")

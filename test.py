@@ -26,6 +26,8 @@ if __name__ == "__main__":
     dirs = [d for d in os.listdir(".") if os.path.isdir(d) and d not in ignore_dirs]
     dirs.sort()
     dir_status = {}
+
+    deployment_failed = False
     if args.deploy:
         for d in dirs:
             os.chdir(d)
@@ -38,7 +40,11 @@ if __name__ == "__main__":
             if proc.returncode != 0:
                 print("[red bold]Error deploying directory: [/]" + d)
                 print(proc.stderr)
-                raise Exception("Error deploying directory: " + d)
+                dir_status[d] = {
+                    "status": "failed",
+                    "error": proc.stderr.split("\n")[-1],
+                }
+                deployment_failed = True
 
             os.chdir("..")
             print("[green bold]Deployed directory: [/]" + d)
@@ -46,7 +52,7 @@ if __name__ == "__main__":
 
         print("[green bold]Deployed all examples[/]")
 
-    if args.test:
+    if args.test and not deployment_failed:
         job_ids = set()
         for d in dirs:
             if Path(d + "/main.py").exists():
@@ -59,7 +65,10 @@ if __name__ == "__main__":
                 if proc.returncode != 0:
                     print("[red bold]Error running example: [/]" + d)
                     print(proc.stderr)
-                    raise Exception("Error running example: " + d)
+                    dir_status[d] = {
+                        "status": "failed",
+                        "error": proc.stderr.split("\n")[-1],
+                    }
 
                 # Parse the job IDs from the output
                 found_job = False
@@ -110,7 +119,6 @@ if __name__ == "__main__":
                     "error": job["error"].split("\n")[-1],
                 }
                 failed = True
-                # raise Exception(f"Job failed: {test_name} {job_id}")
             else:
                 job_ids.add((test_name, time_started, job_id))
                 time.sleep(10)
@@ -121,7 +129,6 @@ if __name__ == "__main__":
         else:
             print("[red bold]Some jobs failed to finish[/]")
             print(job_ids)
-            raise Exception(f"Some jobs timed out: {str(job_ids)}")
 
     if args.github:
         env_file = os.getenv("GITHUB_ENV")

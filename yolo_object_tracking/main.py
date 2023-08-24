@@ -8,6 +8,9 @@ metadata = sieve.Metadata(
     title="Track Objects in Video",
     description="Run hyperparallelized object tracking on video.",
     code_url="https://github.com/sieve-community/examples/tree/main/yolo_object_tracking/main.py",
+    image=sieve.Image(
+        url="https://storage.googleapis.com/sieve-public-data/yolo_object_tracking/cover.webp"
+    ),
     tags=["Tracking", "Video", "Detection"],
     readme=open("README.md", "r").read(),
 )

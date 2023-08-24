@@ -4,6 +4,9 @@ metadata = sieve.Metadata(
     title="Segment Objects in Video",
     description="Run hyperparallelized object segmentation on video.",
     code_url="https://github.com/sieve-community/examples/blob/main/object_segmentation/main.py",
+    image=sieve.Image(
+        url="https://storage.googleapis.com/sieve-public-data/object-segmentation/cover.gif"
+    ),
     tags=["Segmentation", "Video"],
     readme=open("README.md", "r").read(),
 )

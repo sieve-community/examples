@@ -354,6 +354,7 @@ metadata = sieve.Metadata(
     title="Motion Tracking",
     description="Track a point through a video.",
     code_url="https://github.com/sieve-community/examples/blob/main/point_tracking/main.py",
+    image=sieve.Image(url="https://www.annenbergdl.org/wp-content/uploads/2016/05/trackhandfast.gif"),
     tags=["Tracking", "Video"],
     readme=open("README.md", "r").read(),
 )

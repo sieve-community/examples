@@ -56,7 +56,7 @@ wf_metadata = sieve.Metadata(
     image=sieve.Image(
         url="https://storage.googleapis.com/sieve-public-data/image_captioning/cover.jpg"
     ),
-    tags=["Generation", "Image"],
+    tags=["Generative", "Image"],
     readme=open("README.md", "r").read(),
 )
 

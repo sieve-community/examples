@@ -70,6 +70,9 @@ metadata = sieve.Metadata(
     description="Detect scene changes in a video efficiently.",
     code_url="https://github.com/sieve-community/examples/blob/main/scene_change_detection/main.py",
     tags=["Detection", "Video"],
+    image=sieve.Image(
+        url="https://storage.googleapis.com/sieve-public-data/c4d968f5-f25a-412b-9102-5b6ab6dafcb4/scene_change_detection/cover.png"
+    ),
     readme=open("README.md", "r").read(),
 )
 

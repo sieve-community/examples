@@ -6,7 +6,7 @@ wf_metadata = sieve.Metadata(
     title="Detect Faces in Video",
     description="Run standard face detection models hyperparallelized on video.",
     image=sieve.Image(
-        url="https://developers.google.com/static/mediapipe/images/solutions/examples/face_detector.png"
+        url="https://storage.googleapis.com/sieve-public-data/mediapipe-face-detection/cover.png"
     ),
     code_url="https://github.com/sieve-community/examples/tree/main/face_detection/wf.py",
     tags=["Detection", "Video"],

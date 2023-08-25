@@ -55,6 +55,9 @@ wf_metadata = sieve.Metadata(
     title="Reduce Noise in Audio",
     description="Make your audio sound clearer by reducing noise.",
     code_url="https://github.com/sieve-community/examples/tree/main/audio_noise_reduction/main.py",
+    image=sieve.Image(
+        url="https://storage.googleapis.com/sieve-public-data/audio_noise_reduction/cover.png"
+    ),
     tags=["Audio"],
     readme=open("README.md", "r").read(),
 )

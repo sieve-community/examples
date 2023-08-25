@@ -5,6 +5,9 @@ metadata = sieve.Metadata(
     title="Remove Background from Video",
     description="Remove the background from a video with U2Net.",
     code_url="https://github.com/sieve-community/examples/tree/main/video_background_removal/main.py",
+    image=sieve.Image(
+        url="https://storage.googleapis.com/sieve-public-data/video_background_mask/cover.gif"
+    ),
     tags=["Video", "Masking"],
     readme=open("README.md", "r").read(),
 )

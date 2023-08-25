@@ -54,9 +54,9 @@ wf_metadata = sieve.Metadata(
     description="Understand and generate captions for images.",
     code_url="https://github.com/sieve-community/examples/tree/main/image_captioning/main.py",
     image=sieve.Image(
-        url="https://storage.googleapis.com/sieve-public-videos-grapefruit/sama_avatar1.jpeg"
+        url="https://storage.googleapis.com/sieve-public-data/image_captioning/cover.jpg"
     ),
-    tags=["Generation", "Image"],
+    tags=["Generative", "Image"],
     readme=open("README.md", "r").read(),
 )
 

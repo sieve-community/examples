@@ -15,7 +15,6 @@ if __name__ == "__main__":
     ignore_dirs = [
         ".git",
         ".github",
-        "audio_transcription",
         "auto_chapter_title",
         "talking_head_avatars",
         "text_to_speech",

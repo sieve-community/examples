@@ -2,12 +2,10 @@ import sieve
 
 model_metadata = sieve.Metadata(
     description="A Low Complexity Speech Enhancement Framework for Full-Band Audio (48kHz) using on Deep Filtering.",
-    code_url="https://github.com/sieve-community/examples/tree/main/audio_noise_reduction/main.py",
+    code_url="https://github.com/sieve-community/examples/tree/main/audio_enhance/deepfilternet.py",
     tags=["Audio"],
-    readme=open("MODEL_README.md", "r").read(),
+    readme=open("DEEPFILTER_README.md", "r").read(),
 )
-
-import sieve
 
 @sieve.Model(
     name="deepfilternet_v2",
@@ -36,32 +34,3 @@ class DeepFilterNetV2:
         enhanced = enhance(self.model, self.df_state, audio)
         save_audio("enhanced.wav", enhanced, self.df_state.sr())
         return sieve.Audio(path="enhanced.wav")
-
-wf_metadata = sieve.Metadata(
-    title="Remove Audio Background Noise",
-    description="Remove background noise from audio.",
-    code_url="https://github.com/sieve-community/examples/tree/main/audio_noise_reduction/main.py",
-    image=sieve.Image(
-        url="https://storage.googleapis.com/sieve-public-data/audio_noise_reduction/cover.png"
-    ),
-    tags=["Audio"],
-    readme=open("README.md", "r").read(),
-)
-
-@sieve.workflow(name="audio_background_noise_removal", metadata=wf_metadata)
-def audio_enhance(audio: sieve.Audio) -> sieve.Audio:
-    """
-    :param audio: A noisy audio input
-    :return: Denoised audio
-    """
-    return DeepFilterNetV2()(audio)
-
-if __name__ == "__main__":
-    sieve.push(
-        workflow="audio_noise_reduction",
-        inputs={
-            "audio": {
-                "url": "https://storage.googleapis.com/sieve-public-data/audio_noise_reduction/input.wav"
-            }
-        },
-    )

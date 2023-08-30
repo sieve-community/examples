@@ -1,5 +1,11 @@
 import sieve
 
+metadata = sieve.Metadata(
+    description="Transcribes audio using OpenAI's Whisper model.",
+    code_url="https://github.com/sieve-community/examples/tree/main/audio_transcription/main.py",
+    tags=["Audio"],
+)
+
 
 @sieve.Model(
     name="whisperx",
@@ -22,6 +28,7 @@ import sieve
         "mkdir -p /root/.cache/torch/hub/checkpoints/",
         "wget -c 'https://download.pytorch.org/torchaudio/models/wav2vec2_fairseq_base_ls960_asr_ls960.pth' -P /root/.cache/torch/hub/checkpoints/",
     ],
+    metadata=metadata,
 )
 class Whisper:
     def __setup__(self):

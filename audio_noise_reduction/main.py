@@ -1,59 +1,45 @@
 import sieve
 
 model_metadata = sieve.Metadata(
-    description="Reduce noise in audio with FullSubNet.",
+    description="A Low Complexity Speech Enhancement Framework for Full-Band Audio (48kHz) using on Deep Filtering.",
     code_url="https://github.com/sieve-community/examples/tree/main/audio_noise_reduction/main.py",
     tags=["Audio"],
-    readme=open("README.md", "r").read(),
+    readme=open("MODEL_README.md", "r").read(),
 )
 
+import sieve
 
 @sieve.Model(
-    name="fullsubnet",
-    gpu=True,
-    python_version="3.8",
+    name="deepfilternet_v2",
+    gpu = True,
     python_packages=[
-        "torch==1.12.1",
-        "torchvision==0.13.1",
-        "torchaudio==0.12.1",
-        "librosa==0.9.2",
-        "joblib==1.1.0",
-        "pesq==0.0.3",
-        "pypesq==1.2.4",
-        "pystoi==0.3.3",
-        "tqdm==4.62.3",
-        "toml==0.10.2",
-        "colorful==0.5.4",
-        "torch_complex==0.2.1",
+        "torch==1.9.0",
+        "torchaudio==0.9.0",
+        "deepfilternet"
     ],
-    system_packages=[
-        "libsndfile1-dev",
-        "ffmpeg",
-    ],
+    system_packages=["zip", "unzip"],
     run_commands=[
-        "mkdir -p /root/.cache/audio_enhance/models",
-        "wget -c 'https://storage.googleapis.com/sieve-public-model-assets/fullsubnet/best_model.tar' -P /root/.cache/audio_enhance/models/",
+        "mkdir -p /root/.cache/DeepFilterNet",
+        "wget -c https://github.com/Rikorose/DeepFilterNet/raw/main/models/DeepFilterNet3.zip -P /root/.cache/DeepFilterNet",
+        "unzip /root/.cache/DeepFilterNet/DeepFilterNet3.zip -d /root/.cache/DeepFilterNet",
+        "ls -l /root/.cache/DeepFilterNet",
     ],
-    metadata=model_metadata,
 )
-class FullSubNet:
+class DeepFilterNetV2:
     def __setup__(self):
-        from speech_enhance.tools.denoise_hf_clone_voice import start
+        from df.enhance import enhance, init_df, load_audio, save_audio
+        self.model, self.df_state, _ = init_df()
 
     def __predict__(self, audio: sieve.Audio) -> sieve.Audio:
-        """
-        :param audio: A noisy audio input
-        :return: Denoised audio
-        """
-        from speech_enhance.tools.denoise_hf_clone_voice import start
-
-        result = start(to_list_files=[audio.path])
-        return sieve.Audio(path=result[0])
-
+        from df.enhance import enhance, init_df, load_audio, save_audio
+        audio, _ = load_audio(audio.path, sr=self.df_state.sr())
+        enhanced = enhance(self.model, self.df_state, audio)
+        save_audio("enhanced.wav", enhanced, self.df_state.sr())
+        return sieve.Audio(path="enhanced.wav")
 
 wf_metadata = sieve.Metadata(
-    title="Reduce Noise in Audio",
-    description="Make your audio sound clearer by reducing noise.",
+    title="Remove Audio Background Noise",
+    description="Remove background noise from audio.",
     code_url="https://github.com/sieve-community/examples/tree/main/audio_noise_reduction/main.py",
     image=sieve.Image(
         url="https://storage.googleapis.com/sieve-public-data/audio_noise_reduction/cover.png"
@@ -62,15 +48,13 @@ wf_metadata = sieve.Metadata(
     readme=open("README.md", "r").read(),
 )
 
-
-@sieve.workflow(name="audio_noise_reduction", metadata=wf_metadata)
+@sieve.workflow(name="audio_background_noise_removal", metadata=wf_metadata)
 def audio_enhance(audio: sieve.Audio) -> sieve.Audio:
     """
     :param audio: A noisy audio input
     :return: Denoised audio
     """
-    return FullSubNet()(audio)
-
+    return DeepFilterNetV2()(audio)
 
 if __name__ == "__main__":
     sieve.push(

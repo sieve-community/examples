@@ -11,6 +11,7 @@ metadata = sieve.Metadata(
 @sieve.Model(
     name="whisperx",
     gpu = True,
+    machine_type="T4-highmem-8-ssd",
     python_packages=[
         "torch==2.0",
         "torchaudio==2.0.0",

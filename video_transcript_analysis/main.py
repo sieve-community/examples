@@ -143,6 +143,9 @@ wf_metadata = sieve.Metadata(
     description="Given a video, generate a title, chapters, and summary.",
     code_url="https://github.com/sieve-community/examples/tree/main/video_transcript_analysis/main.py",
     tags=["Video"],
+    image=sieve.Image(
+        url="https://www.tubebuddy.com/wp-content/uploads/2022/06/video-chapter-snippet-1024x674.png"
+    ),
     readme=open("README.md", "r").read(),
 )
 

@@ -1,6 +1,6 @@
 # Hyperfast Word-level Audio Transcription
 
-This app is able to transcribe over 40 mins of audio in ~30 seconds using the state-of-the-art audio transcription model Whisper Large-V2. It does this by first detecting silent sections in an audio clip and then parallelizing the transcription of the non-silent sections across many instances of the model to deliver hyper-fast transcription speeds. Try it for yourself.
+This app is able to transcribe over 40 mins of audio in ~60 seconds using the state-of-the-art audio transcription model Whisper Large-V2. It does this by first detecting silent sections in an audio clip and then parallelizing the transcription of the non-silent sections across many instances of the model to deliver hyper-fast transcription speeds. Try it for yourself.
 
 It returns the transcription in a JSON format as shown below:
 

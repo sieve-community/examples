@@ -54,8 +54,8 @@ def split_audio(vid: sieve.Video) -> sieve.Audio:
     return sieve.Audio(path=audio_path)
 
 wf_metadata = sieve.Metadata(
-    title="Generate Video Title, Chapters, and Summary",
-    description="Given a video, generate a title, chapters, and summary.",
+    title="Video Transcript Analysis",
+    description="Given a video, generate a title, chapters, summary and tags",
     code_url="https://github.com/sieve-community/examples/tree/main/video_transcript_analysis/main.py",
     tags=["Video"],
     image=sieve.Image(
@@ -65,10 +65,10 @@ wf_metadata = sieve.Metadata(
 )
 
 @sieve.workflow(name="video_transcript_analysis", metadata=wf_metadata)
-def auto_chapter_title(vid: sieve.Video) -> List[Dict]:
+def video_analysis(vid: sieve.Video) -> List[Dict]:
     """
-    :param vid: A video to transcribe and split into chapters
-    :return: A list of chapter titles with their start and end times
+    :param vid: A video to transcribe and analyze
+    :return: A title, summary, tags, and chapters
     """
     audio = split_audio(vid)
     text = sieve.reference("sieve/whisperx")(audio)

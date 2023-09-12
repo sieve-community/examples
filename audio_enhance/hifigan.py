@@ -82,9 +82,9 @@ class HiFiGanPlus:
         self.audio_upscaler = AudioUpscaler()
 
     def __predict__(self, audio: sieve.Audio) -> sieve.Audio:
-        audio_path_ending = audio.path.split(".")[-1]
+        audio_path_ending = audio.path.split(".")[-1].strip()
         if audio_path_ending not in ["wav", "mp3", "flac"]:
-            raise Exception("Only wav, mp3, and flac files are supported.")
+            audio_path_ending = "wav"
 
         import os
         import subprocess

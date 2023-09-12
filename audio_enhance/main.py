@@ -16,7 +16,7 @@ wf_metadata = sieve.Metadata(
 @sieve.workflow(name="audio_background_noise_removal", metadata=wf_metadata)
 def audio_enhance(audio: sieve.Audio) -> sieve.Audio:
     """
-    :param audio: A noisy audio input
+    :param audio: A noisy audio input (mp3 and wav supported)
     :return: Denoised audio
     """
     background_noise_removed =  DeepFilterNetV2()(audio)

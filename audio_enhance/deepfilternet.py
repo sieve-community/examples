@@ -12,7 +12,7 @@ model_metadata = sieve.Metadata(
     name="deepfilternet_v2",
     gpu=True,
     python_packages=["torch==1.9.0", "torchaudio==0.9.0", "deepfilternet"],
-    system_packages=["zip", "unzip"],
+    system_packages=["zip", "unzip", "ffmpeg"],
     run_commands=[
         "mkdir -p /root/.cache/DeepFilterNet",
         "wget -c https://github.com/Rikorose/DeepFilterNet/raw/main/models/DeepFilterNet3.zip -P /root/.cache/DeepFilterNet",
@@ -30,7 +30,81 @@ class DeepFilterNetV2:
     def __predict__(self, audio: sieve.Audio) -> sieve.Audio:
         from df.enhance import enhance, init_df, load_audio, save_audio
 
-        audio, _ = load_audio(audio.path, sr=self.df_state.sr())
-        enhanced = enhance(self.model, self.df_state, audio)
-        save_audio("enhanced.wav", enhanced, self.df_state.sr())
-        return sieve.Audio(path="enhanced.wav")
+        audio_path_ending = audio.path.split(".")[-1]
+        if audio_path_ending not in ["wav", "mp3", "flac"]:
+            raise Exception("Only wav, mp3, and flac files are supported.")
+
+        import os
+        import subprocess
+
+        if os.path.exists("out.wav"):
+            os.remove(f"out.wav")
+
+        if os.path.exists("out.mp3"):
+            os.remove(f"out.mp3")
+
+        if os.path.exists("out.flac"):
+            os.remove(f"out.flac")
+
+        # split audio in 10s chunks and process each chunk separately
+        # create temp directory in temp_audio
+        if not os.path.exists("temp_audio"):
+            os.mkdir("temp_audio")
+
+        # make output directory
+        if not os.path.exists("output"):
+            os.mkdir("output")
+
+        # split audio in 20s chunks
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-i",
+                audio.path,
+                "-f",
+                "segment",
+                "-segment_time",
+                "180",
+                "-c",
+                "copy",
+                f"temp_audio/out%04d.{audio_path_ending}",
+            ]
+        )
+
+        out_list = []
+        # process each chunk separately
+        for file in sorted(os.listdir("temp_audio")):
+            print(f"Processing {file}")
+            audio, _ = load_audio(f"temp_audio/{file}", sr=self.df_state.sr())
+            enhanced = enhance(self.model, self.df_state, audio)
+            save_audio(f"output/{file}", enhanced, self.df_state.sr())
+            out_list.append(f"output/{file}")
+
+        # write filenames to filelist.txt
+        with open("filelist.txt", "w") as f:
+            for file in out_list:
+                f.write(f"file '{file}'\n")
+
+        # concatenate files
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                "filelist.txt",
+                "-c",
+                "copy",
+                f"out.{audio_path_ending}",
+            ]
+        )
+
+        # remove temp_audio directory
+        subprocess.run(["rm", "-rf", "temp_audio"])
+
+        # remove output directory
+        subprocess.run(["rm", "-rf", "output"])
+
+        return sieve.Audio(path=f"out.{audio_path_ending}")

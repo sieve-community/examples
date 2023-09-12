@@ -82,11 +82,21 @@ class HiFiGanPlus:
         self.audio_upscaler = AudioUpscaler()
 
     def __predict__(self, audio: sieve.Audio) -> sieve.Audio:
+        audio_path_ending = audio.path.split(".")[-1]
+        if audio_path_ending not in ["wav", "mp3", "flac"]:
+            raise Exception("Only wav, mp3, and flac files are supported.")
+
         import os
         import subprocess
 
         if os.path.exists("out.wav"):
-            os.remove("out.wav")
+            os.remove(f"out.wav")
+
+        if os.path.exists("out.mp3"):
+            os.remove(f"out.mp3")
+
+        if os.path.exists("out.flac"):
+            os.remove(f"out.flac")
 
         # split audio in 10s chunks and process each chunk separately
         # create temp directory in temp_audio
@@ -109,7 +119,7 @@ class HiFiGanPlus:
                 "20",
                 "-c",
                 "copy",
-                "temp_audio/out%04d.wav",
+                f"temp_audio/out%04d.{audio_path_ending}",
             ]
         )
 
@@ -137,7 +147,7 @@ class HiFiGanPlus:
                 "filelist.txt",
                 "-c",
                 "copy",
-                "out.wav",
+                f"out.{audio_path_ending}",
             ]
         )
 
@@ -147,4 +157,4 @@ class HiFiGanPlus:
         # remove output directory
         subprocess.run(["rm", "-rf", "output"])
 
-        return sieve.Audio(path="out.wav")
+        return sieve.Audio(path=f"out.{audio_path_ending}")

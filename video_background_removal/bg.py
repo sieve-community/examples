@@ -58,30 +58,43 @@ class U2Net:
         self.model = load_model()
 
     def __predict__(self, img: sieve.Image, blur: bool) -> sieve.Image:
-        img, blur = list(img)[0], list(blur)[0]
+        imgs = list(img)
+        blur = list(blur)[0]
         from detect import predict
+        default_frame_number = 0
+        for img in imgs:
 
-        frame_data = cv2.cvtColor(img.array, cv2.COLOR_BGR2RGB)
-        width = frame_data.shape[1]
-        height = frame_data.shape[0]
+            frame_data = cv2.cvtColor(img.array, cv2.COLOR_BGR2RGB)
+            width = frame_data.shape[1]
+            height = frame_data.shape[0]
 
-        output_image = predict(self.model, frame_data)
-        # resize to original size
-        output_image = cv2.resize(
-            output_image, (width, height), interpolation=cv2.INTER_CUBIC
-        )
-
-        if blur:
-            output_image = soft_blur_with_mask(frame_data, output_image, strength=10)
-            output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR)
-
-        if hasattr(img, "fps") and hasattr(img, "frame_number"):
-            return sieve.Image(
-                array=output_image, fps=img.fps, frame_number=img.frame_number
+            output_image = predict(self.model, frame_data)
+            # resize to original size
+            output_image = cv2.resize(
+                output_image, (width, height), interpolation=cv2.INTER_CUBIC
             )
-        if hasattr(img, "fps"):
-            return sieve.Image(array=output_image, fps=img.fps)
-        if hasattr(img, "frame_number"):
-            return sieve.Image(array=output_image, frame_number=img.frame_number)
-        else:
-            return sieve.Image(array=output_image)
+
+            if blur:
+                output_image = soft_blur_with_mask(frame_data, output_image, strength=10)
+                output_image = cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR)
+
+            if hasattr(img, "fps") and hasattr(img, "frame_number"):
+                yield sieve.Image(
+                    array=output_image, fps=img.fps, frame_number=img.frame_number
+                )
+                default_frame_number += 1
+                continue
+            if hasattr(img, "fps"):
+                yield sieve.Image(array=output_image, fps=img.fps, frame_number=default_frame_number)
+                default_frame_number += 1
+                continue
+            if hasattr(img, "frame_number"):
+                yield sieve.Image(array=output_image, frame_number=img.frame_number)
+                default_frame_number += 1
+                continue
+            else:
+                yield sieve.Image(array=output_image, frame_number=default_frame_number)
+                default_frame_number += 1
+                continue
+
+            

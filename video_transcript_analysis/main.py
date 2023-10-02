@@ -15,6 +15,8 @@ from typing import Dict, List
     ]
 )
 def analyze_transcript(transcript):
+    text = " ".join([segment["text"] for segment in transcript])
+    yield {"text": text}
     yield {"transcript": transcript}
     import time
     overall_start_time = time.time()

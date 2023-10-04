@@ -8,7 +8,7 @@ metadata = sieve.Metadata(
     image=sieve.Image(
         url="https://mediapipe.dev/images/mobile/face_detection_android_gpu.gif"
     ),
-    tags=["Detection", "Video", "Face"],
+    tags=["Detection", "Video", "Face", "Featured"],
     readme=open("README.md", "r").read(),
 )
 

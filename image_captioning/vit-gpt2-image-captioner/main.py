@@ -3,7 +3,7 @@ from typing import Dict, List
 
 metadata = sieve.Metadata(
     description="Generate captions for an image with ViT and GPT-2.",
-    code_url="https://github.com/sieve-community/examples/tree/main/image_understanding/vit-gpt2-image-captioner",
+    code_url="https://github.com/sieve-community/examples/tree/main/image_captioning/vit-gpt2-image-captioner",
     image=sieve.Image(
         url="https://ankur3107.github.io/assets/images/vision-encoder-decoder.png"
     ),

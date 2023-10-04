@@ -4,7 +4,7 @@ from typing import List
 
 model_metadata = sieve.Metadata(
     description="Detect scene changes in a video with PySceneDetect.",
-    code_url="https://github.com/sieve-community/examples/blob/main/video_scene_detection/main.py",
+    code_url="https://github.com/sieve-community/examples/blob/main/video_scene_detection/",
     image=sieve.Image(
         url="https://raw.githubusercontent.com/Breakthrough/PySceneDetect/main/website/pages/img/pyscenedetect_logo_small.png"
     ),
@@ -28,7 +28,7 @@ class Scene(BaseModel):
     system_packages=["libgl1"],
     metadata=model_metadata,
 )
-def scene_detection(video: sieve.Video) -> List[Scene]:
+def scene_detection(video: sieve.Video) -> Scene:
     """
     :param video: The video to detect scenes in
     :return: A list of scenes
@@ -63,21 +63,12 @@ def scene_detection(video: sieve.Video) -> List[Scene]:
 
         start_time_in_seconds = scene[0].get_frames() / video.fps
         end_time_in_seconds = scene[1].get_frames() / video.fps
-        scenes.append(
-            Scene(
-                start_seconds=start_time_in_seconds,
-                end_seconds=end_time_in_seconds,
-                scene_number=i + 1,
-                start_timecode=scene[0].get_timecode(),
-                end_timecode=scene[1].get_timecode(),
-            )
+        yield Scene(
+            start_seconds=start_time_in_seconds,
+            end_seconds=end_time_in_seconds,
+            scene_number=i + 1,
+            start_timecode=scene[0].get_timecode(),
+            end_timecode=scene[1].get_timecode(),
         )
 
     video_manager.release()
-
-    return scenes
-
-if __name__ == "__main__":
-    print(scene_detection.run(
-        sieve.Video(path="/Users/Mokshith/Desktop/gordon.mp4")
-    ))

@@ -8,7 +8,7 @@ model_metadata = sieve.Metadata(
     image=sieve.Image(
         url="https://raw.githubusercontent.com/Breakthrough/PySceneDetect/main/website/pages/img/pyscenedetect_logo_small.png"
     ),
-    tags=["Detection", "Video"],
+    tags=["Detection", "Video", "Featured"],
     readme=open("README.md", "r").read(),
 )
 

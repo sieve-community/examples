@@ -90,7 +90,6 @@ def audio_split_by_silence(file: sieve.Audio):
 
     count = 0
     audio_path = file.path
-    transcription_jobs = []
     whisperx = sieve.function.get("sieve/whisperx")
     
     # create a temporary directory to store the audio files
@@ -109,7 +108,7 @@ def audio_split_by_silence(file: sieve.Audio):
 
     segments = split_silences(audio_path, min_silence_length=min_silence_length, min_segment_length=min_segment_length)
     if not segments:
-        transcription_jobs.append(whisperx.push(sieve.Audio(path=audio_path)))
+        segments.append(whisperx.push(sieve.Audio(path=audio_path)))
 
     for job in executor.map(process_segment, segments):
         yield job.result()

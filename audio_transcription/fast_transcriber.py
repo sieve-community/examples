@@ -45,6 +45,7 @@ def audio_split_by_silence(file: sieve.Audio):
     def split_silences(
         path: str, min_segment_length: float = 30.0, min_silence_length: float = 0.8
     ):
+        import concurrent.futures
         import ffmpeg
 
         silence_end_re = re.compile(
@@ -71,14 +72,8 @@ def audio_split_by_silence(file: sieve.Audio):
                 break
             match = silence_end_re.search(line)
             if match:
-                print('-------------')
-                print(line)
                 silence_end, silence_dur = match.group("end"), match.group("dur")
                 split_at = float(silence_end) - (float(silence_dur) / 2)
-                print(f"Splitting at {split_at}")
-                print(f"Curr start {cur_start}")
-                print(f"No. of segments {num_segments}")
-                print(f"Is yield {split_at - cur_start >= min_segment_length}")
 
                 if (split_at - cur_start) < min_segment_length:
                     continue
@@ -103,20 +98,18 @@ def audio_split_by_silence(file: sieve.Audio):
     import os
     import shutil
     temp_dir = tempfile.mkdtemp()
-    print("temp_dir: ", temp_dir)
-    for start_time, end_time in split_silences(audio_path, min_silence_length=min_silence_length, min_segment_length=min_segment_length):
+    import concurrent.futures
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+
+    def process_segment(segment):
+        start_time, end_time = segment
         print(f"Splitting {audio_path} from {start_time} to {end_time}")
-        pth = str(count)
-        count += 1
-
-        # TODO: stop passing start_time and end_time to whisperx
         whisperx_job = whisperx.push(sieve.Audio(path=audio_path, start_time=start_time, end_time=end_time))
-        transcription_jobs.append(whisperx_job)
-        
-        # yield sieve.Audio(path=audio_path, start_time=start_time, end_time=end_time)
+        return whisperx_job
 
-    if count == 0:
+    segments = split_silences(audio_path, min_silence_length=min_silence_length, min_segment_length=min_segment_length)
+    if not segments:
         transcription_jobs.append(whisperx.push(sieve.Audio(path=audio_path)))
-    
-    for job in transcription_jobs:
+
+    for job in executor.map(process_segment, segments):
         yield job.result()

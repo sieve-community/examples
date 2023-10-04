@@ -2,8 +2,18 @@
 
 import sieve
 
+metadata = sieve.Metadata(
+    description="High quality word-level speech transcription",
+    code_url="https://github.com/sieve-community/examples/tree/main/audio_transcription",
+    image=sieve.Image(
+        url="https://i0.wp.com/opusresearch.net/wordpress/wp-content/uploads/2022/10/DALL%C2%B7E-2022-10-06-14.02.14-multilayered-beautiful-4k-hyper-realistic-neon-audio-waves-in-rainbow-colors-on-a-black-background.png?ssl=1"
+    ),
+    tags=["Audio", "Speech", "Transcription"],
+    readme=open("README.md", "r").read(),
+)
+
 @sieve.function(
-    name="fast_audio_transcriber",
+    name="speech_transcriber",
     python_packages=[
         "librosa==0.8.0",
         "soundfile==0.12.1",
@@ -16,9 +26,10 @@ import sieve
     environment_variables=[
         sieve.Env(name="min_silence_length", default= 0.8),
         sieve.Env(name="min_segment_length", default= 30.0)
-    ]
+    ],
+    metadata=metadata
 )
-def audio_split_by_silence(audio: sieve.Audio):
+def audio_split_by_silence(file: sieve.Audio):
     import os
     import sys
     import librosa
@@ -83,9 +94,9 @@ def audio_split_by_silence(audio: sieve.Audio):
         print(f"Split {path} into {num_segments} segments")
 
     count = 0
-    audio_path = audio.path
+    audio_path = file.path
     transcription_jobs = []
-    whisperx = sieve.function.get("sieve-internal/whisperx")
+    whisperx = sieve.function.get("sieve/whisperx")
     
     # create a temporary directory to store the audio files
     import tempfile
@@ -98,10 +109,8 @@ def audio_split_by_silence(audio: sieve.Audio):
         pth = str(count)
         count += 1
 
-        # extract the audio from the original audio file between start_time and end_time
-        import ffmpeg
-        ffmpeg.input(audio_path).filter("atrim", start=start_time, end=end_time).output(os.path.join(temp_dir, pth + ".wav"), acodec="pcm_s16le", ac=1, ar=16000).run(cmd=["ffmpeg", "-nostdin"], capture_stdout=True, capture_stderr=True)
-        whisperx_job = whisperx.push(sieve.Audio(path=os.path.join(temp_dir, pth + ".wav")))
+        # TODO: stop passing start_time and end_time to whisperx
+        whisperx_job = whisperx.push(sieve.Audio(path=audio_path, start_time=start_time, end_time=end_time))
         transcription_jobs.append(whisperx_job)
         
         # yield sieve.Audio(path=audio_path, start_time=start_time, end_time=end_time)

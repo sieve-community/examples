@@ -8,7 +8,7 @@ metadata = sieve.Metadata(
         url="https://github.com/xuebinqin/DIS/raw/main/figures/dis5k-v1-sailship.jpeg"
     ),
     tags=["Image", "Background", "Removal"],
-    readme=open("README.md", "r").read(),
+    readme=open("DIS_README.md", "r").read(),
 )
 
 @sieve.Model(
@@ -49,7 +49,7 @@ class Dis:
         else:
             self.net.load_state_dict(torch.load(model_path,map_location="cpu"))
         self.net.eval()
-
+    
     def __predict__(self, input_image: sieve.Image) -> sieve.Image:
         """
         :param input_image: image to remove background from
@@ -67,29 +67,45 @@ class Dis:
 
         t1 = time.time()
         im = io.imread(input_image.path)
+        # print("Time taken to read image: ", time.time() - t1)
+        t1 = time.time()
         if len(im.shape) < 3:
             im = im[:, :, np.newaxis]
         im_shp=im.shape[0:2]
+        # print("Time taken to check image shape: ", time.time() - t1)
+        t1 = time.time()
         im_tensor = torch.tensor(im, dtype=torch.float32).permute(2,0,1)
+        # print("Time taken to convert image to tensor: ", time.time() - t1)
+        t1 = time.time()
         im_tensor = F.upsample(torch.unsqueeze(im_tensor,0), self.input_size, mode="bilinear").type(torch.uint8)
+        # print("Time taken to upsample image: ", time.time() - t1)
+        t1 = time.time()
         image = torch.divide(im_tensor,255.0)
+        # print("Time taken to divide image: ", time.time() - t1)
+        t1 = time.time()
         image = normalize(image,[0.5,0.5,0.5],[1.0,1.0,1.0])
-
-        print("Time taken to load image: ", time.time() - t1)
+        # print("Time taken to normalize image: ", time.time() - t1)
         t1 = time.time()
 
         if torch.cuda.is_available():
             image=image.cuda()
         result = self.net(image)
-        print("Time taken to predict: ", time.time() - t1)
+        # print("Time taken to predict: ", time.time() - t1)
         t1 = time.time()
         result=torch.squeeze(F.upsample(result[0][0],im_shp,mode='bilinear'),0)
+        # print("Time taken to squeeze and upsample: ", time.time() - t1)
+        t1 = time.time()
         ma = torch.max(result)
         mi = torch.min(result)
         result = (result-mi)/(ma-mi)
-        im_name = input_image.path.split('/')[-1].split('.')[0]
-        im_name = im_name + '_' + str(uuid.uuid4()) + '.png'
-        im_mask = (result*255).permute(1,2,0).cpu().data.numpy().astype(np.uint8)
-        print("Time taken to post process: ", time.time() - t1)
-        yield sieve.Image(cv2.bitwise_and(input_image.array, input_image.array, mask=im_mask))
+        # print("Time taken to normalize result: ", time.time() - t1)
+        t1 = time.time()
+        im_mask = (result*255).permute(1,2,0).cpu().data.numpy()
+        threshold = 127.5
+        im_mask = np.where(im_mask > threshold, 255, 0).astype(np.uint8)
+        # print("Time taken to convert mask to numpy: ", time.time() - t1)
+        t1 = time.time()
+        # print("Time taken to post process: ", time.time() - t1)
+        out_image = cv2.bitwise_and(input_image.array, input_image.array, mask=im_mask)
+        yield sieve.Image(out_image)
         yield sieve.Image(array=im_mask)

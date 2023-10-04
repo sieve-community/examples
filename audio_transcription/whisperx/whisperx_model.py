@@ -1,4 +1,6 @@
 import sieve
+from typing import List
+from pydantic import BaseModel
 
 metadata = sieve.Metadata(
     description="WhisperX: Automatic Speech Recognition with Word-level Timestamps (& Diarization)",
@@ -9,6 +11,18 @@ metadata = sieve.Metadata(
     tags=["Audio", "Speech", "Transcription"],
     readme=open("WHISPERX_README.md", "r").read(),
 )
+
+class Word(BaseModel):
+    start: float
+    end: float
+    score: float
+    word: str
+
+class Segment(BaseModel):
+    start: float
+    end: float
+    text: str
+    words: List[Word]
 
 @sieve.Model(
     name="whisperx",
@@ -98,7 +112,7 @@ class Whisper:
 
         return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
 
-    def __predict__(self, audio: sieve.Audio) -> sieve.Audio:
+    def __predict__(self, audio: sieve.Audio) -> List:
         import time
         if self.first_time:
             print("first_time_setup: ", self.setup_time)
@@ -139,7 +153,7 @@ class Whisper:
                     new_word["score"] = word["score"]
                 new_word["word"] = word["word"]
                 new_segment["words"].append(new_word)
-
+            
             out_segments.append(new_segment)
         print("overall_time: ", time.time() - overall_time)
         return out_segments

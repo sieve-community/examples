@@ -68,7 +68,6 @@ class FaceDetector:
                     int((ratio_box[0] + ratio_box[2]) * image.width),
                     int((ratio_box[1] + ratio_box[3]) * image.height),
                 ]
-                print(float(detection.score[0]))
                 outputs.append(
                     BoundingBox(
                         x1=box[0],
@@ -79,4 +78,14 @@ class FaceDetector:
                         score=float(detection.score[0]),
                     )
                 )
-        return outputs
+        
+        for output in outputs:
+            cv2.rectangle(
+                image.array,
+                (output.x1, output.y1),
+                (output.x2, output.y2),
+                (0, 255, 0),
+                4,  # Increased line thickness from 2 to 4
+            )
+        yield sieve.Image(array=image.array)
+        yield outputs

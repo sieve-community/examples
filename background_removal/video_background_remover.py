@@ -10,7 +10,7 @@ metadata = sieve.Metadata(
     image=sieve.Image(
         url="https://play-lh.googleusercontent.com/teK3vaRZmw_edxydd18as4gM2mkkw-43vH_45nyjLFJHnQVcfQktesWoTrPiFKRyKg"
     ),
-    tags=["Video", "Background", "Removal"],
+    tags=["Video", "Background", "Removal", "Featured"],
     readme=open("README.md", "r").read(),
 )
 

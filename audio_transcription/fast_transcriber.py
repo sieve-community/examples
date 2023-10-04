@@ -8,7 +8,7 @@ metadata = sieve.Metadata(
     image=sieve.Image(
         url="https://i0.wp.com/opusresearch.net/wordpress/wp-content/uploads/2022/10/DALL%C2%B7E-2022-10-06-14.02.14-multilayered-beautiful-4k-hyper-realistic-neon-audio-waves-in-rainbow-colors-on-a-black-background.png?ssl=1"
     ),
-    tags=["Audio", "Speech", "Transcription"],
+    tags=["Audio", "Speech", "Transcription", "Featured"],
     readme=open("README.md", "r").read(),
 )
 

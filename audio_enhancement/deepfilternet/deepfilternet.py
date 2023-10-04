@@ -4,6 +4,9 @@ model_metadata = sieve.Metadata(
     description="A Low Complexity Speech Enhancement Framework for Full-Band Audio (48kHz) using on Deep Filtering.",
     code_url="https://github.com/sieve-community/examples/tree/main/audio_enhancement/deepfilternet",
     tags=["Audio", "Speech", "Enhancement"],
+    image=sieve.Image(
+        url="https://everydayseries.com/content/images/2023/06/DeepFilterNet2-architecture.png"
+    ),
     readme=open("DEEPFILTER_README.md", "r").read(),
 )
 

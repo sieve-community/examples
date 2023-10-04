@@ -52,6 +52,9 @@ class AudioUpscaler:
 model_metadata = sieve.Metadata(
     description='Unofficial implementation of HiFi-GAN+ from the paper "Bandwidth Extension is All You Need" by Su, et al.',
     code_url="https://github.com/sieve-community/examples/tree/main/audio_enhancement/hifi-gan-bwe",
+    image=sieve.Image(
+        url="https://brentspell.com/static/3d58505f363d56311636579b0d06936d/c6bbc/image-05.png"
+    ),
     tags=["Audio", "Speech", "Enhancement"],
     readme=open("HIFI_README.md", "r").read(),
 )

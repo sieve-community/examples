@@ -7,7 +7,7 @@ metadata = sieve.Metadata(
     title="Video Transcript Analysis",
     description="Given a video or audio, generate a title, chapters, summary and tags",
     code_url="https://github.com/sieve-community/examples/tree/main/video_transcript_analysis/main.py",
-    tags=["Video"],
+    tags=["Video", "Featured", "Transcription"],
     image=sieve.Image(
         url="https://www.tubebuddy.com/wp-content/uploads/2022/06/video-chapter-snippet-1024x674.png"
     ),

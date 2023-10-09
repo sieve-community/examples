@@ -113,6 +113,11 @@ class Whisper:
         return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
 
     def __predict__(self, audio: sieve.Audio) -> List:
+        """
+        :param audio: an audio file
+        :return: a list of segments, each with a start time, end time, and text
+        """
+        # TODO: implement start and end time as arguments
         import time
         if self.first_time:
             print("first_time_setup: ", self.setup_time)
@@ -137,11 +142,13 @@ class Whisper:
         import whisperx
         result_aligned = whisperx.align(result["segments"], self.model_a, self.metadata, audio_np, "cuda")
         out_segments = []
+        full_text = ""
         for segment in result_aligned["segments"]:
             new_segment = {}
             new_segment["start"] = segment["start"] + start_time
             new_segment["end"] = segment["end"] + start_time
             new_segment["text"] = segment["text"]
+            full_text += segment["text"] + " "
             new_segment["words"] = []
             for word in segment["words"]:
                 new_word = {}
@@ -156,4 +163,4 @@ class Whisper:
             
             out_segments.append(new_segment)
         print("overall_time: ", time.time() - overall_time)
-        return out_segments
+        return {"text": full_text.strip(), "language_code": result["language"], "segments": out_segments}

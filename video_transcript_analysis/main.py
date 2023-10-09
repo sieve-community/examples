@@ -43,11 +43,15 @@ def analyze_transcript(file: sieve.Video) -> Dict:
     # audio to text
     whisper = sieve.function.get("sieve/speech_transcriber")
     transcript = list(whisper.run(sieve.Audio(path=audio_path)))
+
+    language_code = transcript[0]["language_code"]
     # flatten transcript into single list. right now it is a list of list of segments
-    transcript = [segment for sublist in transcript for segment in sublist]
     print("speech to text finished")
     text = " ".join([segment["text"] for segment in transcript])
-    yield {"text": text}
+    yield {"text": text, "language_code": language_code}
+
+    transcript = [segment["segments"] for segment in transcript]
+    transcript = [item for sublist in transcript for item in sublist]
     yield {"transcript": transcript}
     import time
     overall_start_time = time.time()

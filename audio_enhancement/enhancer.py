@@ -1,5 +1,7 @@
 import sieve
 
+valid_tasks = ["speech", "noise", "all"]
+
 metadata = sieve.Metadata(
     title="Audio Enhancer",
     description="Remove background noise from audio and upsample to 48kHz.",
@@ -11,15 +13,23 @@ metadata = sieve.Metadata(
     readme=open("README.md", "r").read(),
 )
 
-@sieve.function(name="audio_enhancement", metadata=metadata)
-def audio_enhance(audio: sieve.Audio) -> sieve.Audio:
-    """
-    :param audio: An audio input (mp3 and wav supported)
-    :return: Enhanced audio
-    """
-    deepfilternet = sieve.function.get("sieve/deepfilternet_v2")
-    upsampler = sieve.function.get("sieve/hifi_gan_plus")
 
-    background_noise_removed = deepfilternet.run(audio)
-    upsampled = upsampler.run(background_noise_removed)
-    return upsampled
+@sieve.function(name="audio_enhancement", metadata=metadata)
+def enhance_audio(audio: sieve.Audio, filter_type: str = "all"):
+    '''
+    :param audio: An audio input (mp3 and wav supported)
+    :param filter_type: Task to perform, one of ["speech", "noise", "all"]
+    :return: Enhanced audio
+    '''
+    task = filter_type.strip().lower()
+    if task not in valid_tasks:
+        raise ValueError(f"Task must be one of {valid_tasks}")
+
+    enhance_func = sieve.function.get("sieve/audioSR")
+    denoise_func = sieve.function.get("sieve/deepfilternet_v2")
+
+    if task == "speech":
+        return enhance_func.run(audio)
+    elif task == "noise":
+        return denoise_func.run(audio)
+    return denoise_func.run(enhance_func.run(audio))

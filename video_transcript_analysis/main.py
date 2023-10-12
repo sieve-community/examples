@@ -36,8 +36,16 @@ def analyze_transcript(file: sieve.Video) -> Dict:
     print("running ffmpeg to convert video to audio")
     # video to audio
     import subprocess
-    audio_path = 'temp.wav'
-    subprocess.run(["ffmpeg", "-i", file.path, audio_path, "-y"])
+    import os
+    try:
+        audio_path = 'temp.wav'
+        subprocess.run(["ffmpeg", "-i", file.path, audio_path, "-y"])
+    except Exception as e:
+        raise Exception("Failed to extract audio from video. Make sure video has audio.")
+    
+    if not os.path.isfile(audio_path):
+        raise Exception("Failed to extract audio from video. Make sure video has audio.")
+    
     print("ffmpeg finished")
     print("running speech to text")
     # audio to text
@@ -47,12 +55,20 @@ def analyze_transcript(file: sieve.Video) -> Dict:
     language_code = transcript[0]["language_code"]
     # flatten transcript into single list. right now it is a list of list of segments
     print("speech to text finished")
-    text = " ".join([segment["text"] for segment in transcript])
+    text = " ".join([segment["text"] for segment in transcript]).strip()
     yield {"text": text, "language_code": language_code}
 
     transcript = [segment["segments"] for segment in transcript]
     transcript = [item for sublist in transcript for item in sublist]
     yield {"transcript": transcript}
+
+    if len(text.split(" ")) < 15:
+        yield {"summary": "No summary available. Video is too short or has no audio."}
+        yield {"title": "No title available. Video is too short or has no audio."}
+        yield {"tags": []}
+        yield {"chapters": []}
+        return
+
     import time
     overall_start_time = time.time()
     import os

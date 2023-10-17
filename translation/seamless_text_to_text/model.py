@@ -10,14 +10,13 @@ model_metadata = sieve.Metadata(
     readme=open("README.md", "r").read(),
 )
 
+
 ### Text 2 Text
 @sieve.Model(
-    name="seamless_text2text", 
+    name="seamless_text2text",
     machine_type="a100",
     gpu=True,
-    python_packages=[
-        "git+https://github.com/facebookresearch/seamless_communication"
-    ],
+    python_packages=["git+https://github.com/facebookresearch/seamless_communication"],
     system_packages=[
         "libsndfile1",
         "libopenblas-base",
@@ -29,7 +28,7 @@ model_metadata = sieve.Metadata(
         # "wget -q https://huggingface.co/facebook/seamless-m4t-large/resolve/main/multitask_unity_large.pt -O /root/.cache/torch/hub/fairseq2/assets/checkpoints/43b8b74ddb6b78486fb47754/multitask_unity_large.pt",
     ],
     cuda_version="11.8",
-    metadata=model_metadata
+    metadata=model_metadata,
 )
 class SeamlessText2Text:
     def __setup__(self):
@@ -38,7 +37,9 @@ class SeamlessText2Text:
         import torchaudio
 
         # Initialize a Translator object with a multitask model, vocoder on the GPU.
-        self.translator = Translator("seamlessM4T_large", "vocoder_36langs", torch.device("cuda"), torch.float16)
+        self.translator = Translator(
+            "seamlessM4T_large", "vocoder_36langs", torch.device("cuda"), torch.float16
+        )
 
     def __predict__(self, text: str, source_language: str, target_language: str) -> str:
         """
@@ -49,7 +50,9 @@ class SeamlessText2Text:
         """
 
         # Translate the text to desired language in text
-        translated_text, _, _ = self.translator.predict(text, "t2tt", target_language, src_lang=source_language)
+        translated_text, _, _ = self.translator.predict(
+            text, "t2tt", target_language, src_lang=source_language
+        )
 
         # Convert text to string
         translated_text = str(translated_text)

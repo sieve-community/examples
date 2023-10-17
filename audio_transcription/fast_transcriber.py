@@ -12,22 +12,21 @@ metadata = sieve.Metadata(
     readme=open("README.md", "r").read(),
 )
 
+
 @sieve.function(
     name="speech_transcriber",
     python_packages=[
         "librosa==0.8.0",
         "soundfile==0.12.1",
         "ffmpeg-python==0.2.0",
-        "numpy==1.19.4"
+        "numpy==1.19.4",
     ],
-    system_packages=[
-        "ffmpeg"
-    ],
+    system_packages=["ffmpeg"],
     environment_variables=[
-        sieve.Env(name="min_silence_length", default= 0.8),
-        sieve.Env(name="min_segment_length", default= 30.0)
+        sieve.Env(name="min_silence_length", default=0.8),
+        sieve.Env(name="min_segment_length", default=30.0),
     ],
-    metadata=metadata
+    metadata=metadata,
 )
 def audio_split_by_silence(file: sieve.Audio):
     import os
@@ -36,11 +35,11 @@ def audio_split_by_silence(file: sieve.Audio):
     import numpy as np
     import soundfile as sf
     import requests
+
     min_silence_length = float(os.getenv("min_silence_length"))
     min_segment_length = float(os.getenv("min_segment_length"))
     from typing import Iterator
     import re
-
 
     def split_silences(
         path: str, min_segment_length: float = 30.0, min_silence_length: float = 0.8
@@ -82,7 +81,6 @@ def audio_split_by_silence(file: sieve.Audio):
                 cur_start = split_at
                 num_segments += 1
 
-
         if duration > cur_start:
             yield cur_start, duration
             num_segments += 1
@@ -91,22 +89,30 @@ def audio_split_by_silence(file: sieve.Audio):
     count = 0
     audio_path = file.path
     whisperx = sieve.function.get("sieve/whisperx")
-    
+
     # create a temporary directory to store the audio files
     import tempfile
     import os
     import shutil
+
     temp_dir = tempfile.mkdtemp()
     import concurrent.futures
+
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
     def process_segment(segment):
         start_time, end_time = segment
         print(f"Splitting {audio_path} from {start_time} to {end_time}")
-        whisperx_job = whisperx.push(sieve.Audio(path=audio_path, start_time=start_time, end_time=end_time))
+        whisperx_job = whisperx.push(
+            sieve.Audio(path=audio_path, start_time=start_time, end_time=end_time)
+        )
         return whisperx_job
 
-    segments = split_silences(audio_path, min_silence_length=min_silence_length, min_segment_length=min_segment_length)
+    segments = split_silences(
+        audio_path,
+        min_silence_length=min_silence_length,
+        min_segment_length=min_segment_length,
+    )
     if not segments:
         segments.append(whisperx.push(sieve.Audio(path=audio_path)))
 

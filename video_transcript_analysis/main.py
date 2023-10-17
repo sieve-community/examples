@@ -1,7 +1,8 @@
-#TODO: change this thing
+# TODO: change this thing
 
 import sieve
 from typing import Dict, List
+import tempfile
 
 metadata = sieve.Metadata(
     title="Video Transcript Analysis",
@@ -17,35 +18,48 @@ metadata = sieve.Metadata(
 
 @sieve.function(
     name="video_transcript_analyzer",
-    python_packages=[
-        "gpt-json"
-    ],
-    system_packages=[
-        "ffmpeg"
-    ],
+    python_packages=["gpt-json"],
+    system_packages=["ffmpeg"],
     python_version="3.10",
     environment_variables=[
         sieve.Env(name="OPENAI_API_KEY", description="OpenAI API Key"),
-        sieve.Env(name="NUM_TAGS", description="Number of tags to generate", default="5"),
-        sieve.Env(name="MAX_SUMMARY_SENTENCES", description="Number of sentences to summarize", default="5"),
-        sieve.Env(name="MAX_TITLE_WORDS", description="Max number of words in title", default="10"),
+        sieve.Env(
+            name="NUM_TAGS", description="Number of tags to generate", default="5"
+        ),
+        sieve.Env(
+            name="MAX_SUMMARY_SENTENCES",
+            description="Number of sentences to summarize",
+            default="5",
+        ),
+        sieve.Env(
+            name="MAX_TITLE_WORDS",
+            description="Max number of words in title",
+            default="10",
+        ),
     ],
-    metadata=metadata
+    metadata=metadata,
 )
 def analyze_transcript(file: sieve.Video) -> Dict:
     print("running ffmpeg to convert video to audio")
     # video to audio
     import subprocess
     import os
+    import uuid
+
+    id = str(uuid.uuid4())
+    audio_path = "temp" + id + ".wav"
     try:
-        audio_path = 'temp.wav'
         subprocess.run(["ffmpeg", "-i", file.path, audio_path, "-y"])
     except Exception as e:
-        raise Exception("Failed to extract audio from video. Make sure video has audio.")
-    
+        raise Exception(
+            "Failed to extract audio from video. Make sure video has audio."
+        )
+
     if not os.path.isfile(audio_path):
-        raise Exception("Failed to extract audio from video. Make sure video has audio.")
-    
+        raise Exception(
+            "Failed to extract audio from video. Make sure video has audio."
+        )
+
     print("ffmpeg finished")
     print("running speech to text")
     # audio to text
@@ -69,10 +83,7 @@ def analyze_transcript(file: sieve.Video) -> Dict:
         yield {"chapters": []}
         return
 
-    import time
-    overall_start_time = time.time()
     import os
-    import json
     import asyncio
 
     from transcript_analysis import description_runner, chapter_runner
@@ -81,7 +92,14 @@ def analyze_transcript(file: sieve.Video) -> Dict:
     max_num_words = int(os.getenv("MAX_TITLE_WORDS", 10))
     num_tags = int(os.getenv("NUM_TAGS", 5))
     print("running description runner")
-    summary, title, tags = asyncio.run(description_runner(transcript, max_num_sentences=max_num_sentences, max_num_words= max_num_words, num_tags=num_tags))
+    summary, title, tags = asyncio.run(
+        description_runner(
+            transcript,
+            max_num_sentences=max_num_sentences,
+            max_num_words=max_num_words,
+            num_tags=num_tags,
+        )
+    )
     print("finished description runner")
     yield {"summary": summary}
     yield {"title": title}
@@ -94,3 +112,6 @@ def analyze_transcript(file: sieve.Video) -> Dict:
     for chapter in chapters:
         out_list.append({"title": chapter.title, "start_time": chapter.start_time})
     yield {"chapters": out_list}
+
+    if os.path.exists(audio_path):
+        os.remove(audio_path)

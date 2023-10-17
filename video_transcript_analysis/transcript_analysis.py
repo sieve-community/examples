@@ -7,7 +7,10 @@ API_KEY = os.getenv("OPENAI_API_KEY")
 if API_KEY is None:
     raise Exception("OPENAI_API_KEY environment variable not set")
 
-async def description_runner(transcript, max_num_sentences=5, max_num_words=10, num_tags=5):
+
+async def description_runner(
+    transcript, max_num_sentences=5, max_num_words=10, num_tags=5
+):
     class DescriptionSchema(BaseModel):
         title: str = Field(description="Title of the video")
         summary: str = Field(description="Summary of the video")
@@ -31,7 +34,7 @@ async def description_runner(transcript, max_num_sentences=5, max_num_words=10, 
     {json_schema}
     """
 
-    gpt_json = GPTJSON[DescriptionSchema](api_key = API_KEY, model = "gpt-3.5-turbo-16k")
+    gpt_json = GPTJSON[DescriptionSchema](api_key=API_KEY, model="gpt-3.5-turbo-16k")
     text = text = " ".join([segment["text"] for segment in transcript])
     payload = await gpt_json.run(
         messages=[
@@ -39,17 +42,19 @@ async def description_runner(transcript, max_num_sentences=5, max_num_words=10, 
                 role=GPTMessageRole.SYSTEM,
                 content=SUMMARY_PROMPT,
             ),
-            GPTMessage(
-                role=GPTMessageRole.USER,
-                content=f"Text: {text}"
-            )
+            GPTMessage(role=GPTMessageRole.USER, content=f"Text: {text}"),
         ],
-        format_variables={"max_num_sentences": max_num_sentences, "max_num_words": max_num_words, "num_tags": num_tags}
+        format_variables={
+            "max_num_sentences": max_num_sentences,
+            "max_num_words": max_num_words,
+            "num_tags": num_tags,
+        },
     )
 
     schema, transforms = payload
 
     return schema.summary, schema.title, schema.tags
+
 
 async def chapter_runner(transcript):
     class Chapter(BaseModel):
@@ -82,21 +87,27 @@ async def chapter_runner(transcript):
     - start_time: start time of the chapter as a float in seconds
     """
 
-    gpt_json = GPTJSON[ChaptersSchema](api_key = API_KEY, model = "gpt-3.5-turbo-16k")
+    gpt_json = GPTJSON[ChaptersSchema](api_key=API_KEY, model="gpt-3.5-turbo-16k")
     text = " ".join([segment["text"] for segment in transcript])
-    segment_info = [{"start_time": segment["start"], "end_time": segment["end"], "text": segment["text"]} for segment in transcript]
+    segment_info = [
+        {
+            "start_time": segment["start"],
+            "end_time": segment["end"],
+            "text": segment["text"],
+        }
+        for segment in transcript
+    ]
 
-    segments_str = "\n".join([f"{segment['start_time']}: {segment['text']}" for segment in segment_info])
+    segments_str = "\n".join(
+        [f"{segment['start_time']}: {segment['text']}" for segment in segment_info]
+    )
     payload = await gpt_json.run(
         messages=[
             GPTMessage(
                 role=GPTMessageRole.SYSTEM,
                 content=PROMPT,
             ),
-            GPTMessage(
-                role=GPTMessageRole.USER,
-                content=f"Transcript: {segments_str}"
-            )
+            GPTMessage(role=GPTMessageRole.USER, content=f"Transcript: {segments_str}"),
         ]
     )
 

@@ -2,7 +2,8 @@ import sieve
 
 metadata = sieve.Metadata(
     description = "Ultralytics YOLOv8, the latest version of the acclaimed real-time object detection and image segmentation model.",
-    tags=["Video", "Detection", "Crop"],
+    code_url = "https://github.com/sieve-community/examples/blob/main/auto_crop/yolov8/yolov8_model.py",
+    tags=["Image", "Object", "Detection"],
     readme=open("yolo_README.md", "r").read()
 )
 

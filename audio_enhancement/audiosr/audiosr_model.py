@@ -126,7 +126,13 @@ class AudioSr:
             chunk_path,
         ]
 
-        subprocess.run(ffmpeg_command, check=True)
+        try:
+            subprocess.run(ffmpeg_command, check=True)
+        except subprocess.CalledProcessError as e:
+            print("Error occurred while running the command:")
+            print(e.stderr.decode())
+            exit(1)
+
         print(f"Audio chunks saved in: {chunk_dir}")
 
         chunk_files = sorted(os.listdir(chunk_dir))
@@ -199,6 +205,7 @@ class AudioSr:
         except subprocess.CalledProcessError as e:
             print("Error occurred while running the command:")
             print(e.stderr.decode())
+            exit(1)
 
         subprocess.run(["rm", "-rf", chunk_dir], check=True)
         subprocess.run(["rm", "files.txt"], check=True)

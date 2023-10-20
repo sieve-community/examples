@@ -100,4 +100,4 @@ class YOLOv8:
                 box_info["class_name"] = self.model.names[box_info["class_number"]]
                 results_dict["boxes"].append(box_info)
 
-        return results_dict
+        yield results_dict

@@ -182,12 +182,9 @@ def normalize_wav(waveform):
     waveform = waveform / (np.max(np.abs(waveform)) + 1e-8)
     return waveform * 0.5
 
-def read_wav_file(filename):
+def read_wav_file(filename, mean=None, std=None):
     waveform, sr = torchaudio.load(filename)
     duration = waveform.size(-1) / sr
-
-    if(duration > 10.24):
-        print("\033[93m {}\033[00m" .format("Warning: audio is longer than 10.24 seconds, may degrade the model performance. It's recommand to truncate your audio to 5.12 seconds before input to AudioSR to get the best performance."))
 
     if(duration % 5.12 != 0):
         pad_duration = duration + (5.12 - duration % 5.12)
@@ -200,16 +197,17 @@ def read_wav_file(filename):
 
     waveform = waveform.numpy()[0, ...]
 
-    waveform = normalize_wav(
-        waveform
-    )  # TODO rescaling the waveform will cause low LSD score
+    if not mean or not std:
+        mean = np.mean(waveform)
+        std = np.max(np.abs(waveform)) + 1e-8
 
+    waveform = (waveform - mean) / std * 0.5
     waveform = waveform[None, ...]
     waveform = pad_wav(waveform, target_length=int(48000 * pad_duration))
     return waveform, target_frame, pad_duration
 
-def read_audio_file(filename):
-    waveform, target_frame, duration = read_wav_file(filename)
+def read_audio_file(filename, mean=None, std=None):
+    waveform, target_frame, duration = read_wav_file(filename, mean=mean, std=std)
     log_mel_spec, stft = wav_feature_extraction(waveform, target_frame)
     return log_mel_spec, stft, waveform, duration, target_frame
 

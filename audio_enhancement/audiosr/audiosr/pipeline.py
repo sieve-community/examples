@@ -80,8 +80,8 @@ def extract_kaldi_fbank_feature(waveform, sampling_rate, log_mel_spec):
     return {"ta_kaldi_fbank": fbank}  # [1024, 128]
 
 
-def make_batch_for_super_resolution(input_file, waveform=None, fbank=None):
-    log_mel_spec, stft, waveform, duration, target_frame = read_audio_file(input_file)
+def make_batch_for_super_resolution(input_file, waveform=None, fbank=None, mean=None, std=None):
+    log_mel_spec, stft, waveform, duration, target_frame = read_audio_file(input_file, mean=mean, std=std)
 
     batch = {
         "waveform": torch.FloatTensor(waveform),
@@ -158,11 +158,13 @@ def super_resolution(
     guidance_scale=3.5,
     latent_t_per_second=12.8,
     config=None,
+    mean=None,
+    std=None
 ):
     seed_everything(int(seed))
     waveform = None
 
-    batch, duration = make_batch_for_super_resolution(input_file, waveform=waveform)
+    batch, duration = make_batch_for_super_resolution(input_file, waveform=waveform, mean=mean, std=std)
 
     with torch.no_grad():
         waveform = latent_diffusion.generate_batch(

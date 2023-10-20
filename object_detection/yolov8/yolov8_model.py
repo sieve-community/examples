@@ -71,7 +71,7 @@ class YOLOv8:
         elif file_extension in image_extensions:
             image_path = file.path
             results = self.model(image_path)
-            results_dict = list(self.__process_results__(results))[0]
+            results_dict = self.__process_results__(results)
             # Filter results based on confidence threshold
             results_dict["boxes"] = [box for box in results_dict["boxes"] if box["confidence"] > confidence_threshold]
             if results_dict["boxes"]:
@@ -100,4 +100,4 @@ class YOLOv8:
                 box_info["class_name"] = self.model.names[box_info["class_number"]]
                 results_dict["boxes"].append(box_info)
 
-        yield results_dict
+        return results_dict

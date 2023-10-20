@@ -4,7 +4,10 @@ metadata = sieve.Metadata(
     description = "Ultralytics YOLOv8, the latest version of the acclaimed real-time object detection and image segmentation model.",
     code_url = "https://github.com/sieve-community/examples/blob/main/auto_crop/yolov8/yolov8_model.py",
     tags=["Image", "Object", "Detection"],
-    readme=open("yolo_README.md", "r").read()
+    image=sieve.Image(
+        url="https://www.freecodecamp.org/news/content/images/2023/04/compvision_tasks.png"
+    ),
+    readme=open("README.md", "r").read()
 )
 
 @sieve.Model(
@@ -17,7 +20,8 @@ metadata = sieve.Metadata(
     ],
     cuda_version="11.7.1",
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
-    python_version="3.10"
+    python_version="3.10",
+    metadata=metadata
 )
 class YOLOv8:
     def __setup__(self):

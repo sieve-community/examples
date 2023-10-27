@@ -19,16 +19,36 @@ cloning_metadata = sieve.Metadata(
     metadata=cloning_metadata
 )
 def clone_audio(
-    reference_audio: sieve.Audio
+    reference_audio: sieve.Audio,
+    delete_voice_id: str = ""
 ):
+    '''
+    :param reference_audio: reference audio to use when cloning voice
+    :param delete_voice_id: if set, function will delete the specified voice ID instead of cloning a voice and returning the ID
+    :return: An JSON payload with the voice ID
+    '''
     import os
     import subprocess
     import tempfile
+    import requests
     
     API_KEY = os.environ.get("ELEVEN_LABS_API_KEY", "")
     if API_KEY == "":
         raise Exception("ELEVEN_LABS_API_KEY is not set as an env var")
 
+    if delete_voice_id and len(delete_voice_id) > 0:
+        try:
+            url = f"https://api.elevenlabs.io/v1/voices/{delete_voice_id}"
+
+            headers = {"Accept": "application/json", "xi-api-key": API_KEY}
+
+            response = requests.delete(url, headers=headers)
+            return response.json()
+        except:
+            print(f"Unable to delete voice id: {delete_voice_id}")
+            print(response.text)
+            return response.json()
+        
     SOURCE_AUDIO_PATH = reference_audio.path
 
     # Check if audio is already in wav format
@@ -75,8 +95,6 @@ def clone_audio(
         os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.endswith(".wav")
     ]
     wav_paths.sort()
-
-    import requests
 
     url = "https://api.elevenlabs.io/v1/voices/add"
 

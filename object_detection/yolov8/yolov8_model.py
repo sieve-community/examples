@@ -29,11 +29,12 @@ class YOLOv8:
 
         self.model = YOLO('yolov8l.pt')
     
-    def __predict__(self, file: sieve.File, confidence_threshold: float = 0.5):
+    def __predict__(self, file: sieve.File, confidence_threshold: float = 0.5, classes: int = -1):
         """
         :param file: Image or video file. If video, a generator is returned with the results for each frame.
         :param confidence_threshold: Confidence threshold for the predictions.
         :param return_visualization: Whether to return the visualization of the results.
+        :param classes: The class (more info in README) that should be detected.
         :return: A dictionary with the results.
         """
         import cv2
@@ -44,7 +45,6 @@ class YOLOv8:
         image_extensions = ['jpg', 'jpeg', 'png', 'bmp', 'tiff']
 
         file_extension = os.path.splitext(file.path)[1][1:]
-
         if file_extension in video_extensions:
             video_path = file.path
             cap = cv2.VideoCapture(video_path)
@@ -53,7 +53,10 @@ class YOLOv8:
             while True:
                 ret, frame = cap.read()
                 if ret:
-                    results = self.model(frame)
+                    if classes == -1:
+                        results = self.model(frame)
+                    else:
+                        results = self.model(frame, classes=classes)
                     results_dict = self.__process_results__(results)
                     # Filter results based on confidence threshold
                     results_dict["boxes"] = [box for box in results_dict["boxes"] if box["confidence"] > confidence_threshold]
@@ -70,7 +73,10 @@ class YOLOv8:
             print(f"Processing FPS: {fps}")
         elif file_extension in image_extensions:
             image_path = file.path
-            results = self.model(image_path)
+            if classes == -1:
+                results = self.model(image_path)
+            else:
+                results = self.model(image_path, classes=classes)
             results_dict = self.__process_results__(results)
             # Filter results based on confidence threshold
             results_dict["boxes"] = [box for box in results_dict["boxes"] if box["confidence"] > confidence_threshold]

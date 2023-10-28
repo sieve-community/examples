@@ -15,7 +15,7 @@ metadata = sieve.Metadata(
     metadata=metadata,
     gpu=True,
     python_packages=[
-        "git+https://github.com/coqui-ai/TTS.git",
+        "git+https://github.com/coqui-ai/TTS.git@v0.19.1",
         "transformers",
     ],
     run_commands=[
@@ -53,11 +53,20 @@ class XTTS:
         self.model.load_checkpoint(self.config, checkpoint_dir="/root/.cache/model/", eval=True)
         self.model.cuda()
 
-    def __predict__(self, speaker_audio: sieve.Audio, language: str, prompt: str) -> sieve.Audio:
+    def __predict__(
+            self,
+            text: str,
+            reference_audio: sieve.Audio,
+            stability: float = 0.5,
+            similarity_boost: float = 0.63,
+            language_code: str = "",
+        ) -> sieve.Audio:
         """
-        :param reference_speaker_audio: an audio sample of the original speaker voice to copy
-        :param language: language of the text to generate. try "en" for English, "es" for Spanish, or others below.
-        :param prompt: prompt to generate (must match the language)
+        :param text: text to speak
+        :param reference_audio: audio of the reference speaker
+        :param stability: Value between 0 and 1. Increasing variability can make speech more expressive with output varying between re-generations. It can also lead to instabilities.
+        :param similarity_boost: Value between 0 and 1. Low values are recommended if background artifacts are present in generated speech.
+        :param language_code: language code of the text to generate. try "en" for English, "es" for Spanish, or others below. If left blank, the language will be detected automatically.
         :return: Generated audio
         """
 
@@ -65,31 +74,12 @@ class XTTS:
         import os
         import torchaudio
 
-        # Convert language to xtts compatible format
-        language_mapping = {
-            "english": "en",
-            "spanish": "es",
-            "mandarin": "zh-cn",
-            "chinese": "zh-cn",
-            "french": "fr",
-            "italian": "it",
-            "portuguese": "pt",
-            "polish": "pl",
-            "turkish": "tr",
-            "russian": "ru",
-            "dutch": "nl",
-            "czech": "cs",
-            "german": "de",
-            "arabic": "ar",
-        }
-        lm_language = language_mapping.get(language.lower())
-        if lm_language is None:
-            if language not in language_mapping.values():
-                raise ValueError(f"Unsupported language: {language}. Please use one of the following: {', '.join(language_mapping.keys())}")
-        else:
-            language = lm_language
+        import sieve
 
-        speaker_audio_path = speaker_audio.path
+        langid = sieve.function.get("sieve/langid")
+        langid_output = langid.push(text)
+
+        speaker_audio_path = reference_audio.path
         # Convert to wav if needed
         extension = speaker_audio_path.split(".")[-1].lower()
         if extension != "wav":
@@ -99,19 +89,43 @@ class XTTS:
             torchaudio.save("speaker.wav", waveform, sample_rate)
             speaker_audio_path = "speaker.wav"
 
-        if len(prompt) < 2:
+        if len(text) < 2:
             raise ValueError("Please give a longer prompt text")
+
+        langid_output = langid_output.result()
+        if len(language_code) > 0 and langid_output["language_code"].strip() != language_code:
+            print(f"Warning: language code mismatch. You specified {language_code} but langid detected {langid_output['language_code']}, attempting to continue...")
+            language = language_code
+        else:
+            language = langid_output["language_code"].strip()
         
-        output = self.model.synthesize(prompt,
+        if language == "zh":
+            # xtts only supports zh-cn
+            language = "zh-cn"
+
+        # Adjust token sampling: tighter sampling for higher similarity_boost for more focused generation
+        top_k = 50 - int(similarity_boost * 20)
+        top_p = 1.0 - similarity_boost * 0.15
+
+        # Adjust repetition penalty: higher values for higher similarity_boost to prevent repetition
+        repetition_penalty = 1.0 + similarity_boost
+
+        print(f"Generating audio in language {language}...")
+        output = self.model.synthesize(text,
             self.config,
             speaker_wav=speaker_audio_path,
             language=language,
+            temperature=stability,
+            top_k=top_k,
+            top_p=top_p,
+            repetition_penalty=repetition_penalty,
         )
 
         if os.path.exists("output.wav"):
             os.remove("output.wav")
 
         wavfile.write("output.wav", self.config.audio.sample_rate, output['wav'])
+        
         return sieve.Audio(path="output.wav")
     
 

@@ -45,10 +45,8 @@ class YOLOv8:
         image_extensions = ['jpg', 'jpeg', 'png', 'bmp', 'tiff']
 
         file_extension = os.path.splitext(file.path)[1][1:]
-        print(file.path)
         if file_extension in video_extensions:
             video_path = file.path
-            #print(file.path)
             cap = cv2.VideoCapture(video_path)
             count = 0
             start_time = time.time()
@@ -74,7 +72,6 @@ class YOLOv8:
             fps = count / (end_time - start_time)
             print(f"Processing FPS: {fps}")
         elif file_extension in image_extensions:
-            #print(file.path)
             image_path = file.path
             if classes == -1:
                 results = self.model(image_path)

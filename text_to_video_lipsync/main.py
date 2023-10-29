@@ -163,7 +163,7 @@ def do(
 
     # Combine audio and video with Retalker
     start_time = time.time()
-    retalker = sieve.function.get("sieve-internal/video_retalking")
+    retalker = sieve.function.get("sieve/video_retalking")
     output_video = retalker.run(source_video, target_audio)
     print(f"Time taken to combine audio and video: {time.time() - start_time} seconds")
 

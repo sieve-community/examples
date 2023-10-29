@@ -24,6 +24,9 @@ metadata = sieve.Metadata(
         "pyrubberband",
     ],
     metadata=metadata,
+    environment_variables=[
+        sieve.Env(name="ELEVEN_LABS_API_KEY", description="API key for ElevenLabs", default=""),
+    ],
 )
 def do(
     source_video: sieve.Video,

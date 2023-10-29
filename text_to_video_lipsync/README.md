@@ -8,6 +8,8 @@ For generating the text, we give the user an option to pick between the open sou
 
 If you are using the ElevenLabs model, you can also choose to either clone the voice from the audio within the video itself or use a `voice_id` that you've already either created or is available in ElevenLabs. If you choose to clone the voice, you can also choose to delete the voice after use.
 
+You must enter the secrets "ELEVEN_LABS_API_KEY" under the ["Secrets" tab](https://www.sievedata.com/dashboard/settings/secrets) in your account settings if you want to use the ElevenLabs variant.
+
 ## Options
 
 - `source_video`: The video file to lip-sync.

@@ -65,7 +65,7 @@ def do(
     source_audio = sieve.Audio(path=source_audio_path)
 
     # Refine source_audio
-    if refine_source_audio and tts_model == "elevenlabs" and len(elevenlabs_voice_id) == 0:
+    if refine_source_audio and ((tts_model == "elevenlabs" and len(elevenlabs_voice_id) == 0) or tts_model == "xtts"):
         start_time = time.time()
         source_audio = sieve.function.get("sieve/audio_enhancement").run(source_audio, filter_type="all")
         print(f"Time taken to refine source audio: {time.time() - start_time} seconds")    

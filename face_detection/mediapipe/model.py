@@ -76,14 +76,14 @@ class FaceDetector:
                         y2=box[3],
                         class_name="face",
                         score=float(detection.score[0]),
-                    )
+                    ).dict()
                 )
         
         for output in outputs:
             cv2.rectangle(
                 image.array,
-                (output.x1, output.y1),
-                (output.x2, output.y2),
+                (output["x1"], output["y1"]),
+                (output["x2"], output["y2"]),
                 (0, 255, 0),
                 4,  # Increased line thickness from 2 to 4
             )

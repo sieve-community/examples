@@ -6,7 +6,7 @@ metadata = sieve.Metadata(
     image=sieve.Image(
         url="https://storage.googleapis.com/mango-public-models/dalle-lipsync-lego.png"
     ),
-    tags=["Audio", "Speech", "TTS", "Voice Cloning", "Video", "Lipsyncing"],
+    tags=["Audio", "Speech", "TTS", "Voice Cloning", "Video", "Lipsyncing", "Featured"],
     readme=open("README.md", "r").read(),
 )
 

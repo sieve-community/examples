@@ -18,7 +18,7 @@ metadata = sieve.Metadata(
 
 @sieve.function(
     name="video_transcript_analyzer",
-    python_packages=["gpt-json"],
+    python_packages=["gpt-json", "numpy"],
     system_packages=["ffmpeg"],
     python_version="3.10",
     environment_variables=[
@@ -40,11 +40,15 @@ metadata = sieve.Metadata(
     metadata=metadata,
 )
 def analyze_transcript(file: sieve.Video) -> Dict:
-    print("running ffmpeg to convert video to audio")
+    print("converting to audio")
     # video to audio
     import subprocess
     import os
     import uuid
+
+    # Extract the length of the video using ffprobe
+    result = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", file.path], capture_output=True, text=True)
+    video_length = float(result.stdout)
 
     id = str(uuid.uuid4())
     audio_path = "temp" + id + ".wav"
@@ -60,17 +64,22 @@ def analyze_transcript(file: sieve.Video) -> Dict:
             "Failed to extract audio from video. Make sure video has audio."
         )
 
-    print("ffmpeg finished")
+    print("conversion finished")
     print("running speech to text")
     # audio to text
     whisper = sieve.function.get("sieve/speech_transcriber")
-    transcript = list(whisper.run(sieve.Audio(path=audio_path)))
+    transcript = []
+    for transcript_chunk in whisper.run(sieve.Audio(path=audio_path)):
+        transcript.append(transcript_chunk)
+        segments = transcript_chunk["segments"]
+        if len(segments) > 0:
+            print(f"transcribed {100*segments[-1]['end'] / video_length:.2f}% of {video_length:.2f} seconds")
 
     language_code = transcript[0]["language_code"]
     # flatten transcript into single list. right now it is a list of list of segments
     print("speech to text finished")
     text = " ".join([segment["text"] for segment in transcript]).strip()
-    yield {"text": text, "language_code": language_code}
+    yield {"text": text, "language_code": language_code, "media_length_seconds": video_length}
 
     transcript = [segment["segments"] for segment in transcript]
     transcript = [item for sublist in transcript for item in sublist]

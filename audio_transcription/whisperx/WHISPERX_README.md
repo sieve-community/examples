@@ -1,35 +1,5 @@
-<h1 align="center">WhisperX</h1>
+## WhisperX
 
-<p align="center">
-  <a href="https://github.com/m-bain/whisperX/stargazers">
-    <img src="https://img.shields.io/github/stars/m-bain/whisperX.svg?colorA=orange&colorB=orange&logo=github"
-         alt="GitHub stars">
-  </a>
-  <a href="https://github.com/m-bain/whisperX/issues">
-        <img src="https://img.shields.io/github/issues/m-bain/whisperx.svg"
-             alt="GitHub issues">
-  </a>
-  <a href="https://github.com/m-bain/whisperX/blob/master/LICENSE">
-        <img src="https://img.shields.io/github/license/m-bain/whisperX.svg"
-             alt="GitHub license">
-  </a>
-  <a href="https://arxiv.org/abs/2303.00747">
-        <img src="http://img.shields.io/badge/Arxiv-2303.00747-B31B1B.svg"
-             alt="ArXiv paper">
-  </a>
-  <a href="https://twitter.com/intent/tweet?text=&url=https%3A%2F%2Fgithub.com%2Fm-bain%2FwhisperX">
-  <img src="https://img.shields.io/twitter/url/https/github.com/m-bain/whisperX.svg?style=social" alt="Twitter">
-  </a>
-</p>
-
-
-<img width="1216" align="center" alt="whisperx-arch" src="figures/pipeline.png">
-
-
-<!-- <p align="left">Whisper-Based Automatic Speech Recognition (ASR) with improved timestamp accuracy + quality via forced phoneme alignment and voice-activity based batching for fast inference.</p> -->
-
-
-<!-- <h2 align="left", id="what-is-it">What is it 🔎</h2> -->
 
 
 This repository provides fast automatic speech recognition (70x realtime with large-v2) with word-level timestamps and speaker diarization.
@@ -52,15 +22,12 @@ This repository provides fast automatic speech recognition (70x realtime with la
 
 **Speaker Diarization** is the process of partitioning an audio stream containing human speech into homogeneous segments according to the identity of each speaker.
 
-<h2 align="left", id="highlights">New🚨</h2>
-
 - _WhisperX_ accepted at INTERSPEECH 2023
 - v3 transcript segment-per-sentence: using nltk sent_tokenize for better subtitlting & better diarization
 - v3 released, 70x speed-up open-sourced. Using batched whisper with [faster-whisper](https://github.com/guillaumekln/faster-whisper) backend!
 - v2 released, code cleanup, imports whisper library VAD filtering is now turned on by default, as in the paper.
 - Paper drop🎓👨‍🏫! Please see our [ArxiV preprint](https://arxiv.org/abs/2303.00747) for benchmarking and details of WhisperX. We also introduce more efficient batch inference resulting in large-v2 with *60-70x REAL TIME speed.
 
-<h2 align="left" id="setup">Setup ⚙️</h2>
 Tested for PyTorch 2.0, Python 3.10 (use other versions at your own risk!)
 
 GPU execution requires the NVIDIA libraries cuBLAS 11.x and cuDNN 8.x to be installed on the system. Please refer to the [CTranslate2 documentation](https://opennmt.net/CTranslate2/installation.html).
@@ -98,9 +65,6 @@ You may also need to install ffmpeg, rust etc. Follow openAI instructions here h
 
 ### Speaker Diarization
 To **enable Speaker. Diarization**, include your Hugging Face access token that you can generate from [Here](https://huggingface.co/settings/tokens) after the `--hf_token` argument and accept the user agreement for the following models: [Segmentation](https://huggingface.co/pyannote/segmentation) , [Voice Activity Detection (VAD)](https://huggingface.co/pyannote/voice-activity-detection) , and [Speaker Diarization](https://huggingface.co/pyannote/speaker-diarization)
-
-
-<h2 align="left" id="example">Usage 💬 (command line)</h2>
 
 ### English
 
@@ -196,8 +160,6 @@ print(result["segments"]) # segments are now assigned speaker IDs
 
 If you don't have access to your own GPUs, use the links above to try out WhisperX.
 
-<h2 align="left" id="whisper-mod">Technical Details 👷‍♂️</h2>
-
 For specific details on the batching and alignment, the effect of VAD, as well as the chosen alignment model, see the preprint [paper](https://www.robots.ox.ac.uk/~vgg/publications/2023/Bain23/bain23.pdf).
 
 To reduce GPU memory requirements, try any of the following (2. & 3. can affect quality):
@@ -210,21 +172,17 @@ Transcription differences from openai's whisper:
 2. VAD-based segment transcription, unlike the buffered transcription of openai's. In Wthe WhisperX paper we show this reduces WER, and enables accurate batched inference
 3.  `--condition_on_prev_text` is set to `False` by default (reduces hallucination)
 
-<h2 align="left" id="limitations">Limitations ⚠️</h2>
-
 - Transcript words which do not contain characters in the alignment models dictionary e.g. "2014." or "£13.60" cannot be aligned and therefore are not given a timing.
 - Overlapping speech is not handled particularly well by whisper nor whisperx
 - Diarization is far from perfect (working on this with custom model v4 -- see contact me).
 - Language specific wav2vec2 model is needed
 
 
-<h2 align="left" id="contribute">Contribute 🧑‍🏫</h2>
-
 If you are multilingual, a major way you can contribute to this project is to find phoneme models on huggingface (or train your own) and test them on speech for the target language. If the results look good send a pull request and some examples showing its success.
 
 Bug finding and pull requests are also highly appreciated to keep this project going, since it's already diverging from the original research scope.
 
-<h2 align="left" id="coming-soon">TODO 🗓</h2>
+TODO:
 
 * [x] Multilingual init
 
@@ -255,15 +213,7 @@ Bug finding and pull requests are also highly appreciated to keep this project g
 * [ ] Improve diarization (word level). *Harder than first thought...*
 
 
-<h2 align="left" id="contact">Contact/Support 📇</h2>
-
-
 Contact maxhbain@gmail.com for queries. WhisperX v4 development is underway with with siginificantly improved diarization. To support v4 and get early access, get in touch.
-
-<a href="https://www.buymeacoffee.com/maxhbain" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
-
-
-<h2 align="left" id="acks">Acknowledgements 🙏</h2>
 
 This work, and my PhD, is supported by the [VGG (Visual Geometry Group)](https://www.robots.ox.ac.uk/~vgg/) and the University of Oxford.
 
@@ -280,7 +230,6 @@ Those who have [supported this work financially](https://www.buymeacoffee.com/ma
 
 Finally, thanks to the OS [contributors](https://github.com/m-bain/whisperX/graphs/contributors) of this project, keeping it going and identifying bugs.
 
-<h2 align="left" id="cite">Citation</h2>
 If you use this in your research, please cite the paper:
 
 ```bibtex

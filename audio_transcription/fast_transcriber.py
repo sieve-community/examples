@@ -38,7 +38,6 @@ def audio_split_by_silence(file: sieve.Audio):
 
     min_silence_length = float(os.getenv("min_silence_length"))
     min_segment_length = float(os.getenv("min_segment_length"))
-    from typing import Iterator
     import re
 
     def split_silences(

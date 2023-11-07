@@ -120,13 +120,20 @@ class Whisper:
 
         return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
 
-    def __predict__(self, audio: sieve.Audio) -> List:
+    def __predict__(self, audio: sieve.Audio, initial_prompt: str = "", prefix: str = "") -> List:
         """
         :param audio: an audio file
         :return: a list of segments, each with a start time, end time, and text
         """
         # TODO: implement start and end time as arguments
         import time
+        import faster_whisper
+
+        new_asr_options = self.model.options._asdict()
+        new_asr_options["initial_prompt"] = initial_prompt
+        new_asr_options["prefix"] = prefix
+        new_options = faster_whisper.transcribe.TranscriptionOptions(**new_asr_options)
+        self.model.options = new_options
 
         if self.first_time:
             print("first_time_setup: ", self.setup_time)

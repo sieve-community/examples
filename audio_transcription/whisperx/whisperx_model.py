@@ -123,6 +123,8 @@ class Whisper:
     def __predict__(self, audio: sieve.Audio, initial_prompt: str = "", prefix: str = "") -> List:
         """
         :param audio: an audio file
+        :param initial_prompt: A prompt to correct misspellings and style
+        :param prefix: A prefix to bias the transcript towards
         :return: a list of segments, each with a start time, end time, and text
         """
         # TODO: implement start and end time as arguments

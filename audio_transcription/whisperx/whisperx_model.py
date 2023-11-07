@@ -120,11 +120,12 @@ class Whisper:
 
         return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
 
-    def __predict__(self, audio: sieve.Audio, initial_prompt: str = "", prefix: str = "") -> List:
+    def __predict__(self, audio: sieve.Audio, initial_prompt: str = "", prefix: str = "", language: str = "en") -> List:
         """
         :param audio: an audio file
         :param initial_prompt: A prompt to correct misspellings and style
         :param prefix: A prefix to bias the transcript towards
+        :param language: Language code of the audio (defaults to English), faster inference if the language is known
         :return: a list of segments, each with a start time, end time, and text
         """
         # TODO: implement start and end time as arguments
@@ -160,7 +161,7 @@ class Whisper:
                     audio_np, (0, 32000 * 30 - audio_np.shape[0]), "constant"
                 )
 
-        result = self.model.transcribe(audio_np, batch_size=16)
+        result = self.model.transcribe(audio_np, batch_size=16, language=language)
         import whisperx
 
         result_aligned = whisperx.align(

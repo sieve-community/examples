@@ -71,7 +71,7 @@ class LiveSpeechTranscriber:
 
         try:
             command = [
-                'ffmpeg', '-i', url, '-f', 'segment', '-segment_time', '1', 
+                'ffmpeg', '-i', url, '-f', 'segment', '-segment_time', '3', 
                 '-reset_timestamps', '1', '-c:a', 'aac', '-vn', 'out/output_%03d.m4a'
             ]
             print(command)

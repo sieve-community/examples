@@ -5,6 +5,7 @@ import ffmpeg
 import soundfile as sf
 import warnings
 import os
+import subprocess
 
 warnings.filterwarnings("ignore")
 
@@ -65,36 +66,42 @@ class LiveSpeechTranscriber:
         from mosestokenizer import MosesTokenizer
 
         processor = OnlineASRProcessor(self.model, MosesTokenizer(language))
-        reader = (
-            ffmpeg.input(url)
-            .output(
-                "out/output_%03d.mpeg",
-                format="segment",
-                segment_time="3",
-                reset_timestamps="1",
-                c="copy",
+        try:
+            command = [
+                'ffmpeg', '-i', url, '-f', 'segment', '-segment_time', '3', 
+                '-reset_timestamps', '1', '-c:a', 'aac', '-vn', 'out/output_%03d.m4a'
+            ]
+            print(command)
+            process = subprocess.Popen(
+                command,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
             )
-            .run_async(pipe_stderr=True)
-        )
+        except Exception as e:
+            raise RuntimeError(f"Failed to load audio: {str(e)}") from e
 
         segment_re = re.compile(
-            r"\[segment @ 0x[0-9a-f]+\] Opening '(out\/output_\d+.mpeg)' for writing"
+            r"\[segment @ 0x[0-9a-f]+\] Opening '(out\/output_\d+.m4a)' for writing"
         )
 
         curr_chunk = 0
+        prev_lines = []
         while True:
             try:
-                line = reader.stderr.readline().decode("utf-8")
+                line = process.stderr.readline()
+                prev_lines.append(line)
+                if len(prev_lines) > 10:
+                    prev_lines.pop(0)
                 if not line:
+                    print('\n'.join(prev_lines))
                     break
                 match = segment_re.search(line)
                 if match:
                     if curr_chunk > 0:
-                        audio_path = f"out/output_{(curr_chunk - 1):03d}.mpeg"
+                        audio_path = f"out/output_{(curr_chunk - 1):03d}.m4a"
                         a = load_audio_chunk(audio_path)
                         processor.insert_audio_chunk(a)
 
-                        # remove the audio chunk
                         os.remove(audio_path)
                         try:
                             print("Processing chunk: ", curr_chunk)

@@ -1,7 +1,6 @@
 import sieve
 from functools import lru_cache
 import sieve
-import ffmpeg
 import soundfile as sf
 import warnings
 import os
@@ -60,7 +59,7 @@ class LiveSpeechTranscriber:
     def __predict__(self, url: str, language: str = "en"):
         """
         :param url: A URL to a live audio stream (RTMP, HLS, etc.). Needs to be supported by FFMPEG.
-        :param language: Language code of the audio (defaults to English), faster inference if the language is known
+        :param language: Language code of the audio (defaults to English), faster inference if the language is known. Leave blank for auto-detection.
         :return: a list of segments, each with a start time, end time, and text
         """
         from mosestokenizer import MosesTokenizer
@@ -72,7 +71,7 @@ class LiveSpeechTranscriber:
 
         try:
             command = [
-                'ffmpeg', '-i', url, '-f', 'segment', '-segment_time', '3', 
+                'ffmpeg', '-i', url, '-f', 'segment', '-segment_time', '1', 
                 '-reset_timestamps', '1', '-c:a', 'aac', '-vn', 'out/output_%03d.m4a'
             ]
             print(command)
@@ -108,10 +107,10 @@ class LiveSpeechTranscriber:
 
                         os.remove(audio_path)
                         try:
-                            print("Processing chunk: ", curr_chunk)
+                            print("Processing chunk...")
                             o = processor.process_iter()
                             if o is not None and o[0] is not None:
-                                print(o[2], flush=True, end=" ")
+                                print(f"yielding chunk from {o[0]} to {o[1]} with text: {o[2]}")
                                 yield {
                                     "start": o[0],
                                     "end": o[1],

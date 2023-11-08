@@ -66,6 +66,10 @@ class LiveSpeechTranscriber:
         from mosestokenizer import MosesTokenizer
 
         processor = OnlineASRProcessor(self.model, MosesTokenizer(language))
+
+        if not os.path.exists("out"):
+            os.makedirs("out")
+
         try:
             command = [
                 'ffmpeg', '-i', url, '-f', 'segment', '-segment_time', '3', 

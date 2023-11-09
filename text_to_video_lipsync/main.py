@@ -11,7 +11,7 @@ metadata = sieve.Metadata(
 )
 
 @sieve.function(
-    name="text_to_video_lipsync",
+    name="text_to_video_lipsync_test",
     system_packages=[
         "ffmpeg",
         "rubberband-cli"
@@ -26,6 +26,8 @@ metadata = sieve.Metadata(
     metadata=metadata,
     environment_variables=[
         sieve.Env(name="ELEVEN_LABS_API_KEY", description="API key for ElevenLabs", default=""),
+        sieve.Env(name="PLAYHT_API_KEY", description="API key for ElevenLabs", default=""),
+        sieve.Env(name="PLAYHT_API_USER_ID", description="API user ID for ElevenLabs", default="")
     ],
 )
 def do(
@@ -34,19 +36,19 @@ def do(
     tts_model: str = "xtts",
     speech_stability: float = 0.5,
     speech_similarity_boost: float = 0.63,
-    elevenlabs_voice_id: str = "",
-    elevenlabs_cleanup_voice_id: bool = False,
+    voice_id: str = "",
+    cleanup_voice_id: bool = False,
     refine_source_audio: bool = True,
     refine_target_audio: bool = True
 ):
     '''
     :param source_video: video to lip-sync
     :param text: text to speak
-    :param tts_model: TTS model to use. Supported models: "xtts" or "elevenlabs". "elevenlabs" is recommended for better quality but requires an ElevenLabs API key.
+    :param tts_model: TTS model to use. Supported models: "xtts", "elevenlabs", or "playht". "elevenlabs" or "playht" is recommended for better quality but requires an API key.
     :param speech_stability: Value between 0 and 1. Increasing variability can make speech more expressive with output varying between re-generations. It can also lead to instabilities.
     :param speech_similarity_boost: Value between 0 and 1. Low values are recommended if background artifacts are present in generated speech.
-    :param elevenlabs_voice_id: The ID of the ElevenLabs voice to use. If none are set, the voice will be cloned from the source audio and used. Only applicable if tts_model is "elevenlabs".
-    :param elevenlabs_cleanup_voice_id: Whether to delete the voice after use. Only applicable if tts_model is "elevenlabs".
+    :param voice_id: The ID of the ElevenLabs or Play.ht voice to use. If none are set, the voice will be cloned from the source audio and used. Only applicable if tts_model is "elevenlabs" or "playht".
+    :param cleanup_voice_id: Whether to delete the voice after use. Only applicable if tts_model is "elevenlabs" or "playht".
     :param refine_source_audio: Whether to refine the source audio using sieve/audio_enhancement.
     :param refine_target_audio: Whether to refine the generated target audio using sieve/audio_enhancement.
     :return: A generated video file
@@ -65,7 +67,7 @@ def do(
     source_audio = sieve.Audio(path=source_audio_path)
 
     # Refine source_audio
-    if refine_source_audio and ((tts_model == "elevenlabs" and len(elevenlabs_voice_id) == 0) or tts_model == "xtts"):
+    if refine_source_audio and ((tts_model == "elevenlabs" and len(voice_id) == 0) or tts_model == "xtts"):
         start_time = time.time()
         source_audio = sieve.function.get("sieve/audio_enhancement").run(source_audio, filter_type="all")
         print(f"Time taken to refine source audio: {time.time() - start_time} seconds")    
@@ -92,16 +94,16 @@ def do(
             tts_coroutines.append(tts)
     elif tts_model_str == "elevenlabs":
         tts_model = sieve.function.get(f"sieve/elevenlabs_speech_synthesis")
-        if len(elevenlabs_voice_id) == 0:
+        if len(voice_id) == 0:
             # clone voice
             cloning_model = sieve.function.get("sieve/elevenlabs_voice_cloning")
             voice_cloning = cloning_model.run(source_audio)
-            elevenlabs_voice_id = voice_cloning["voice_id"]
+            voice_id = voice_cloning["voice_id"]
         for i, segment in enumerate(segments):
-            if elevenlabs_voice_id and len(elevenlabs_voice_id) > 0:
+            if voice_id and len(voice_id) > 0:
                 tts = tts_model.push(
                     segment["text"],
-                    voice_id=elevenlabs_voice_id,
+                    voice_id=voice_id,
                     stability=speech_stability,
                     similarity_boost=speech_similarity_boost
                 )
@@ -114,12 +116,37 @@ def do(
                 
             tts_coroutines.append(tts)
         
-        if elevenlabs_cleanup_voice_id:
+        if cleanup_voice_id:
             # delete voice
             cloning_model = sieve.function.get("sieve/elevenlabs_voice_cloning")
-            cloning_model.run(source_audio, delete_voice_id=elevenlabs_voice_id)
+            cloning_model.run(source_audio, delete_voice_id=voice_id)
+    elif tts_model_str == "playht":
+        tts_model = sieve.function.get(f"sieve/playht_speech_synthesis")
+        if len(voice_id) == 0:
+            # clone voice
+            cloning_model = sieve.function.get("sieve/playht_voice_cloning")
+            voice_cloning = cloning_model.run(source_audio)
+            print(voice_cloning)
+            voice_id = voice_cloning["id"]
+        for i, segment in enumerate(segments):
+            if voice_id and len(voice_id) > 0:
+                tts = tts_model.push(
+                    segment["text"],
+                    voice=voice_id,
+                )
+            else:
+                tts = tts_model.push(
+                    segment["text"],
+                )
+                
+            tts_coroutines.append(tts)
+
+        if cleanup_voice_id:
+            # delete voice
+            cloning_model = sieve.function.get("sieve/playht_voice_cloning")
+            cloning_model.run(source_audio, delete_voice_id=voice_id)
     else:
-        raise ValueError(f"Unsupported TTS model: {tts_model}. Please use one of the following: xtts-v1, eleven_labs_voice_cloning")
+        raise ValueError(f"Unsupported TTS model: {tts_model}. Please use one of the following: xtts, elevenlabs, playht")
     for tts in tts_coroutines:
         target_audios.append(tts.result())
     print(f"Time taken for TTS: {time.time() - start_time} seconds")

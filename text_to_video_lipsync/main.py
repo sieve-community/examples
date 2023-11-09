@@ -11,7 +11,7 @@ metadata = sieve.Metadata(
 )
 
 @sieve.function(
-    name="text_to_video_lipsync_test",
+    name="text_to_video_lipsync",
     system_packages=[
         "ffmpeg",
         "rubberband-cli"

@@ -53,8 +53,8 @@ def do(
     :param cleanup_voice_id: Whether to delete the voice after use. Only applicable if tts_model is "elevenlabs" or "playht".
     :param refine_source_audio: Whether to refine the source audio using sieve/audio_enhancement.
     :param refine_target_audio: Whether to refine the generated target audio using sieve/audio_enhancement.
-    :param low_resolution: whether to reduce the resolution of the output video to half of the original on each axis; significantly speeds up inference.
-    :param low_fps: whether to reduce the fps of the output video to half of the original; significantly speeds up inference.
+    :param low_resolution: Whether to reduce the resolution of the output video to half of the original on each axis; significantly speeds up inference.
+    :param low_fps: Whether to reduce the fps of the output video to half of the original; significantly speeds up inference.
     :return: A generated video file
     '''
     import os

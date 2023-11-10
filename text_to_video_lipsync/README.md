@@ -21,3 +21,5 @@ You must enter the API keys and user IDs mentioned in the speech_synthesis funct
 - `cleanup_voice_id`: Whether to delete the voice after use. This is only applicable if the `tts_model` is set to "elevenlabs" or "playht".
 - `refine_source_audio`: Whether to refine the source audio using sieve/audio_enhancement.
 - `refine_target_audio`: Whether to refine the generated target audio using sieve/audio_enhancement.
+- `low_resolution`: Whether to reduce the resolution of the output video to half of the original on each axis; significantly speeds up inference.
+- `low_fps`: Whether to reduce the fps of the output video to half of the original; significantly speeds up inference.

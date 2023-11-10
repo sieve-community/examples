@@ -83,7 +83,7 @@ def do(
     target_audios = []
     tts_coroutines = []
     if tts_model_str  == "xtts":
-        tts_model = sieve.function.get(f"sieve/xtts-v1")
+        tts_model = sieve.function.get(f"sieve/xtts")
         for i, segment in enumerate(segments):
             tts = tts_model.push(
                 segment["text"],

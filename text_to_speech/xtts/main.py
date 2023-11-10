@@ -10,20 +10,20 @@ metadata = sieve.Metadata(
 )
 
 @sieve.Model(
-    name="xtts-v1",
+    name="xtts",
     machine_type="a100",
     metadata=metadata,
     gpu=True,
     python_packages=[
-        "git+https://github.com/coqui-ai/TTS.git@v0.19.1",
+        "git+https://github.com/coqui-ai/TTS.git@v0.20.2",
         "transformers",
     ],
     run_commands=[
         "mkdir -p /root/.cache/model",
-        "wget https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/model.pth -q -P /root/.cache/model",
-        "wget https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/config.json -q -P /root/.cache/model",
-        "wget https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/vocab.json -q -P /root/.cache/model",
-        "wget https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/hash.md5 -q -P /root/.cache/model"
+        "wget https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/model.pth -q -P /root/.cache/model",
+        "wget https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/config.json -q -P /root/.cache/model",
+        "wget https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/vocab.json -q -P /root/.cache/model",
+        "wget https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/hash.md5 -q -P /root/.cache/model"
     ],
     system_packages=[
         "libsndfile1",
@@ -35,10 +35,8 @@ metadata = sieve.Metadata(
 )
 class XTTS:
     def __setup__(self):
-        import torch
         import os
 
-        from TTS.api import TTS
         os.environ["COQUI_TOS_AGREED"] = "1"
 
         from TTS.tts.configs.xtts_config import XttsConfig

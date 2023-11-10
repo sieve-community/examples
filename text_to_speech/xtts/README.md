@@ -8,7 +8,7 @@ Features
 - Multi-lingual speech generation.
 - 24khz sampling rate.
 
-As of now, XTTS-v1 supports 13 languages:
+As of now, XTTS-v2 supports 13 languages:
 - English (en)
 - Spanish (es)
 - French (fr)

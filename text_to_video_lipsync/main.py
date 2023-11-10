@@ -39,7 +39,9 @@ def do(
     voice_id: str = "",
     cleanup_voice_id: bool = False,
     refine_source_audio: bool = True,
-    refine_target_audio: bool = True
+    refine_target_audio: bool = True,
+    low_resolution: bool = False,
+    low_fps: bool = False,
 ):
     '''
     :param source_video: video to lip-sync
@@ -51,6 +53,8 @@ def do(
     :param cleanup_voice_id: Whether to delete the voice after use. Only applicable if tts_model is "elevenlabs" or "playht".
     :param refine_source_audio: Whether to refine the source audio using sieve/audio_enhancement.
     :param refine_target_audio: Whether to refine the generated target audio using sieve/audio_enhancement.
+    :param low_resolution: whether to reduce the resolution of the output video to half of the original on each axis; significantly speeds up inference.
+    :param low_fps: whether to reduce the fps of the output video to half of the original; significantly speeds up inference.
     :return: A generated video file
     '''
     import os
@@ -194,7 +198,7 @@ def do(
     # Combine audio and video with Retalker
     start_time = time.time()
     retalker = sieve.function.get("sieve/video_retalking")
-    output_video = retalker.run(source_video, target_audio)
+    output_video = retalker.run(source_video, target_audio, low_resolution=low_resolution, low_fps=low_fps)
     print(f"Time taken to combine audio and video: {time.time() - start_time} seconds")
 
     # Trim silence from output_video

@@ -7,7 +7,20 @@ API_KEY = os.getenv("OPENAI_API_KEY")
 if API_KEY is None:
     raise Exception("OPENAI_API_KEY environment variable not set")
 
+def add_timecodes_to_chapters(chapters):
+    chapters = [chapter.dict() for chapter in chapters]
 
+    out_chapters = []
+    for i, chapter in enumerate(chapters):
+        out_chapters.append(
+            {
+                "title": chapter["title"],
+                "timecode": f"{int(chapter['start_time'] // 3600):02d}:{int(chapter['start_time'] // 60):02d}:{int(chapter['start_time'] % 60):02d}",
+                "start_time": chapter["start_time"],
+            }
+        )
+    return out_chapters
+ 
 async def description_runner(
     transcript, max_num_sentences=5, max_num_words=10, num_tags=5
 ):
@@ -71,12 +84,10 @@ async def chapter_runner(transcript):
 
     Please meet the following constraints:
     - The chapters should cover only the key points and main ideas presented in the original transcript
-    - The chapter start time should mark the time at which the specific topic is first introduced
-    - The number of chapters should be appropriate for the length and complexity of the original transcript, providing a clear and accurate overview without omitting any important information. Think of it just like a book or a YouTube video.
+    - Please ensure the time of the chapter is marked as when the topic is first introduced based on the times you have been given as numbers
+    - The chapters should include any adbreaks or other breaks in the video and name them accordingly "Ad Break"
     - The chapters should focus on macro-level topics, not micro-level details. This is very important. I cannot stress this enough.
     - The chapters should be evenly spaced throughout the video
-    - The chapters should condense the information into concise, important topical divides and avoiding any unnecessary information or repetition
-    - The number of chapters should be appropriate for the length and complexity of the original transcript, providing a clear and accurate overview without omitting any important information.
     - Please be concise, and keep the chapter titles short and descriptive.
 
     Respond with the following JSON schema for chapters:
@@ -105,8 +116,6 @@ async def chapter_runner(transcript):
 
     max_num_tokens = 10000
     max_num_words = 3 * (max_num_tokens / 4)
-    print(f"max_num_words: {max_num_words}")
-    print(f"num_words: {len(segments_str.split(' '))}")
     if segments_str.count(" ") > max_num_words:
         print("splitting transcript into multiple messages due to length")
         # split into multiple messages with the same format
@@ -147,12 +156,10 @@ async def chapter_runner(transcript):
 
         Please meet the following constraints:
         - The chapters should cover only the key points and main ideas presented in the original transcript
-        - The chapter start time should mark the time at which the specific topic is first introduced
-        - The number of chapters should be appropriate for the length and complexity of the original transcript, providing a clear and accurate overview without omitting any important information. Think of it just like a book or a YouTube video.
+        - Please ensure the time of the chapter is marked as when the topic is first introduced based on the times you have been given as numbers
+        - The chapters should include any adbreaks or other breaks in the video and name them accordingly "Ad Break"
         - The chapters should focus on macro-level topics, not micro-level details. This is very important. I cannot stress this enough.
         - The chapters should be evenly spaced throughout the video
-        - The chapters should condense the information into concise, important topical divides and avoiding any unnecessary information or repetition
-        - The number of chapters should be appropriate for the length and complexity of the original transcript, providing a clear and accurate overview without omitting any important information.
         - Please be concise, and keep the chapter titles short and descriptive.
 
         Respond with the following JSON schema for chapters:
@@ -195,7 +202,7 @@ async def chapter_runner(transcript):
 
         schema, transforms = payload
 
-        return schema.chapters
+        return add_timecodes_to_chapters(schema.chapters)
         
     else:
         payload = await gpt_json.run(
@@ -210,4 +217,4 @@ async def chapter_runner(transcript):
 
         schema, transforms = payload
 
-        return schema.chapters
+        return add_timecodes_to_chapters(schema.chapters)

@@ -22,26 +22,22 @@ metadata = sieve.Metadata(
     system_packages=["ffmpeg"],
     python_version="3.10",
     environment_variables=[
-        sieve.Env(name="OPENAI_API_KEY", description="OpenAI API Key"),
-        sieve.Env(
-            name="NUM_TAGS", description="Number of tags to generate", default="5"
-        ),
-        sieve.Env(
-            name="MAX_SUMMARY_SENTENCES",
-            description="Number of sentences to summarize",
-            default="5",
-        ),
-        sieve.Env(
-            name="MAX_TITLE_WORDS",
-            description="Max number of words in title",
-            default="10",
-        ),
+        sieve.Env(name="OPENAI_API_KEY", description="OpenAI API Key")
     ],
     metadata=metadata,
 )
-def analyze_transcript(file: sieve.File, generate_chapters: bool = True):
+def analyze_transcript(
+    file: sieve.File,
+    max_summary_length: int = 5,
+    max_title_length: int = 10,
+    num_tags: int = 5,
+    generate_chapters: bool = True
+):
     '''
     :param file: Video or audio file
+    :param max_summary_length: Maximum number of sentences in summary. Defaults to 5.
+    :param max_title_length: Maximum number of words in title. Defaults to 10.
+    :param num_tags: Number of tags to generate. Defaults to 5.
     :param generate_chapters: Whether to generate chapters or not. Defaults to True.
     '''
     print("converting to audio")
@@ -102,9 +98,9 @@ def analyze_transcript(file: sieve.File, generate_chapters: bool = True):
 
     from transcript_analysis import description_runner, chapter_runner
 
-    max_num_sentences = int(os.getenv("MAX_SUMMARY_SENTENCES", 5))
-    max_num_words = int(os.getenv("MAX_TITLE_WORDS", 10))
-    num_tags = int(os.getenv("NUM_TAGS", 5))
+    max_num_sentences = max_summary_length
+    max_num_words = max_title_length
+    num_tags = num_tags
     print("running description runner")
     summary, title, tags = asyncio.run(
         description_runner(
@@ -126,7 +122,7 @@ def analyze_transcript(file: sieve.File, generate_chapters: bool = True):
         print("finished chapter runner")
         out_list = []
         for chapter in chapters:
-            out_list.append({"title": chapter.title, "start_time": chapter.start_time})
+            out_list.append({"title": chapter["title"], "start_time": chapter["start_time"], "timecode": chapter["timecode"]})
         yield {"chapters": out_list}
 
     if os.path.exists(audio_path):

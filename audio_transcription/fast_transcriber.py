@@ -22,22 +22,28 @@ metadata = sieve.Metadata(
         "numpy==1.19.4",
     ],
     system_packages=["ffmpeg"],
-    environment_variables=[
-        sieve.Env(name="min_silence_length", default=0.8),
-        sieve.Env(name="min_segment_length", default=30.0),
-    ],
     metadata=metadata,
 )
-def audio_split_by_silence(file: sieve.Audio):
+def audio_split_by_silence(file: sieve.Audio, min_silence_length: float = 0.8, min_segment_length: float = 30.0):
+    '''
+    :param file: Audio file
+    :param min_silence_length: Minimum length of silence in seconds to use for splitting audio for parallel processing. Defaults to 0.8.
+    :param min_segment_length: Minimum length of audio segment in seconds to use for splitting audio for parallel processing. Defaults to 30.0.
+    '''
     import os
     import sys
     import librosa
     import numpy as np
     import soundfile as sf
     import requests
+    import subprocess
 
-    min_silence_length = float(os.getenv("min_silence_length"))
-    min_segment_length = float(os.getenv("min_segment_length"))
+    # Extract the length of the audio using ffprobe
+    result = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", file.path], capture_output=True, text=True)
+    audio_length = float(result.stdout)
+
+    min_silence_length = float(min_silence_length)
+    min_segment_length = float(min_segment_length)
     import re
 
     def split_silences(
@@ -101,7 +107,7 @@ def audio_split_by_silence(file: sieve.Audio):
 
     def process_segment(segment):
         start_time, end_time = segment
-        print(f"Splitting {audio_path} from {start_time} to {end_time}")
+        print(f"Splitting audio from {start_time} to {end_time}")
         whisperx_job = whisperx.push(
             sieve.Audio(path=audio_path, start_time=start_time, end_time=end_time)
         )
@@ -116,4 +122,10 @@ def audio_split_by_silence(file: sieve.Audio):
         segments.append(whisperx.push(sieve.Audio(path=audio_path)))
 
     for job in executor.map(process_segment, segments):
-        yield job.result()
+        job_output = job.result()
+        job_segments = job_output["segments"]
+        if len(job_segments) > 0:
+            print(f"transcribed {100*job_segments[-1]['end'] / audio_length:.2f}% of {audio_length:.2f} seconds")
+        yield job_output
+    
+    print("transcription finished")

@@ -39,7 +39,11 @@ metadata = sieve.Metadata(
     ],
     metadata=metadata,
 )
-def analyze_transcript(file: sieve.Video) -> Dict:
+def analyze_transcript(file: sieve.File, generate_chapters: bool = True):
+    '''
+    :param file: Video or audio file
+    :param generate_chapters: Whether to generate chapters or not. Defaults to True.
+    '''
     print("converting to audio")
     # video to audio
     import subprocess
@@ -89,7 +93,8 @@ def analyze_transcript(file: sieve.Video) -> Dict:
         yield {"summary": "No summary available. Video is too short or has no audio."}
         yield {"title": "No title available. Video is too short or has no audio."}
         yield {"tags": []}
-        yield {"chapters": []}
+        if generate_chapters:
+            yield {"chapters": []}
         return
 
     import os
@@ -115,12 +120,14 @@ def analyze_transcript(file: sieve.Video) -> Dict:
     yield {"tags": tags}
 
     print("running chapter runner")
-    chapters = asyncio.run(chapter_runner(transcript))
-    print("finished chapter runner")
-    out_list = []
-    for chapter in chapters:
-        out_list.append({"title": chapter.title, "start_time": chapter.start_time})
-    yield {"chapters": out_list}
+
+    if generate_chapters:
+        chapters = asyncio.run(chapter_runner(transcript))
+        print("finished chapter runner")
+        out_list = []
+        for chapter in chapters:
+            out_list.append({"title": chapter.title, "start_time": chapter.start_time})
+        yield {"chapters": out_list}
 
     if os.path.exists(audio_path):
         os.remove(audio_path)

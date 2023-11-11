@@ -71,8 +71,9 @@ async def chapter_runner(transcript):
 
     Please meet the following constraints:
     - The chapters should cover only the key points and main ideas presented in the original transcript
+    - The chapter start time should mark the time at which the specific topic is first introduced
+    - The number of chapters should be appropriate for the length and complexity of the original transcript, providing a clear and accurate overview without omitting any important information. Think of it just like a book or a YouTube video.
     - The chapters should focus on macro-level topics, not micro-level details. This is very important. I cannot stress this enough.
-    - The chapter `start_time` values should NEVER EVER be within 15 seconds of each other.
     - The chapters should be evenly spaced throughout the video
     - The chapters should condense the information into concise, important topical divides and avoiding any unnecessary information or repetition
     - The number of chapters should be appropriate for the length and complexity of the original transcript, providing a clear and accurate overview without omitting any important information.
@@ -101,16 +102,112 @@ async def chapter_runner(transcript):
     segments_str = "\n".join(
         [f"{segment['start_time']}: {segment['text']}" for segment in segment_info]
     )
-    payload = await gpt_json.run(
-        messages=[
-            GPTMessage(
-                role=GPTMessageRole.SYSTEM,
-                content=PROMPT,
-            ),
-            GPTMessage(role=GPTMessageRole.USER, content=f"Transcript: {segments_str}"),
+
+    max_num_tokens = 10000
+    max_num_words = 3 * (max_num_tokens / 4)
+    print(f"max_num_words: {max_num_words}")
+    print(f"num_words: {len(segments_str.split(' '))}")
+    if segments_str.count(" ") > max_num_words:
+        print("splitting transcript into multiple messages due to length")
+        # split into multiple messages with the same format
+        messages = []
+        current_message = ""
+        for segment in segment_info:
+            if current_message.count(" ") > max_num_words:
+                messages.append(current_message)
+                current_message = ""
+            current_message += f"{segment['start_time']}: {segment['text']}\n"
+        messages.append(current_message)
+
+        print(f"split transcript into {len(messages)} messages")
+
+        chapters = []
+        for message in messages:
+            payload = await gpt_json.run(
+                messages=[
+                    GPTMessage(
+                        role=GPTMessageRole.SYSTEM,
+                        content=PROMPT,
+                    ),
+                    GPTMessage(role=GPTMessageRole.USER, content=f"Transcript: {message}"),
+                ]
+            )
+
+            schema, transforms = payload
+
+            chapters.extend(schema.chapters)
+
+        # now consolidate chapters in case there are duplicates or overlapping chapters due to splitting
+        CONSOLIDATE_PROMPT = """
+        You are a developer assistant where you only provide the code for a question. No explanation required. Write a simple json sample.
+
+        Can you consolidate the chapters from the previous messages into a single list of chapters? Make sure to think step by step. First, think about the most important topics in the video and list them out in the order they appear. Then, think about how you would divide the video into chapters based on these topics. Finally, think about how you would title each chapter.
+
+        The reason we are asking you to consolidate the chapters is because the previous messages may have overlapping chapters due to splitting the transcript into multiple messages. We want to make sure that the chapters are not overlapping.
+
+        Please meet the following constraints:
+        - The chapters should cover only the key points and main ideas presented in the original transcript
+        - The chapter start time should mark the time at which the specific topic is first introduced
+        - The number of chapters should be appropriate for the length and complexity of the original transcript, providing a clear and accurate overview without omitting any important information. Think of it just like a book or a YouTube video.
+        - The chapters should focus on macro-level topics, not micro-level details. This is very important. I cannot stress this enough.
+        - The chapters should be evenly spaced throughout the video
+        - The chapters should condense the information into concise, important topical divides and avoiding any unnecessary information or repetition
+        - The number of chapters should be appropriate for the length and complexity of the original transcript, providing a clear and accurate overview without omitting any important information.
+        - Please be concise, and keep the chapter titles short and descriptive.
+
+        Respond with the following JSON schema for chapters:
+
+        {json_schema}
+
+        Each chapter should have the following fields:
+        - title: title of the chapter
+        - start_time: start time of the chapter as a float in seconds
+        """
+
+        chapters_list_flattened = [
+            {"title": chapter.title, "start_time": chapter.start_time}
+            for chapter in chapters
         ]
-    )
 
-    schema, transforms = payload
+        chapters_list_flattened = sorted(
+            chapters_list_flattened, key=lambda x: x["start_time"]
+        )
 
-    return schema.chapters
+        chapters_str = "\n".join(
+            [
+                f"{chapter['start_time']}: {chapter['title']}"
+                for chapter in chapters_list_flattened
+            ]
+        )
+
+        payload = await gpt_json.run(
+            messages=[
+                GPTMessage(
+                    role=GPTMessageRole.SYSTEM,
+                    content=CONSOLIDATE_PROMPT,
+                ),
+                GPTMessage(
+                    role=GPTMessageRole.USER,
+                    content=f"Chapters: {chapters_str}",
+                ),
+            ]
+        )
+
+        schema, transforms = payload
+
+        return schema.chapters
+        
+    else:
+        payload = await gpt_json.run(
+            messages=[
+                GPTMessage(
+                    role=GPTMessageRole.SYSTEM,
+                    content=PROMPT,
+                ),
+                GPTMessage(role=GPTMessageRole.USER, content=f"Transcript: {segments_str}"),
+            ]
+        )
+
+        schema, transforms = payload
+
+        return schema.chapters

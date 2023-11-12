@@ -15,7 +15,7 @@ def add_timecodes_to_chapters(chapters):
         out_chapters.append(
             {
                 "title": chapter["title"],
-                "timecode": f"{int(chapter['start_time'] // 3600):02d}:{int(chapter['start_time'] // 60):02d}:{int(chapter['start_time'] % 60):02d}",
+                "timecode": f"{int(chapter['start_time'] // 3600):02d}:{int((chapter['start_time'] % 3600) // 60):02d}:{int(chapter['start_time'] % 60):02d}",
                 "start_time": chapter["start_time"],
             }
         )

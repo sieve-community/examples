@@ -49,24 +49,116 @@ async def description_runner(
 
     gpt_json = GPTJSON[DescriptionSchema](api_key=API_KEY, model="gpt-3.5-turbo-16k")
     text = text = " ".join([segment["text"] for segment in transcript])
-    payload = await gpt_json.run(
-        messages=[
-            GPTMessage(
-                role=GPTMessageRole.SYSTEM,
-                content=SUMMARY_PROMPT,
-            ),
-            GPTMessage(role=GPTMessageRole.USER, content=f"Text: {text}"),
-        ],
-        format_variables={
-            "max_num_sentences": max_num_sentences,
-            "max_num_words": max_num_words,
-            "num_tags": num_tags,
-        },
-    )
 
-    schema, transforms = payload
+    max_num_tokens = 10000
+    max_num_words = 3 * (max_num_tokens / 4)
 
-    return schema.summary, schema.title, schema.tags
+    if text.count(" ") > max_num_words:
+        print("Splitting transcript into multiple messages due to length for summary")
+        messages = []
+        current_message = ""
+        for segment in transcript:
+            if current_message.count(" ") > max_num_words:
+                messages.append(current_message)
+                current_message = ""
+            current_message += f"{segment['text']} "
+        messages.append(current_message)
+
+        print(f"Split transcript into {len(messages)} messages")
+
+        outputs = []
+        for message in messages:
+            payload = await gpt_json.run(
+                messages=[
+                    GPTMessage(
+                        role=GPTMessageRole.SYSTEM,
+                        content=SUMMARY_PROMPT,
+                    ),
+                    GPTMessage(role=GPTMessageRole.USER, content=f"Text: {message}"),
+                ],
+                format_variables={
+                    "max_num_sentences": max_num_sentences,
+                    "max_num_words": max_num_words,
+                    "num_tags": num_tags,
+                },
+            )
+
+            schema, transforms = payload
+
+            outputs.append(schema)
+
+        # now consolidate outputs in case there are duplicates or overlapping chapters due to splitting
+        CONSOLIDATE_PROMPT = """
+        You are a developer assistant where you only provide the code for a question. No explanation required. Write a simple json sample.
+
+        Can you consolidate the summary, title, and tags from the previous messages into a single summary, title, and list of tags? Make sure to think step by step. First, think about the most important topics in the video and list them out in the order they appear. Then, think about how you would divide the video into chapters based on these topics. Finally, think about how you would title each chapter.
+
+        The reason we are asking you to consolidate the summary, title, and tags is because the previous messages may have overlapping chapters due to splitting the transcript into multiple messages. We want to make sure that the summary, title, and tags are not overlapping.
+
+        Please meet the following constraints:
+        - The summary should cover all the key points and main ideas presented in the original text
+        - The summary should be something that may follow the phrase "In this video..."
+        - The summary should condense the information into a concise and easy-to-understand format
+        - Please ensure that the summary includes relevant details and examples that support the main ideas, while avoiding any unnecessary information or repetition.
+        - The length of the summary should be appropriate for the length and complexity of the original text, providing a clear and accurate overview without omitting any important information.
+        - Please limit your summary to {max_num_sentences} sentences.
+        - Please limit your title to {max_num_words} words.
+        - Please return {num_tags} tags that are most topical to the transcript.
+
+        Respond with the following JSON schema:
+
+        {json_schema}
+        """
+
+        outputs = [output.dict() for output in outputs]
+
+        outputs_str = "\n".join(
+            [
+                f"Title: {output['title']}\nSummary: {output['summary']}\nTags: {output['tags']}"
+                for output in outputs
+            ]
+        )
+
+        payload = await gpt_json.run(
+            messages=[
+                GPTMessage(
+                    role=GPTMessageRole.SYSTEM,
+                    content=CONSOLIDATE_PROMPT,
+                ),
+                GPTMessage(
+                    role=GPTMessageRole.USER,
+                    content=f"Text: {outputs_str}",
+                ),
+            ],
+            format_variables={
+                "max_num_sentences": max_num_sentences,
+                "max_num_words": max_num_words,
+                "num_tags": num_tags,
+            },
+        )
+
+        schema, transforms = payload
+
+        return schema.summary, schema.title, schema.tags
+    else:
+        payload = await gpt_json.run(
+            messages=[
+                GPTMessage(
+                    role=GPTMessageRole.SYSTEM,
+                    content=SUMMARY_PROMPT,
+                ),
+                GPTMessage(role=GPTMessageRole.USER, content=f"Text: {text}"),
+            ],
+            format_variables={
+                "max_num_sentences": max_num_sentences,
+                "max_num_words": max_num_words,
+                "num_tags": num_tags,
+            },
+        )
+
+        schema, transforms = payload
+
+        return schema.summary, schema.title, schema.tags
 
 
 async def chapter_runner(transcript):

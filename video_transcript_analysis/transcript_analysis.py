@@ -41,6 +41,7 @@ async def description_runner(
     - Please limit your summary to {max_num_sentences} sentences.
     - Please limit your title to {max_num_words} words.
     - Please return {num_tags} tags that are most topical to the transcript.
+    - Ensure you reply with the right content, and not anything to do with the prompt.
 
     Respond with the following JSON schema:
 
@@ -104,6 +105,7 @@ async def description_runner(
         - Please limit your summary to {max_num_sentences} sentences.
         - Please limit your title to {max_num_words} words.
         - Please return {num_tags} tags that are most topical to the transcript.
+        - Ensure you reply with the right content, and not anything to do with the prompt.
 
         Respond with the following JSON schema:
 

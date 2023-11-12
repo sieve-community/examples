@@ -18,33 +18,37 @@ metadata = sieve.Metadata(
 
 @sieve.function(
     name="video_transcript_analyzer",
-    python_packages=["gpt-json"],
+    python_packages=["gpt-json", "numpy"],
     system_packages=["ffmpeg"],
     python_version="3.10",
     environment_variables=[
-        sieve.Env(name="OPENAI_API_KEY", description="OpenAI API Key"),
-        sieve.Env(
-            name="NUM_TAGS", description="Number of tags to generate", default="5"
-        ),
-        sieve.Env(
-            name="MAX_SUMMARY_SENTENCES",
-            description="Number of sentences to summarize",
-            default="5",
-        ),
-        sieve.Env(
-            name="MAX_TITLE_WORDS",
-            description="Max number of words in title",
-            default="10",
-        ),
+        sieve.Env(name="OPENAI_API_KEY", description="OpenAI API Key")
     ],
     metadata=metadata,
 )
-def analyze_transcript(file: sieve.Video) -> Dict:
-    print("running ffmpeg to convert video to audio")
+def analyze_transcript(
+    file: sieve.File,
+    max_summary_length: int = 5,
+    max_title_length: int = 10,
+    num_tags: int = 5,
+    generate_chapters: bool = True
+):
+    '''
+    :param file: Video or audio file
+    :param max_summary_length: Maximum number of sentences in summary. Defaults to 5.
+    :param max_title_length: Maximum number of words in title. Defaults to 10.
+    :param num_tags: Number of tags to generate. Defaults to 5.
+    :param generate_chapters: Whether to generate chapters or not. Defaults to True.
+    '''
+    print("converting to audio")
     # video to audio
     import subprocess
     import os
     import uuid
+
+    # Extract the length of the video using ffprobe
+    result = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", file.path], capture_output=True, text=True)
+    video_length = float(result.stdout)
 
     id = str(uuid.uuid4())
     audio_path = "temp" + id + ".wav"
@@ -60,17 +64,22 @@ def analyze_transcript(file: sieve.Video) -> Dict:
             "Failed to extract audio from video. Make sure video has audio."
         )
 
-    print("ffmpeg finished")
+    print("conversion finished")
     print("running speech to text")
     # audio to text
     whisper = sieve.function.get("sieve/speech_transcriber")
-    transcript = list(whisper.run(sieve.Audio(path=audio_path)))
+    transcript = []
+    for transcript_chunk in whisper.run(sieve.Audio(path=audio_path)):
+        transcript.append(transcript_chunk)
+        segments = transcript_chunk["segments"]
+        if len(segments) > 0:
+            print(f"transcribed {100*segments[-1]['end'] / video_length:.2f}% of {video_length:.2f} seconds")
 
     language_code = transcript[0]["language_code"]
     # flatten transcript into single list. right now it is a list of list of segments
     print("speech to text finished")
     text = " ".join([segment["text"] for segment in transcript]).strip()
-    yield {"text": text, "language_code": language_code}
+    yield {"text": text, "language_code": language_code, "media_length_seconds": video_length}
 
     transcript = [segment["segments"] for segment in transcript]
     transcript = [item for sublist in transcript for item in sublist]
@@ -80,7 +89,8 @@ def analyze_transcript(file: sieve.Video) -> Dict:
         yield {"summary": "No summary available. Video is too short or has no audio."}
         yield {"title": "No title available. Video is too short or has no audio."}
         yield {"tags": []}
-        yield {"chapters": []}
+        if generate_chapters:
+            yield {"chapters": []}
         return
 
     import os
@@ -88,9 +98,9 @@ def analyze_transcript(file: sieve.Video) -> Dict:
 
     from transcript_analysis import description_runner, chapter_runner
 
-    max_num_sentences = int(os.getenv("MAX_SUMMARY_SENTENCES", 5))
-    max_num_words = int(os.getenv("MAX_TITLE_WORDS", 10))
-    num_tags = int(os.getenv("NUM_TAGS", 5))
+    max_num_sentences = max_summary_length
+    max_num_words = max_title_length
+    num_tags = num_tags
     print("running description runner")
     summary, title, tags = asyncio.run(
         description_runner(
@@ -106,12 +116,14 @@ def analyze_transcript(file: sieve.Video) -> Dict:
     yield {"tags": tags}
 
     print("running chapter runner")
-    chapters = asyncio.run(chapter_runner(transcript))
-    print("finished chapter runner")
-    out_list = []
-    for chapter in chapters:
-        out_list.append({"title": chapter.title, "start_time": chapter.start_time})
-    yield {"chapters": out_list}
+
+    if generate_chapters:
+        chapters = asyncio.run(chapter_runner(transcript))
+        print("finished chapter runner")
+        out_list = []
+        for chapter in chapters:
+            out_list.append({"title": chapter["title"], "start_time": chapter["start_time"], "timecode": chapter["timecode"]})
+        yield {"chapters": out_list}
 
     if os.path.exists(audio_path):
         os.remove(audio_path)

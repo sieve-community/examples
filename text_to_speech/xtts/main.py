@@ -10,16 +10,20 @@ metadata = sieve.Metadata(
 )
 
 @sieve.Model(
-    name="xtts-v1",
+    name="xtts",
     machine_type="a100",
+    metadata=metadata,
     gpu=True,
     python_packages=[
-        "git+https://github.com/coqui-ai/TTS.git"
+        "git+https://github.com/coqui-ai/TTS.git@v0.20.2",
+        "transformers",
     ],
     run_commands=[
         "mkdir -p /root/.cache/model",
-        "git lfs install",
-        "git lfs clone https://huggingface.co/coqui/XTTS-v1 /root/.cache/model"
+        "wget https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/model.pth -q -P /root/.cache/model",
+        "wget https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/config.json -q -P /root/.cache/model",
+        "wget https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/vocab.json -q -P /root/.cache/model",
+        "wget https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/hash.md5 -q -P /root/.cache/model"
     ],
     system_packages=[
         "libsndfile1",
@@ -27,15 +31,12 @@ metadata = sieve.Metadata(
         "git-lfs",
     ],
     python_version="3.11",
-    cuda_version="11.8",
-    metadata=metadata
+    cuda_version="11.8"
 )
 class XTTS:
     def __setup__(self):
-        import torch
         import os
 
-        from TTS.api import TTS
         os.environ["COQUI_TOS_AGREED"] = "1"
 
         from TTS.tts.configs.xtts_config import XttsConfig
@@ -44,23 +45,39 @@ class XTTS:
         from scipy.io import wavfile
 
         self.config = XttsConfig()
+
         self.config.load_json("/root/.cache/model/config.json")
         self.model = Xtts.init_from_config(self.config)
         self.model.load_checkpoint(self.config, checkpoint_dir="/root/.cache/model/", eval=True)
         self.model.cuda()
 
-    def __predict__(self, reference_speaker_audio: sieve.Audio, language: str, text: str) -> sieve.Audio:
+    def __predict__(
+            self,
+            text: str,
+            reference_audio: sieve.Audio,
+            stability: float = 0.5,
+            similarity_boost: float = 0.63,
+            language_code: str = "",
+        ) -> sieve.Audio:
         """
-        :param reference_speaker_audio: an audio sample of the original speaker voice to copy
-        :param language: language of the text to generate. try "en" for English, "es" for Spanish, or others below.
-        :param text: text to generate (must match the language)
+        :param text: text to speak
+        :param reference_audio: audio of the reference speaker
+        :param stability: Value between 0 and 1. Increasing variability can make speech more expressive with output varying between re-generations. It can also lead to instabilities.
+        :param similarity_boost: Value between 0 and 1. Low values are recommended if background artifacts are present in generated speech.
+        :param language_code: language code of the text to generate. try "en" for English, "es" for Spanish, or others below. If left blank, the language will be detected automatically.
         :return: Generated audio
         """
+
         from scipy.io import wavfile
         import os
         import torchaudio
 
-        speaker_audio_path = reference_speaker_audio.path
+        import sieve
+
+        langid = sieve.function.get("sieve/langid")
+        langid_output = langid.push(text)
+
+        speaker_audio_path = reference_audio.path
         # Convert to wav if needed
         extension = speaker_audio_path.split(".")[-1].lower()
         if extension != "wav":
@@ -72,15 +89,44 @@ class XTTS:
 
         if len(text) < 2:
             raise ValueError("Please give a longer prompt text")
+
+        langid_output = langid_output.result()
+        if len(language_code) > 0 and langid_output["language_code"].strip() != language_code:
+            print(f"Warning: language code mismatch. You specified {language_code} but langid detected {langid_output['language_code']}, attempting to continue...")
+            language = language_code
+        else:
+            language = langid_output["language_code"].strip()
         
+        if language == "zh":
+            # xtts only supports zh-cn
+            language = "zh-cn"
+
+        # Adjust token sampling: tighter sampling for higher similarity_boost for more focused generation
+        top_k = 50 - int(similarity_boost * 20)
+        top_p = 1.0 - similarity_boost * 0.15
+
+        # Adjust repetition penalty: higher values for higher similarity_boost to prevent repetition
+        repetition_penalty = 1.0 + similarity_boost
+
+        print(f"Generating audio in language {language}...")
         output = self.model.synthesize(text,
             self.config,
             speaker_wav=speaker_audio_path,
             language=language,
+            temperature=stability,
+            top_k=top_k,
+            top_p=top_p,
+            repetition_penalty=repetition_penalty,
         )
 
         if os.path.exists("output.wav"):
             os.remove("output.wav")
 
         wavfile.write("output.wav", self.config.audio.sample_rate, output['wav'])
+        
         return sieve.Audio(path="output.wav")
+    
+
+
+
+

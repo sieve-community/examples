@@ -69,6 +69,6 @@ def scene_detection(video: sieve.Video) -> Scene:
             scene_number=i + 1,
             start_timecode=scene[0].get_timecode(),
             end_timecode=scene[1].get_timecode(),
-        )
+        ).dict()
 
     video_manager.release()

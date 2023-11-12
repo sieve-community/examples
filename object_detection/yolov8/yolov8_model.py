@@ -24,16 +24,14 @@ class YOLOv8:
     def __setup__(self):
         from ultralytics import YOLO
 
-        self.model = YOLO("yolov8l.pt")
+        self.model = YOLO('yolov8l.pt')
 
-    def __predict__(
-        self, file: sieve.File, confidence_threshold: float = 0.5, classes: int = -1
-    ):
+    def __predict__(self, file: sieve.File, confidence_threshold: float = 0.5, classes: int = -1):
         """
         :param file: Image or video file. If video, a generator is returned with the results for each frame.
         :param confidence_threshold: Confidence threshold for the predictions.
         :param return_visualization: Whether to return the visualization of the results.
-        :param classes: The class (more info in README) that should be detected.
+        :param classes: The class that should be detected. There are 80 classes to choose from for detections (see README). Entering -1 for the classes parameter detects all of them. To detect any one, you can enter the corresponding class number as input for classes.
         :return: A dictionary with the results.
         """
         import cv2

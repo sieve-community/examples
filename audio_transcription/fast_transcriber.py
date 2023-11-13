@@ -32,7 +32,7 @@ def audio_split_by_silence(
 ):
     '''
     :param file: Audio file
-    :param language: Language of the audio. Defaults to auto-detect if not specified. Otherwise, specify the language code {en, fr, de, es, it, ja, zh, nl, uk, pt}.
+    :param language: Language of the audio. Defaults to auto-detect if not specified. Otherwise, specify the language code {en, fr, de, es, it, ja, zh, nl, uk, pt}. This may improve transcription speed.
     :param min_silence_length: Minimum length of silence in seconds to use for splitting audio for parallel processing. Defaults to 0.8.
     :param min_segment_length: Minimum length of audio segment in seconds to use for splitting audio for parallel processing. Defaults to 30.0.
     '''

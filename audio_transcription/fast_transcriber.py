@@ -24,9 +24,15 @@ metadata = sieve.Metadata(
     system_packages=["ffmpeg"],
     metadata=metadata,
 )
-def audio_split_by_silence(file: sieve.Audio, min_silence_length: float = 0.8, min_segment_length: float = 30.0):
+def audio_split_by_silence(
+    file: sieve.Audio,
+    language: str = "",
+    min_silence_length: float = 0.8,
+    min_segment_length: float = 30.0
+):
     '''
     :param file: Audio file
+    :param language: Language of the audio. Defaults to auto-detect if not specified. Otherwise, specify the language code {en, fr, de, es, it, ja, zh, nl, uk, pt}. This may improve transcription speed.
     :param min_silence_length: Minimum length of silence in seconds to use for splitting audio for parallel processing. Defaults to 0.8.
     :param min_segment_length: Minimum length of audio segment in seconds to use for splitting audio for parallel processing. Defaults to 30.0.
     '''
@@ -109,7 +115,8 @@ def audio_split_by_silence(file: sieve.Audio, min_silence_length: float = 0.8, m
         start_time, end_time = segment
         print(f"Splitting audio from {start_time} to {end_time}")
         whisperx_job = whisperx.push(
-            sieve.Audio(path=audio_path, start_time=start_time, end_time=end_time)
+            sieve.Audio(path=audio_path, start_time=start_time, end_time=end_time),
+            language=language,
         )
         return whisperx_job
 

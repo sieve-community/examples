@@ -71,9 +71,12 @@ def do(
     source_audio = sieve.Audio(path=source_audio_path)
 
     # Refine source_audio
-    if refine_source_audio and ((tts_model == "elevenlabs" and len(voice_id) == 0) or tts_model == "xtts"):
+    if refine_source_audio:
         start_time = time.time()
-        source_audio = sieve.function.get("sieve/audio_enhancement").run(source_audio, filter_type="all")
+        if tts_model == "xtts":
+            source_audio = sieve.function.get("sieve/audio_enhancement").run(source_audio, filter_type="all")
+        elif (tts_model == "elevenlabs" and len(voice_id) == 0):
+            source_audio = sieve.function.get("sieve/audio_enhancement").run(source_audio, filter_type="noise")
         print(f"Time taken to refine source audio: {time.time() - start_time} seconds")    
 
     # split text into sentences by punctuation

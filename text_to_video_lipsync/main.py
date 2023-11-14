@@ -154,7 +154,7 @@ def do(
             cloning_model = sieve.function.get("sieve/playht_voice_cloning")
             cloning_model.run(source_audio, delete_voice_id=voice_id)
     else:
-        raise ValueError(f"Unsupported TTS model: {tts_model}. Please use one of the following: xtts, elevenlabs, playht")
+        raise ValueError(f"Unsupported TTS model: {tts_model_str}. Please use one of the following: xtts, elevenlabs, playht")
     for tts in tts_coroutines:
         target_audios.append(tts.result())
     print(f"Time taken for TTS: {time.time() - start_time} seconds")

@@ -72,12 +72,16 @@ def do(
 
     # Refine source_audio
     if refine_source_audio:
-        start_time = time.time()
-        if tts_model == "xtts":
-            source_audio = sieve.function.get("sieve/audio_enhancement").run(source_audio, filter_type="all")
-        elif (tts_model == "elevenlabs" and len(voice_id) == 0):
-            source_audio = sieve.function.get("sieve/audio_enhancement").run(source_audio, filter_type="noise")
-        print(f"Time taken to refine source audio: {time.time() - start_time} seconds")    
+        try:
+            start_time = time.time()
+            if tts_model == "xtts":
+                source_audio = sieve.function.get("sieve/audio_enhancement").run(source_audio, filter_type="all")
+            elif (tts_model == "elevenlabs" and len(voice_id) == 0):
+                source_audio = sieve.function.get("sieve/audio_enhancement").run(source_audio, filter_type="noise")
+            print(f"Time taken to refine source audio: {time.time() - start_time} seconds")    
+        except Exception as e:
+            print(f"Exception: {e}")
+            print("Refining source audio failed. Using unrefined source audio instead.")
 
     # split text into sentences by punctuation
     import re
@@ -160,45 +164,56 @@ def do(
     print(f"Time taken for TTS: {time.time() - start_time} seconds")
     
     if refine_target_audio:
-        # Refine each target audio snippet
-        start_time = time.time()
-        refined_target_audios = []
-        audio_enhancement_coroutines = []
-        for target_audio in target_audios:
-            if tts_model_str == "xtts":
-                enhanced_audio = sieve.function.get("sieve/audio_enhancement").push(target_audio, filter_type="all")
-            else:
-                enhanced_audio = sieve.function.get("sieve/audio_enhancement").push(target_audio, filter_type="noise")
-            audio_enhancement_coroutines.append(enhanced_audio)
-        for i, enhanced_audio in enumerate(audio_enhancement_coroutines):
-            try:
+        try:
+            # Refine each target audio snippet
+            start_time = time.time()
+            refined_target_audios = []
+            audio_enhancement_coroutines = []
+            for target_audio in target_audios:
+                if tts_model_str == "xtts":
+                    enhanced_audio = sieve.function.get("sieve/audio_enhancement").push(target_audio, filter_type="all")
+                else:
+                    enhanced_audio = sieve.function.get("sieve/audio_enhancement").push(target_audio, filter_type="noise")
+                audio_enhancement_coroutines.append(enhanced_audio)
+            for i, enhanced_audio in enumerate(audio_enhancement_coroutines):
                 refined_target_audios.append(enhanced_audio.result())
-            except Exception as e:
-                print(f"Exception at index {i} of audio_enhancement_coroutines: {e}, using target_audios[{i}] instead.")
-                print(f"target audio is {target_audios[i]}")
-                refined_target_audios.append(target_audios[i])
-        print(f"Time taken to refine target audio: {time.time() - start_time} seconds")
-        target_audios = refined_target_audios
+                # print(f"Exception at index {i} of audio_enhancement_coroutines: {e}, using target_audios[{i}] instead.")
+                # print(f"target audio is {target_audios[i]}")
+                # refined_target_audios.append(target_audios[i])
+            print(f"Time taken to refine target audio: {time.time() - start_time} seconds")
+            target_audios = refined_target_audios
+        except Exception as e:
+            print(f"Exception: {e}")
+            print("Refining target audio failed. Using unrefined target audio instead.")
     
     # Combine target audios with gaps
     from pydub import AudioSegment
     combined_audio = AudioSegment.empty()
-    for i, target_audio in enumerate(target_audios):
-        # Trim silence from target_audio
-        start_time = time.time()
-        target_audio_path = target_audio.path
-        segment_audio = AudioSegment.from_wav(target_audio_path)
-        trimmed_audio = trim_silence_from_audio_loaded(segment_audio)
-        if i < len(segments) - 1:
-            try:
-                gap_duration = (segments[i+1]["start"] - segments[i]["words"][-1]["end"]) * 1000  # Convert to milliseconds
-            except KeyError:
-                print(f"KeyError at index {i} of segments. Using default gap duration of 0.05 seconds.")
-                gap_duration = 0.05 * 1000
-            gap = AudioSegment.silent(duration=gap_duration)
-            combined_audio += trimmed_audio + gap
-        else:
-            combined_audio += trimmed_audio
+    # create temp directory with tempdir
+    import tempfile
+    with tempfile.TemporaryDirectory() as temp_dir:
+        for i, target_audio in enumerate(target_audios):
+            # Trim silence from target_audio
+            start_time = time.time()
+            target_audio_path = target_audio.path
+            print(f"target_audio_path: {target_audio_path}")
+            if target_audio_path.endswith(".wav"):
+                segment_audio = AudioSegment.from_wav(target_audio_path)
+            elif target_audio_path.endswith(".mp3"):
+                segment_audio = AudioSegment.from_mp3(target_audio_path)
+            else:
+                raise ValueError(f"Unsupported audio format: {target_audio_path}. Please use .wav or .mp3")
+            trimmed_audio = trim_silence_from_audio_loaded(segment_audio)
+            if i < len(segments) - 1:
+                try:
+                    gap_duration = (segments[i+1]["start"] - segments[i]["words"][-1]["end"]) * 1000  # Convert to milliseconds
+                except KeyError:
+                    print(f"KeyError at index {i} of segments. Using default gap duration of 0.05 seconds.")
+                    gap_duration = 0.05 * 1000
+                gap = AudioSegment.silent(duration=gap_duration)
+                combined_audio += trimmed_audio + gap
+            else:
+                combined_audio += trimmed_audio
     combined_audio.export("combined_audio.wav", format="wav")
     target_audio = sieve.Audio(path="combined_audio.wav")
 

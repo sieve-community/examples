@@ -1,7 +1,5 @@
 # Text to Video Lipsyncing
 
-**NOTE: This app is currently in alpha, so please expect some bugs and quality issues.**
-
 This app takes in a video file and a piece of text and outputs a video that makes it look like the person in the video is saying the text.
 
 For generating the text, we give the user an option to pick between the open source [xtts](https://www.sievedata.com/functions/sieve/xtts-v1), [ElevenLabs](https://www.sievedata.com/functions/sieve/elevenlabs_speech_synthesis), or [Play.ht](https://www.sievedata.com/functions/sieve/playht_speech_synthesis) Text-to-Speech models. The ElevenLabs and Play.ht models are recommended for better quality but requires an API key.

@@ -58,11 +58,7 @@ class YOLOv8:
                     results_dict["frame_number"] = count
                     count += 1
                     # Filter results based on confidence threshold
-                    results_dict["boxes"] = [
-                        box
-                        for box in results_dict["boxes"]
-                        if box["confidence"] > confidence_threshold
-                    ]
+                    results_dict["boxes"] = [box for box in results_dict["boxes"] if box["confidence"] > confidence_threshold]
                     yield results_dict
                 else:
                     break

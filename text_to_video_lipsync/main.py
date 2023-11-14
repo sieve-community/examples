@@ -165,7 +165,10 @@ def do(
         refined_target_audios = []
         audio_enhancement_coroutines = []
         for target_audio in target_audios:
-            enhanced_audio = sieve.function.get("sieve/audio_enhancement").push(target_audio, filter_type="all")
+            if tts_model_str == "xtts":
+                enhanced_audio = sieve.function.get("sieve/audio_enhancement").push(target_audio, filter_type="all")
+            else:
+                enhanced_audio = sieve.function.get("sieve/audio_enhancement").push(target_audio, filter_type="noise")
             audio_enhancement_coroutines.append(enhanced_audio)
         for i, enhanced_audio in enumerate(audio_enhancement_coroutines):
             try:

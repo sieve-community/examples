@@ -102,6 +102,7 @@ def do(
             # clone voice
             cloning_model = sieve.function.get("sieve/elevenlabs_voice_cloning")
             voice_cloning = cloning_model.run(source_audio)
+            print(voice_cloning)
             voice_id = voice_cloning["voice_id"]
         for i, segment in enumerate(segments):
             if voice_id and len(voice_id) > 0:

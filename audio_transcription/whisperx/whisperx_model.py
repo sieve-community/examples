@@ -184,7 +184,7 @@ class Whisper:
                     audio_np, (0, 32000 * 30 - audio_np.shape[0]), "constant"
                 )
 
-        result = self.model.transcribe(audio_np, batch_size=16, language=language)
+        result = self.model.transcribe(audio_np, batch_size=64, language=language)
         print("transcribe_time: ", time.time() - t)
         process_time = time.time()
         import whisperx

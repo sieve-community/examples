@@ -138,6 +138,7 @@ class Whisper:
         language: str = "",
         diarize_min_speakers: int = -1,
         diarize_max_speakers: int = -1,
+        batch_size: int = 32,
     ) -> List:
         """
         :param audio: an audio file
@@ -148,6 +149,7 @@ class Whisper:
         :param language: Language code of the audio (defaults to English), faster inference if the language is known.
         :param diarize_min_speakers: Minimum number of speakers to detect. If set to -1, the number of speakers is automatically detected.
         :param diarize_max_speakers: Maximum number of speakers to detect. If set to -1, the number of speakers is automatically detected.
+        :param batch_size: Batch size for inference. Defaults to 32.
         :return: a list of segments, each with a start time, end time, and text
         """
         # TODO: implement start and end time as arguments
@@ -184,7 +186,7 @@ class Whisper:
                     audio_np, (0, 32000 * 30 - audio_np.shape[0]), "constant"
                 )
 
-        result = self.model.transcribe(audio_np, batch_size=64, language=language)
+        result = self.model.transcribe(audio_np, batch_size=batch_size, language=language)
         print("transcribe_time: ", time.time() - t)
         process_time = time.time()
         import whisperx

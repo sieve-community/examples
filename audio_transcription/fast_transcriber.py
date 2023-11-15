@@ -26,15 +26,17 @@ metadata = sieve.Metadata(
 )
 def audio_split_by_silence(
     file: sieve.Audio,
+    word_level_timestamps: bool = True,
     language: str = "",
     min_silence_length: float = 0.8,
-    min_segment_length: float = 30.0
+    min_segment_length: float = 60.0
 ):
     '''
     :param file: Audio file
+    :param word_level_timestamps: Whether to return word-level timestamps. Defaults to True.
     :param language: Language of the audio. Defaults to auto-detect if not specified. Otherwise, specify the language code {en, fr, de, es, it, ja, zh, nl, uk, pt}. This may improve transcription speed.
     :param min_silence_length: Minimum length of silence in seconds to use for splitting audio for parallel processing. Defaults to 0.8.
-    :param min_segment_length: Minimum length of audio segment in seconds to use for splitting audio for parallel processing. Defaults to 30.0.
+    :param min_segment_length: Minimum length of audio segment in seconds to use for splitting audio for parallel processing. Defaults to 60.0.
     '''
     import os
     import sys
@@ -117,6 +119,7 @@ def audio_split_by_silence(
         whisperx_job = whisperx.push(
             sieve.Audio(path=audio_path, start_time=start_time, end_time=end_time),
             language=language,
+            word_level_timestamps=word_level_timestamps
         )
         return whisperx_job
 

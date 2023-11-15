@@ -32,7 +32,7 @@ class Segment(BaseModel):
 
 @sieve.Model(
     name="whisperx",
-    gpu="L4",
+    gpu="l4",
     python_packages=[
         "torch==2.0",
         "torchaudio==2.0.0",

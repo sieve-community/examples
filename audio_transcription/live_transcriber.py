@@ -111,14 +111,11 @@ def live_transcriber(
                 break
 
             audio_chunk = np.frombuffer(audio_data, dtype=np.int16)
-            # sf.write(f"out/chunk_{curr_chunk}.wav", audio_chunk, sample_rate)
-
             before_silence, after_silence = split_last_silence(audio_chunk)
             if last_after_silence is not None:
                 before_silence = np.concatenate((last_after_silence, before_silence))
 
-            # sf.write(f"out/process_{curr_chunk}.wav", before_silence, sample_rate)
-            sf.write("./test.wav", before_silence, sample_rate)
+            sf.write("./temp.wav", before_silence, sample_rate)
             last_after_silence = after_silence.copy()
 
             secs = before_silence.shape[0] / sample_rate
@@ -128,7 +125,7 @@ def live_transcriber(
                 prev_transcript = " ".join(prev_transcript.split(" ")[-200:])
 
                 o = transcribe.run(
-                    sieve.Audio(path="./test.wav"),
+                    sieve.Audio(path="./temp.wav"),
                     initial_prompt=prev_transcript,
                     language=stream_language,
                 )

@@ -2,6 +2,8 @@
 
 This app takes in a URL to a live stream of audio and transcribes + translates it. The URL just needs to point to a stream that is supported by FFMPEG. This includes RTMP streams, HLS streams, and [other formats](https://ffmpeg.org/ffmpeg-formats.html).
 
+The public implementation of this app limits you to a minute of streamed transcripts. If you want to run your stream indefinitely, please follow the instructions in our docs [here](https://docs.sievedata.com/guide/examples/live-audio-transcription).
+
 You can find a list of supported language codes here:
 * `en` - English
 * `zh` - Chinese

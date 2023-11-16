@@ -11,10 +11,10 @@ import time
 warnings.filterwarnings("ignore")
 
 metadata = sieve.Metadata(
-    description="Live speech transcription & translation",
+    description="Transcribe and translate live audio streams in real-time with high accuracy.",
     code_url="https://github.com/sieve-community/examples/tree/main/audio_transcription/live_transcriber.py",
     image=sieve.Image(
-        url="https://images.squarespace-cdn.com/content/v1/5efa65b7ceecbe5357d4bc73/1596658326796-0MVR7LRQCBDEGWFVF185/syncwords_scree.png"
+        url="https://storage.googleapis.com/mango-public-models/82bfe0ce-b9a0-4352-aea2-373b466d4eb0.webp"
     ),
     tags=["Audio", "Speech", "Transcription"],
     readme=open("LIVE_README.md", "r").read(),
@@ -156,7 +156,7 @@ def split_last_silence(
 
 
 @sieve.function(
-    name="live_transcriber",
+    name="live_speech_transcriber",
     python_packages=["librosa", "numpy", "ffmpeg-python", "soundfile"],
     system_packages=["ffmpeg"],
     metadata=metadata,
@@ -169,9 +169,9 @@ def live_transcriber(
 ):
     """
     :param url: A URL to a live audio stream (RTMP, HLS, etc.). Needs to be supported by FFMPEG.
-    :param target_language: Language code of the language of the transcript (defaults to English). See README for supported language codes.
+    :param target_language: Language code of the language of the transcript (defaults to English if blank). See README for supported language codes.
     :param stream_language: Language code of the provided audio. Defaults to blank for auto-detection, but faster inference if the language is known.
-    :param chunk_size: The interval at which to process transcripts. Must be > than 3 seconds
+    :param chunk_size: The interval at which to process transcripts. Must be > than 3 seconds.
     :return: a list of segments, each with a start time, end time, and text
     """
     if target_language.strip() == "":
@@ -262,7 +262,6 @@ def live_transcriber(
                     if o["text"].rstrip()[-3:] == "...":
                         o["text"] = o["text"][:-3]
 
-                    print(f"yielding chunk with text: {o['text']}")
                     text = o["text"]
                     if o["language_code"] != target_language and o["text"]:
                         if target_language not in whisper_to_seamless_languages:

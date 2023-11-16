@@ -16,7 +16,7 @@ metadata = sieve.Metadata(
     image=sieve.Image(
         url="https://storage.googleapis.com/mango-public-models/82bfe0ce-b9a0-4352-aea2-373b466d4eb0.webp"
     ),
-    tags=["Audio", "Speech", "Transcription"],
+    tags=["Audio", "Speech", "Transcription", "Featured"],
     readme=open("LIVE_README.md", "r").read(),
 )
 

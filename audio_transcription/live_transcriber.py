@@ -10,6 +10,106 @@ import time
 
 warnings.filterwarnings("ignore")
 
+whisper_to_seamless_languages = {
+    "en": "eng",
+    "zh": "cmn",
+    "de": "deu",
+    "es": "spa",
+    "ru": "rus",
+    "ko": "kor",
+    "fr": "fra",
+    "ja": "jpn",
+    "pt": "por",
+    "tr": "tur",
+    "pl": "pol",
+    "ca": "cat",
+    "nl": "nld",
+    "ar": "arb",
+    "sv": "swe",
+    "it": "ita",
+    "id": "ind",
+    "hi": "hin",
+    "fi": "fin",
+    "vi": "vie",
+    "he": "heb",
+    "uk": "ukr",
+    "el": "ell",
+    "ms": "zsm",
+    "cs": "ces",
+    "ro": "ron",
+    "da": "dan",
+    "hu": "hun",
+    "ta": "tam",
+    "no": "nob",
+    "th": "tha",
+    "ur": "urd",
+    "hr": "hrv",
+    "bg": "bul",
+    "lt": "lit",
+    "la": "lat",
+    "mi": "mri",
+    "ml": "mal",
+    "cy": "cym",
+    "sk": "slk",
+    "te": "tel",
+    "fa": "fas",
+    "lv": "lav",
+    "bn": "ben",
+    "sr": "srp",
+    "az": "aze",
+    "sl": "slv",
+    "kn": "kan",
+    "et": "est",
+    "mk": "mkd",
+    "eu": "eus",
+    "is": "isl",
+    "hy": "hye",
+    "ne": "nep",
+    "mn": "mon",
+    "bs": "bos",
+    "kk": "kaz",
+    "sq": "sqi",
+    "sw": "swa",
+    "gl": "glg",
+    "mr": "mar",
+    "pa": "pan",
+    "si": "sin",
+    "km": "khm",
+    "sn": "sna",
+    "yo": "yor",
+    "so": "som",
+    "af": "afr",
+    "oc": "oci",
+    "ka": "kat",
+    "be": "bel",
+    "tg": "tgk",
+    "sd": "snd",
+    "gu": "guj",
+    "am": "amh",
+    "yi": "yid",
+    "lo": "lao",
+    "uz": "uzb",
+    "fo": "fao",
+    "ht": "hat",
+    "ps": "pus",
+    "tk": "tuk",
+    "nn": "nno",
+    "mt": "mlt",
+    "sa": "san",
+    "lb": "ltz",
+    "my": "mya",
+    "bo": "bod",
+    "tl": "tgl",
+    "mg": "mlg",
+    "as": "asm",
+    "tt": "tat",
+    "haw": "haw",
+    "ha": "hau",
+    "jw": "jav",
+    "su": "sun",
+    "yue": "yue",
+}
+
 
 def split_last_silence(
     audio, threshold=-2500, min_silence_duration=0.8, sample_rate=16000
@@ -52,13 +152,13 @@ def split_last_silence(
 )
 def live_transcriber(
     url: str,
-    target_language: str = "eng",
+    target_language: str = "en",
     stream_language: str = "",
     chunk_size: int = 5,
 ):
     """
     :param url: A URL to a live audio stream (RTMP, HLS, etc.). Needs to be supported by FFMPEG.
-    :param target_language: Language code of the language of the transcript (defaults to English).
+    :param target_language: Language code of the language of the transcript (defaults to English). See README for supported language codes.
     :param stream_language: Language code of the provided audio. Defaults to blank for auto-detection, but faster inference if the language is known.
     :param chunk_size: The interval at which to process transcripts. Must be > than 3 seconds
     :return: a list of segments, each with a start time, end time, and text
@@ -103,7 +203,17 @@ def live_transcriber(
     curr_chunk = 0
     last_after_silence = None
     prev_transcript = "This is a transcript from a live stream, passed in chunks. "
+
+    start_time = time.time()
+    timeout_min = 1
     while True:
+        # Note: Remove this check to run on a stream indefinitely.
+        if time.time() - start_time > timeout_min * 60:
+            print(
+                f"This demo times out after {timeout_min} minute(s). Please refer to https://docs.sievedata.com/guide/examples/live-audio-transcription to deploy on your own."
+            )
+            break
+
         try:
             audio_data = process.stdout.read(samples_per_second * chunk_size)
             if not audio_data:
@@ -142,15 +252,30 @@ def live_transcriber(
                         o["text"] = o["text"][:-3]
 
                     print(f"yielding chunk with text: {o['text']}")
-                    output_language = o["language_code"]
                     text = o["text"]
-                    if output_language == "en":
-                        output_language = "eng"
-                    if output_language != target_language and o["text"]:
+                    if o["language_code"] != target_language and o["text"]:
+                        if target_language not in whisper_to_seamless_languages:
+                            raise Exception(
+                                f"Target language not supported for translation: ",
+                                target_language,
+                            )
+                        if o["language_code"] not in whisper_to_seamless_languages:
+                            raise Exception(
+                                f"Whisper detected language not supported for translation: ",
+                                o["language_code"],
+                            )
+
+                        # Output language is in Whisper's language coding, so we need to transform to seamless
+                        seamless_target_lang = whisper_to_seamless_languages[
+                            target_language
+                        ]
+                        seamless_source_lang = whisper_to_seamless_languages[
+                            o["language_code"]
+                        ]
                         text = translate.run(
                             text,
-                            target_language=target_language,
-                            source_language=output_language,
+                            target_language=seamless_target_lang,
+                            source_language=seamless_source_lang,
                         )
 
                     data = {
@@ -159,7 +284,7 @@ def live_transcriber(
                         "end": curr_offset + secs,
                     }
 
-                    if output_language != target_language and o["text"]:
+                    if o["language_code"] != target_language and o["text"]:
                         data["original_text"] = o["text"]
 
                     yield data
@@ -180,7 +305,7 @@ if __name__ == "__main__":
     start_time = time.time()
     url = "http://stream.live.vc.bbcmedia.co.uk/bbc_world_service"
 
-    vals = live_transcriber(url)
+    vals = live_transcriber(url, target_language="es")
     transcript = ""
     for val in vals:
         transcript += val["text"] + " "

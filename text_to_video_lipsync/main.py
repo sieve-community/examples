@@ -111,22 +111,21 @@ def do(
             voice_cloning = cloning_model.run(source_audio)
             print(voice_cloning)
             voice_id = voice_cloning["voice_id"]
-        for i, segment in enumerate(segments):
-            if voice_id and len(voice_id) > 0:
-                tts = tts_model.push(
-                    segment["text"],
-                    voice_id=voice_id,
-                    stability=speech_stability,
-                    similarity_boost=speech_similarity_boost
-                )
-            else:
-                tts = tts_model.push(
-                    segment["text"],
-                    stability=speech_stability,
-                    similarity_boost=speech_similarity_boost
-                )
-                
-            tts_coroutines.append(tts)
+        if voice_id and len(voice_id) > 0:
+            tts = tts_model.push(
+                text,
+                voice_id=voice_id,
+                stability=speech_stability,
+                similarity_boost=speech_similarity_boost
+            )
+        else:
+            tts = tts_model.push(
+                text,
+                stability=speech_stability,
+                similarity_boost=speech_similarity_boost
+            )
+            
+        tts_coroutines.append(tts)
         
         if cleanup_voice_id:
             # delete voice

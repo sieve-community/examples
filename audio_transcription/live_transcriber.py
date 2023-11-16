@@ -10,6 +10,16 @@ import time
 
 warnings.filterwarnings("ignore")
 
+metadata = sieve.Metadata(
+    description="Live speech transcription & translation",
+    code_url="https://github.com/sieve-community/examples/tree/main/audio_transcription/live_transcriber.py",
+    image=sieve.Image(
+        url="https://images.squarespace-cdn.com/content/v1/5efa65b7ceecbe5357d4bc73/1596658326796-0MVR7LRQCBDEGWFVF185/syncwords_scree.png"
+    ),
+    tags=["Audio", "Speech", "Transcription"],
+    readme=open("LIVE_README.md", "r").read(),
+)
+
 whisper_to_seamless_languages = {
     "en": "eng",
     "zh": "cmn",
@@ -149,6 +159,7 @@ def split_last_silence(
     name="live_transcriber",
     python_packages=["librosa", "numpy", "ffmpeg-python", "soundfile"],
     system_packages=["ffmpeg"],
+    metadata=metadata,
 )
 def live_transcriber(
     url: str,

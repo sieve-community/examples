@@ -1,5 +1,3 @@
-# TODO: make this work
-
 import sieve
 
 metadata = sieve.Metadata(

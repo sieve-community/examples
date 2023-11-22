@@ -13,5 +13,6 @@ Note: This is just to be meant as a demonstration. We currently save the VTT fil
 The subtitles may be out of sync with the video.  This has to do with the way the HTML video player renders HLS streams. In a permanent solution, the VTT file should be streamed to the video player directly.
 
 ## Demo video
-TODO: add Mux demo video
+Here's a demo of the system running with the browser + stream on the left and the Sieve function running in the top right.
 
+https://github.com/sieve-community/examples/assets/6136843/5b691caa-f226-4d6e-8324-4d45d72ed1ab

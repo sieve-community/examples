@@ -2,7 +2,7 @@ import sieve
 
 live_audio_transcriber = sieve.function.get("sieve/live_speech_transcriber")
 stream = "https://content.uplynk.com/channel/3324f2467c414329b3b0cc5cd987b6be.m3u8"
-output_file_path = "out/output.vtt"
+output_file_path = "output.vtt"
 
 
 def sec_to_timecode(sec):

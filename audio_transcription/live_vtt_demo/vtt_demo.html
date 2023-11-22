@@ -34,7 +34,7 @@
   <h2>Powered by <a href="https://sievedata.com">Sieve</a></h2>
   <video id="hls-video" controls>
     <source src="" type="application/x-mpegURL">
-    <track kind="subtitles" src="out/output.vtt" srclang="en" label="English (Sieve)" default>
+    <track kind="subtitles" src="output.vtt" srclang="en" label="English (Sieve)" default>
   </video>
   <a href="https://abcnews.go.com/Live">Source</a>
 
@@ -55,7 +55,7 @@
     var video = document.getElementById('hls-video');
     function updateTrack() {
       var track = video.querySelector('track');
-      track.src = "out/output.vtt?timestamp=" + new Date().getTime();
+      track.src = "output.vtt?timestamp=" + new Date().getTime();
     }
     setInterval(updateTrack, 1000);
   </script>

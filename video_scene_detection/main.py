@@ -28,7 +28,7 @@ class Scene(BaseModel):
     system_packages=["libgl1"],
     metadata=model_metadata,
 )
-def scene_detection(video: sieve.Video) -> Scene:
+def scene_detection(video: sieve.Video, detector_threshold: float = 27.0) -> Scene:
     """
     :param video: The video to detect scenes in
     :return: A list of scenes
@@ -40,7 +40,7 @@ def scene_detection(video: sieve.Video) -> Scene:
 
     video_manager = VideoManager([video.path])
     scene_manager = SceneManager()
-    scene_manager.add_detector(ContentDetector())
+    scene_manager.add_detector(ContentDetector(threshold=detector_threshold))
 
     base_timecode = video_manager.get_base_timecode()
     video_manager.set_downscale_factor()

@@ -53,6 +53,7 @@ class Segment(BaseModel):
         "mkdir -p /root/.cache/torch/hub/",
         "mkdir -p /root/.cache/torch/hub/checkpoints/",
         "wget -c 'https://download.pytorch.org/torchaudio/models/wav2vec2_fairseq_base_ls960_asr_ls960.pth' -P /root/.cache/torch/hub/checkpoints/",
+        "pip install ffmpeg-python",
     ],
     metadata=metadata,
 )

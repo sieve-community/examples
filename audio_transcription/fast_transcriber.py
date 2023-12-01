@@ -102,7 +102,7 @@ def audio_split_by_silence(
     source_language: str = "",
     target_language: str = "",
     min_silence_length: float = 0.8,
-    min_segment_length: float = 60.0
+    min_segment_length: float = -1
 ):
     '''
     :param file: Audio file
@@ -111,7 +111,7 @@ def audio_split_by_silence(
     :param source_language: Language of the audio. Defaults to auto-detect if not specified. Otherwise, specify the language code {en, fr, de, es, it, ja, zh, nl, uk, pt}. This may improve transcription speed.
     :param target_language: Language code of the language to translate to (doesn't translate if left blank). See README for supported language codes.
     :param min_silence_length: Minimum length of silence in seconds to use for splitting audio for parallel processing. Defaults to 0.8.
-    :param min_segment_length: Minimum length of audio segment in seconds to use for splitting audio for parallel processing. Defaults to 60.0.
+    :param min_segment_length: Minimum length of audio segment in seconds to use for splitting audio for parallel processing. Defaults to audio length / 20 if set to -1.
     '''
     import os
     import sys
@@ -127,6 +127,8 @@ def audio_split_by_silence(
 
     min_silence_length = float(min_silence_length)
     min_segment_length = float(min_segment_length)
+    if min_segment_length < 0:
+        min_segment_length = audio_length / 20
     import re
 
     def split_silences(

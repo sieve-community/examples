@@ -79,6 +79,17 @@ class Whisper:
             compute_type="int8",
             download_root="/root/.cache/models/",
         )
+
+        self.model_medium = load_model(
+            "medium",
+            "cuda",
+            # language="en",
+            asr_options={
+                "initial_prompt": os.getenv("initial_prompt"),
+            },
+            vad_options={"model_fp": "/root/.cache/models/pytorch_model.bin"},
+            compute_type="int8"
+        )
         # Pass in a dummy audio to warm up the model
         audio_np = np.zeros((32000 * 30), dtype=np.float32)
         self.model.transcribe(audio_np, batch_size=4)
@@ -134,6 +145,7 @@ class Whisper:
         self, audio: sieve.Audio,
         word_level_timestamps: bool = True,
         speaker_diarization: bool = False,
+        speed_boost: bool = False,
         initial_prompt: str = "",
         prefix: str = "",
         language: str = "",
@@ -145,6 +157,7 @@ class Whisper:
         :param audio: an audio file
         :param word_level_timestamps: whether to return word-level timestamps
         :param speaker_diarization: whether to perform speaker diarization
+        :param speed_boost: whether to use the smaller, faster model
         :param initial_prompt: A prompt to correct misspellings and style.
         :param prefix: A prefix to bias the transcript towards.
         :param language: Language code of the audio (defaults to English), faster inference if the language is known.
@@ -186,8 +199,11 @@ class Whisper:
                 audio_np = np.pad(
                     audio_np, (0, 32000 * 30 - audio_np.shape[0]), "constant"
                 )
-
-        result = self.model.transcribe(audio_np, batch_size=batch_size, language=language)
+        
+        if speed_boost:
+            result = self.model_medium.transcribe(audio_np, batch_size=batch_size, language=language)
+        else:
+            result = self.model.transcribe(audio_np, batch_size=batch_size, language=language)
         print("transcribe_time: ", time.time() - t)
         process_time = time.time()
         import whisperx

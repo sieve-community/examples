@@ -98,6 +98,7 @@ whisper_to_seamless_languages = {
 def audio_split_by_silence(
     file: sieve.Audio,
     word_level_timestamps: bool = True,
+    speed_boost: bool = False,
     source_language: str = "",
     target_language: str = "",
     min_silence_length: float = 0.8,
@@ -106,6 +107,7 @@ def audio_split_by_silence(
     '''
     :param file: Audio file
     :param word_level_timestamps: Whether to return word-level timestamps. Defaults to True.
+    :param speed_boost: Whether to use a faster, smaller transcription model. Defaults to False.
     :param source_language: Language of the audio. Defaults to auto-detect if not specified. Otherwise, specify the language code {en, fr, de, es, it, ja, zh, nl, uk, pt}. This may improve transcription speed.
     :param target_language: Language code of the language to translate to (doesn't translate if left blank). See README for supported language codes.
     :param min_silence_length: Minimum length of silence in seconds to use for splitting audio for parallel processing. Defaults to 0.8.
@@ -193,7 +195,8 @@ def audio_split_by_silence(
         whisperx_job = whisperx.push(
             sieve.Audio(path=audio_path, start_time=start_time, end_time=end_time),
             language=source_language,
-            word_level_timestamps=word_level_timestamps
+            word_level_timestamps=word_level_timestamps,
+            speed_boost=speed_boost,
         )
         return whisperx_job
 

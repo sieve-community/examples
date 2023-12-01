@@ -36,7 +36,7 @@ class Segment(BaseModel):
     python_packages=[
         "torch==2.0",
         "torchaudio==2.0.0",
-        "git+https://github.com/m-bain/whisperx.git@07fafa37b3ef7ce8628b194da302a5a996bb7d37",
+        "git+https://github.com/m-bain/whisperx.git@e9c507ce5dea0f93318746411c03fed0926b70be",
         "onnxruntime-gpu==1.16.0"
     ],
     cuda_version="11.8",
@@ -48,7 +48,7 @@ class Segment(BaseModel):
         "pip install --force-reinstall onnxruntime-gpu==1.16.0",
         "mkdir -p /root/.cache/models/",
         "wget -c 'https://whisperx.s3.eu-west-2.amazonaws.com/model_weights/segmentation/0b5b3216d60a2d32fc086b47ea8c67589aaeb26b7e07fcbe620d6d0b83e209ea/pytorch_model.bin' -P /root/.cache/models/",
-        'python -c \'from faster_whisper.utils import download_model; download_model("large-v2", cache_dir="/root/.cache/models/")\'',
+        'python -c \'from faster_whisper.utils import download_model; download_model("large-v3", cache_dir="/root/.cache/models/")\'',
         "mkdir -p /root/.cache/torch/",
         "mkdir -p /root/.cache/torch/hub/",
         "mkdir -p /root/.cache/torch/hub/checkpoints/",
@@ -68,7 +68,7 @@ class Whisper:
         from whisperx.asr import load_model
 
         self.model = load_model(
-            "large-v2",
+            "large-v3",
             "cuda",
             # language="en",
             asr_options={

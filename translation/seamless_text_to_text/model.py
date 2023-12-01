@@ -16,7 +16,7 @@ model_metadata = sieve.Metadata(
     name="seamless_text2text",
     machine_type="a100",
     gpu=True,
-    python_packages=["git+https://github.com/facebookresearch/seamless_communication"],
+    python_packages=["git+https://github.com/facebookresearch/seamless_communication@711707abb077efcec664888290904700c8f7b680"],
     system_packages=[
         "libsndfile1",
         "libopenblas-base",
@@ -33,12 +33,12 @@ model_metadata = sieve.Metadata(
 class SeamlessText2Text:
     def __setup__(self):
         import torch
-        from seamless_communication.models.inference import Translator
+        from seamless_communication.inference.translator import Translator
         import torchaudio
 
         # Initialize a Translator object with a multitask model, vocoder on the GPU.
         self.translator = Translator(
-            "seamlessM4T_large", "vocoder_36langs", torch.device("cuda"), torch.float16
+            "seamlessM4T_v2_large", "vocoder_36langs", device=torch.device("cuda"), dtype=torch.float16
         )
 
     def __predict__(self, text: str, source_language: str, target_language: str) -> str:
@@ -50,11 +50,11 @@ class SeamlessText2Text:
         """
 
         # Translate the text to desired language in text
-        translated_text, _, _ = self.translator.predict(
+        translated_text, _, = self.translator.predict(
             text, "t2tt", target_language, src_lang=source_language
         )
 
         # Convert text to string
-        translated_text = str(translated_text)
+        translated_text = ' '.join([str(elem) for elem in translated_text])
 
         return translated_text

@@ -15,7 +15,7 @@ metadata = sieve.Metadata(
     metadata=metadata,
     gpu=True,
     python_packages=[
-        "git+https://github.com/coqui-ai/TTS.git@v0.20.2",
+        "git+https://github.com/coqui-ai/TTS.git@v0.21.2",
         "transformers",
     ],
     run_commands=[

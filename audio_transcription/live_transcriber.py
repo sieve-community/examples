@@ -220,7 +220,7 @@ def live_transcriber(
                 prev_transcript = " ".join(prev_transcript.split(" ")[-200:])
 
                 o = transcribe.run(
-                    sieve.Audio(path="./temp.wav"),
+                    sieve.File(path="./temp.wav"),
                     initial_prompt=prev_transcript,
                     language=stream_language,
                 )

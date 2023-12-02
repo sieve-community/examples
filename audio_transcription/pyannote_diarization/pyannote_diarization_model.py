@@ -89,8 +89,8 @@ class PyannoteDiarization:
         self, audio: sieve.File,
         start_time: float = 0,
         end_time: float = -1,
-        diarize_min_speakers: int = -1,
-        diarize_max_speakers: int = -1,
+        min_speakers: int = -1,
+        max_speakers: int = -1,
     ) -> List:
         """
         :param audio: an audio file
@@ -138,8 +138,8 @@ class PyannoteDiarization:
         from whisperx.audio import SAMPLE_RATE
         import pandas as pd
 
-        min_speakers = diarize_min_speakers if diarize_min_speakers != -1 else None
-        max_speakers = diarize_max_speakers if diarize_max_speakers != -1 else None
+        min_speakers = min_speakers if min_speakers != -1 else None
+        max_speakers = max_speakers if max_speakers != -1 else None
         audio_data = {
             'waveform': torch.from_numpy(audio_np[None, :]),
             'sample_rate': SAMPLE_RATE

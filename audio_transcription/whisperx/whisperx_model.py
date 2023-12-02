@@ -142,10 +142,12 @@ class Whisper:
         return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
 
     def __predict__(
-        self, audio: sieve.Audio,
+        self, audio: sieve.File,
         word_level_timestamps: bool = True,
         speaker_diarization: bool = False,
         speed_boost: bool = False,
+        start_time: float = 0,
+        end_time: float = -1,
         initial_prompt: str = "",
         prefix: str = "",
         language: str = "",
@@ -158,6 +160,8 @@ class Whisper:
         :param word_level_timestamps: whether to return word-level timestamps
         :param speaker_diarization: whether to perform speaker diarization
         :param speed_boost: whether to use the smaller, faster model
+        :param start_time: start time of the audio in seconds. Defaults to 0.
+        :param end_time: end time of the audio in seconds. Defaults to -1 (end of audio).
         :param initial_prompt: A prompt to correct misspellings and style.
         :param prefix: A prefix to bias the transcript towards.
         :param language: Language code of the audio (defaults to English), faster inference if the language is known.
@@ -166,7 +170,6 @@ class Whisper:
         :param batch_size: Batch size for inference. Defaults to 32.
         :return: a list of segments, each with a start time, end time, and text
         """
-        # TODO: implement start and end time as arguments
         import time
         overall_time = time.time()
         import faster_whisper
@@ -182,29 +185,36 @@ class Whisper:
             self.first_time = False
         import numpy as np
         from whisperx.audio import load_audio
-        process_time = time.time()
 
-        start_time = 0
-        if hasattr(audio, "start_time") and hasattr(audio, "end_time"):
+        t = time.time()
+        audio_path = audio.path
+        print("get_audio_path_time: ", time.time() - t)
+        if (hasattr(audio, "start_time") and hasattr(audio, "end_time")):
             import time
 
             t = time.time()
             start_time = audio.start_time
             end_time = audio.end_time
-            audio_np = self.load_audio(audio.path, start=start_time, end=end_time)
+            audio_np = self.load_audio(audio_path, start=start_time, end=end_time)
+        elif end_time != -1:
+            import time
+            t = time.time()
+            audio_np = self.load_audio(audio_path, start=start_time, end=end_time)
         else:
             t = time.time()
-            audio_np = load_audio(audio.path).astype(np.float32)
+            audio_np = load_audio(audio_path).astype(np.float32)
             if audio_np.shape[0] < 32000 * 30:
                 audio_np = np.pad(
                     audio_np, (0, 32000 * 30 - audio_np.shape[0]), "constant"
                 )
-        
+        print("load_time: ", time.time() - t)
+
+        process_time = time.time()
         if speed_boost:
             result = self.model_medium.transcribe(audio_np, batch_size=batch_size, language=language)
         else:
             result = self.model.transcribe(audio_np, batch_size=batch_size, language=language)
-        print("transcribe_time: ", time.time() - t)
+        print("transcribe_time: ", time.time() - process_time)
         process_time = time.time()
         import whisperx
 

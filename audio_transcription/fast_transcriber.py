@@ -96,7 +96,7 @@ whisper_to_seamless_languages = {
     metadata=metadata,
 )
 def audio_split_by_silence(
-    file: sieve.Audio,
+    file: sieve.File,
     word_level_timestamps: bool = True,
     speed_boost: bool = False,
     source_language: str = "",
@@ -182,24 +182,26 @@ def audio_split_by_silence(
     translate = sieve.function.get("sieve/seamless_text2text")
 
     # create a temporary directory to store the audio files
-    import tempfile
     import os
-    import shutil
 
-    temp_dir = tempfile.mkdtemp()
     import concurrent.futures
 
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=20)
 
     def process_segment(segment):
+        import time
+        t = time.time()
         start_time, end_time = segment
-        print(f"Splitting audio from {start_time} to {end_time}")
+
         whisperx_job = whisperx.push(
-            sieve.Audio(path=audio_path, start_time=start_time, end_time=end_time),
+            sieve.File(path=file.path),
             language=source_language,
             word_level_timestamps=word_level_timestamps,
             speed_boost=speed_boost,
+            start_time=start_time,
+            end_time=end_time,
         )
+        print(f"Took {time.time() - t:.2f} seconds to push segment from {start_time:.2f} to {end_time:.2f}")
         return whisperx_job
 
     segments = split_silences(
@@ -208,7 +210,7 @@ def audio_split_by_silence(
         min_segment_length=min_segment_length,
     )
     if not segments:
-        segments.append(whisperx.push(sieve.Audio(path=audio_path)))
+        segments.append(whisperx.push(sieve.File(path=file.path)))
 
     for job in executor.map(process_segment, segments):
         job_output = job.result()

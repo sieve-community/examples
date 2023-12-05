@@ -69,7 +69,7 @@ def analyze_transcript(
     # audio to text
     whisper = sieve.function.get("sieve/speech_transcriber")
     transcript = []
-    for transcript_chunk in whisper.run(sieve.Audio(path=audio_path)):
+    for transcript_chunk in whisper.run(sieve.File(path=audio_path)):
         transcript.append(transcript_chunk)
         segments = transcript_chunk["segments"]
         if len(segments) > 0:

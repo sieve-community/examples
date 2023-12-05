@@ -115,6 +115,8 @@ def clone_audio(
     files = files[:15]
 
     response = requests.post(url, headers=headers, data=data, files=files)
+    if response.status_code != 200:
+        raise ValueError("Could not generate voice", response.text)
     print(response.text)
 
     # delete temp folder
@@ -195,10 +197,14 @@ def generate_audio(
         },
     }
 
+    # check if output file exists and delete it
+    if os.path.exists("output.mp3"):
+        os.remove("output.mp3")
+
     response = requests.post(url, json=data, headers=headers)
+    if response.status_code != 200:
+        raise ValueError("Could not generate voice", response.text)
     with open("output.mp3", "wb") as f:
-        for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-            if chunk:
-                f.write(chunk)
+        f.write(response.content)
 
     return sieve.Audio(path="output.mp3")

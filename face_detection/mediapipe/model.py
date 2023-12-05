@@ -112,7 +112,12 @@ class FaceDetector:
                             "frame_number": count,
                             "boxes": results
                         }
-                        count += 1
+                    else:
+                        yield {
+                            "frame_number": count,
+                            "boxes": []
+                        }
+                    count += 1
                 else:
                     break
 

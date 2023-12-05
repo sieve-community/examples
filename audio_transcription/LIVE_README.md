@@ -1,11 +1,10 @@
-# Speech Transcription
+# Live Speech Transcription + Translation
 
-This app can transcribe audio data at high quality, fast. Some key features include:
-- 40 minutes of audio transcribed in ~1 minute
-- Word-level timestamps
-- Auto translation into many languages
+This app takes in a URL to a live stream of audio and transcribes + translates it. The URL just needs to point to a stream that is supported by FFMPEG. This includes RTMP streams, HLS streams, and [other formats](https://ffmpeg.org/ffmpeg-formats.html). Latency is anywhere between 600ms to 3s depending on the stream with translation adding an additional 1s to 2s.
 
-You can find a list of supported language codes for translation here:
+The public implementation of this app limits you to a minute of streamed transcripts. If you want to run your stream indefinitely, please follow the instructions in our docs [here](https://docs.sievedata.com/guide/examples/live-audio-transcription).
+
+You can find a list of supported language codes here:
 * `en` - English
 * `zh` - Chinese
 * `de` - German

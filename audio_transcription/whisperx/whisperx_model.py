@@ -32,23 +32,28 @@ class Segment(BaseModel):
 
 @sieve.Model(
     name="whisperx",
-    gpu=True,
+    gpu="l4",
     python_packages=[
         "torch==2.0",
         "torchaudio==2.0.0",
-        "git+https://github.com/m-bain/whisperx.git@07fafa37b3ef7ce8628b194da302a5a996bb7d37",
+        "git+https://github.com/m-bain/whisperx.git@e9c507ce5dea0f93318746411c03fed0926b70be",
+        "onnxruntime-gpu==1.16.0"
     ],
     cuda_version="11.8",
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
     python_version="3.8",
     run_commands=[
+        "pip install pyannote-audio==3.0.1",
+        "pip uninstall onnxruntime -y",
+        "pip install --force-reinstall onnxruntime-gpu==1.16.0",
         "mkdir -p /root/.cache/models/",
         "wget -c 'https://whisperx.s3.eu-west-2.amazonaws.com/model_weights/segmentation/0b5b3216d60a2d32fc086b47ea8c67589aaeb26b7e07fcbe620d6d0b83e209ea/pytorch_model.bin' -P /root/.cache/models/",
-        'python -c \'from faster_whisper.utils import download_model; download_model("large-v2", cache_dir="/root/.cache/models/")\'',
+        'python -c \'from faster_whisper.utils import download_model; download_model("large-v3", cache_dir="/root/.cache/models/")\'',
         "mkdir -p /root/.cache/torch/",
         "mkdir -p /root/.cache/torch/hub/",
         "mkdir -p /root/.cache/torch/hub/checkpoints/",
         "wget -c 'https://download.pytorch.org/torchaudio/models/wav2vec2_fairseq_base_ls960_asr_ls960.pth' -P /root/.cache/torch/hub/checkpoints/",
+        "pip install ffmpeg-python",
     ],
     metadata=metadata,
 )
@@ -64,7 +69,7 @@ class Whisper:
         from whisperx.asr import load_model
 
         self.model = load_model(
-            "large-v2",
+            "large-v3",
             "cuda",
             # language="en",
             asr_options={
@@ -74,6 +79,17 @@ class Whisper:
             compute_type="int8",
             download_root="/root/.cache/models/",
         )
+
+        self.model_medium = load_model(
+            "medium",
+            "cuda",
+            # language="en",
+            asr_options={
+                "initial_prompt": os.getenv("initial_prompt"),
+            },
+            vad_options={"model_fp": "/root/.cache/models/pytorch_model.bin"},
+            compute_type="int8"
+        )
         # Pass in a dummy audio to warm up the model
         audio_np = np.zeros((32000 * 30), dtype=np.float32)
         self.model.transcribe(audio_np, batch_size=4)
@@ -82,9 +98,14 @@ class Whisper:
             language_code="en", device="cuda"
         )
 
+        from pyannote.audio import Pipeline
+        import torch
+        self.diarize_model = Pipeline.from_pretrained(
+            "pyannote/speaker-diarization-3.0",
+            use_auth_token="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").to(torch.device("cuda"))
+
         self.setup_time = time.time() - start_time
         self.first_time = True
-        # pass
 
     def load_audio(self, fp: str, start=None, end=None, sr: int = 16000):
         import ffmpeg
@@ -120,16 +141,37 @@ class Whisper:
 
         return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
 
-    def __predict__(self, audio: sieve.Audio, initial_prompt: str = "", prefix: str = "", language: str = "en") -> List:
+    def __predict__(
+        self, audio: sieve.File,
+        word_level_timestamps: bool = True,
+        speaker_diarization: bool = False,
+        speed_boost: bool = False,
+        start_time: float = 0,
+        end_time: float = -1,
+        initial_prompt: str = "",
+        prefix: str = "",
+        language: str = "",
+        diarize_min_speakers: int = -1,
+        diarize_max_speakers: int = -1,
+        batch_size: int = 32,
+    ) -> List:
         """
         :param audio: an audio file
-        :param initial_prompt: A prompt to correct misspellings and style
-        :param prefix: A prefix to bias the transcript towards
-        :param language: Language code of the audio (defaults to English), faster inference if the language is known
+        :param word_level_timestamps: whether to return word-level timestamps
+        :param speaker_diarization: whether to perform speaker diarization
+        :param speed_boost: whether to use the smaller, faster model
+        :param start_time: start time of the audio in seconds. Defaults to 0.
+        :param end_time: end time of the audio in seconds. Defaults to -1 (end of audio).
+        :param initial_prompt: A prompt to correct misspellings and style.
+        :param prefix: A prefix to bias the transcript towards.
+        :param language: Language code of the audio (defaults to English), faster inference if the language is known.
+        :param diarize_min_speakers: Minimum number of speakers to detect. If set to -1, the number of speakers is automatically detected.
+        :param diarize_max_speakers: Maximum number of speakers to detect. If set to -1, the number of speakers is automatically detected.
+        :param batch_size: Batch size for inference. Defaults to 32.
         :return: a list of segments, each with a start time, end time, and text
         """
-        # TODO: implement start and end time as arguments
         import time
+        overall_time = time.time()
         import faster_whisper
 
         new_asr_options = self.model.options._asdict()
@@ -144,29 +186,66 @@ class Whisper:
         import numpy as np
         from whisperx.audio import load_audio
 
-        overall_time = time.time()
-        start_time = 0
-        if hasattr(audio, "start_time") and hasattr(audio, "end_time"):
+        t = time.time()
+        audio_path = audio.path
+        print("get_audio_path_time: ", time.time() - t)
+        if (hasattr(audio, "start_time") and hasattr(audio, "end_time")):
             import time
 
             t = time.time()
             start_time = audio.start_time
             end_time = audio.end_time
-            audio_np = self.load_audio(audio.path, start=start_time, end=end_time)
+            audio_np = self.load_audio(audio_path, start=start_time, end=end_time)
+        elif end_time != -1:
+            import time
+            t = time.time()
+            audio_np = self.load_audio(audio_path, start=start_time, end=end_time)
         else:
             t = time.time()
-            audio_np = load_audio(audio.path).astype(np.float32)
+            audio_np = load_audio(audio_path).astype(np.float32)
             if audio_np.shape[0] < 32000 * 30:
                 audio_np = np.pad(
                     audio_np, (0, 32000 * 30 - audio_np.shape[0]), "constant"
                 )
+        print("load_time: ", time.time() - t)
 
-        result = self.model.transcribe(audio_np, batch_size=16, language=language)
+        process_time = time.time()
+        if speed_boost:
+            result = self.model_medium.transcribe(audio_np, batch_size=batch_size, language=language)
+        else:
+            result = self.model.transcribe(audio_np, batch_size=batch_size, language=language)
+        print("transcribe_time: ", time.time() - process_time)
+        process_time = time.time()
         import whisperx
 
-        result_aligned = whisperx.align(
-            result["segments"], self.model_a, self.metadata, audio_np, "cuda"
-        )
+        if word_level_timestamps:
+            result_aligned = whisperx.align(
+                result["segments"], self.model_a, self.metadata, audio_np, "cuda"
+            )
+
+            print("align_time: ", time.time() - process_time)
+        else:
+            result_aligned = result
+        process_time = time.time()
+
+        import torch
+        from whisperx.audio import SAMPLE_RATE
+        import pandas as pd
+
+        if speaker_diarization:
+            min_speakers = diarize_min_speakers if diarize_min_speakers != -1 else None
+            max_speakers = diarize_max_speakers if diarize_max_speakers != -1 else None
+            audio_data = {
+                'waveform': torch.from_numpy(audio_np[None, :]),
+                'sample_rate': SAMPLE_RATE
+            }
+            diarize_segments = self.diarize_model(audio_data, min_speakers=min_speakers, max_speakers=max_speakers)
+            diarize_df = pd.DataFrame(diarize_segments.itertracks(yield_label=True), columns=['segment', 'label', 'speaker'])
+            diarize_df['start'] = diarize_df['segment'].apply(lambda x: x.start)
+            diarize_df['end'] = diarize_df['segment'].apply(lambda x: x.end)
+            result_aligned = whisperx.assign_word_speakers(diarize_df, result_aligned)
+            print("diarize_time: ", time.time() - process_time)
+
         out_segments = []
         full_text = ""
         for segment in result_aligned["segments"]:
@@ -174,18 +253,24 @@ class Whisper:
             new_segment["start"] = segment["start"] + start_time
             new_segment["end"] = segment["end"] + start_time
             new_segment["text"] = segment["text"]
+            if "speaker" in segment:
+                new_segment["speaker"] = segment["speaker"]
+            
             full_text += segment["text"] + " "
-            new_segment["words"] = []
-            for word in segment["words"]:
-                new_word = {}
-                if "start" in word:
-                    new_word["start"] = word["start"] + start_time
-                if "end" in word:
-                    new_word["end"] = word["end"] + start_time
-                if "score" in word:
-                    new_word["score"] = word["score"]
-                new_word["word"] = word["word"]
-                new_segment["words"].append(new_word)
+            if word_level_timestamps:
+                new_segment["words"] = []
+                for word in segment["words"]:
+                    new_word = {}
+                    if "speaker" in word:
+                        new_word["speaker"] = word["speaker"]
+                    if "start" in word:
+                        new_word["start"] = word["start"] + start_time
+                    if "end" in word:
+                        new_word["end"] = word["end"] + start_time
+                    if "score" in word:
+                        new_word["score"] = word["score"]
+                    new_word["word"] = word["word"]
+                    new_segment["words"].append(new_word)
 
             out_segments.append(new_segment)
         print("overall_time: ", time.time() - overall_time)

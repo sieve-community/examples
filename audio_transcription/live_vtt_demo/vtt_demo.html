@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Captioning with Sieve</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+
+    #hls-video {
+      max-width: 80%;
+      margin-bottom: 20px;
+    }
+
+    h1,
+    h2 {
+      text-align: center;
+      margin: 0;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Live VTT Caption Streaming Demo</h1>
+  <h2>Powered by <a href="https://sievedata.com">Sieve</a></h2>
+  <video id="hls-video" controls>
+    <source src="" type="application/x-mpegURL">
+    <track kind="subtitles" src="output.vtt" srclang="en" label="English (Sieve)" default>
+  </video>
+  <a href="https://abcnews.go.com/Live">Source</a>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    var video = document.getElementById('hls-video');
+
+    if (Hls.isSupported()) {
+      var hls = new Hls();
+      hls.loadSource('https://content.uplynk.com/channel/3324f2467c414329b3b0cc5cd987b6be.m3u8');
+      hls.attachMedia(video);
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = 'https://content.uplynk.com/channel/3324f2467c414329b3b0cc5cd987b6be.m3u8';
+    }
+  </script>
+
+  <script>
+    var video = document.getElementById('hls-video');
+    function updateTrack() {
+      var track = video.querySelector('track');
+      track.src = "output.vtt?timestamp=" + new Date().getTime();
+    }
+    setInterval(updateTrack, 1000);
+  </script>
+</body>
+
+</html>

@@ -28,9 +28,10 @@ class Scene(BaseModel):
     system_packages=["libgl1"],
     metadata=model_metadata,
 )
-def scene_detection(video: sieve.Video) -> Scene:
+def scene_detection(video: sieve.Video, threshold: float = 27.0) -> Scene:
     """
     :param video: The video to detect scenes in
+    :param threshold: Threshold the average change in pixel intensity must exceed to trigger a cut
     :return: A list of scenes
     """
 
@@ -40,7 +41,7 @@ def scene_detection(video: sieve.Video) -> Scene:
 
     video_manager = VideoManager([video.path])
     scene_manager = SceneManager()
-    scene_manager.add_detector(ContentDetector())
+    scene_manager.add_detector(ContentDetector(threshold=threshold))
 
     base_timecode = video_manager.get_base_timecode()
     video_manager.set_downscale_factor()

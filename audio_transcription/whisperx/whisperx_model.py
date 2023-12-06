@@ -54,6 +54,7 @@ class Segment(BaseModel):
         "mkdir -p /root/.cache/torch/hub/checkpoints/",
         "wget -c 'https://download.pytorch.org/torchaudio/models/wav2vec2_fairseq_base_ls960_asr_ls960.pth' -P /root/.cache/torch/hub/checkpoints/",
         "pip install ffmpeg-python",
+        "pip install python-dotenv",
     ],
     metadata=metadata,
 )
@@ -61,6 +62,9 @@ class Whisper:
     def __setup__(self):
         import os
         import time
+
+        from dotenv import load_dotenv
+        load_dotenv()
 
         start_time = time.time()
         import numpy as np
@@ -100,9 +104,10 @@ class Whisper:
 
         from pyannote.audio import Pipeline
         import torch
+
         self.diarize_model = Pipeline.from_pretrained(
             "pyannote/speaker-diarization-3.0",
-            use_auth_token="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").to(torch.device("cuda"))
+            use_auth_token=os.getenv("HF_TOKEN")).to(torch.device("cuda"))
 
         self.setup_time = time.time() - start_time
         self.first_time = True

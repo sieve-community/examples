@@ -46,7 +46,7 @@ def audio_split_by_silence(
     :param min_speakers: Minimum number of speakers to detect for diarization. Defaults to auto-detect when set to -1.
     :param max_speakers: Maximum number of speakers to detect for diarization. Defaults to auto-detect when set to -1.
     :param min_silence_length: Minimum length of silence in seconds to use for splitting audio for parallel processing. Defaults to 0.8.
-    :param min_segment_length: Minimum length of audio segment in seconds to use for splitting audio for parallel processing. Defaults to audio length / 20 if set to -1.
+    :param min_segment_length: Minimum length of audio segment in seconds to use for splitting audio for parallel processing. If set to -1, we pick a value based on your settings.
     '''
     import os
     import sys
@@ -74,6 +74,8 @@ def audio_split_by_silence(
     min_segment_length = float(min_segment_length)
     if min_segment_length < 0:
         min_segment_length = audio_length / 20
+        min_segment_length = max(min_segment_length, 15.0)
+
     import re
 
     def split_silences(

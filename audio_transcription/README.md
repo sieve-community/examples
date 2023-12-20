@@ -1,79 +1,129 @@
 # Speech Transcription
 
-This app can transcribe audio data at high quality, fast. Some key features include:
-- 40 minutes of audio transcribed in ~1 minute
+This app can transcribe audio data at high quality, fast.
+
+Some key features include:
 - Word-level timestamps
+- Speaker diarization
+- Speed boost option for faster results
+- Decoding boost option for highly accurate timestamps
 - Auto translation into many languages
 
-You can find a list of supported language codes for translation here:
-* `en` - English
-* `zh` - Chinese
-* `de` - German
-* `es` - Spanish
-* `ru` - Russian
-* `ko` - Korean
-* `fr` - French
-* `ja` - Japanese
-* `pt` - Portuguese
-* `tr` - Turkish
-* `pl` - Polish
-* `ca` - Catalan
-* `nl` - Dutch
-* `ar` - Arabic
-* `sv` - Swedish
-* `it` - Italian
-* `id` - Indonesian
-* `hi` - Hindi
-* `fi` - Finnish
-* `vi` - Vietnamese
-* `he` - Hebrew
-* `uk` - Ukrainian
-* `el` - Greek
-* `ms` - Malay
-* `cs` - Czech
-* `ro` - Romanian
-* `da` - Danish
-* `hu` - Hungarian
-* `ta` - Tamil
-* `no` - Norwegian
-* `th` - Thai
-* `ur` - Urdu
-* `hr` - Croatian
-* `bg` - Bulgarian
-* `lt` - Lithuanian
-* `cy` - Welsh
-* `sk` - Slovak
-* `te` - Telugu
-* `bn` - Bengali
-* `sr` - Serbian
-* `sl` - Slovenian
-* `kn` - Kannada
-* `et` - Estonian
-* `mk` - Macedonian
-* `eu` - Basque
-* `is` - Icelandic
-* `hy` - Armenian
-* `bs` - Bosnian
-* `kk` - Kazakh
-* `gl` - Galician
-* `mr` - Marathi
-* `pa` - Punjabi
-* `km` - Khmer
-* `sn` - Shona
-* `yo` - Yoruba
-* `so` - Somali
-* `af` - Afrikaans
-* `ka` - Georgian
-* `be` - Belarusian
-* `tg` - Tajik
-* `sd` - Sindhi
-* `gu` - Gujarati
-* `am` - Amharic
-* `lo` - Lao
-* `nn` - Nynorsk
-* `mt` - Maltese
-* `my` - Myanmar
-* `tl` - Tagalog
-* `as` - Assamese
-* `jw` - Javanese
-* `yue` - Cantonese
+## Picking the right settings
+- `decode_boost` is basically the option that switches between which implementation to use during the decoding process. Setting it to true will use a slower but more accurate algorithm specifically for timestamps and filler words while leaving it off is faster but less accurate on timestamps. However, it is key to note that both of these approaches make significant improvements on top of what typical AI transcription services provide.
+- Enabling `speaker_diarization` returns speaker IDs for each word in the transcript. This is useful if you want to know who said what.
+- Enabling `speed_boost` will use smaller models with either decoding approach. This is useful if you want to get results faster and don't mind sacrificing some accuracy.
+
+## Languages
+We support 99 total languages. You may enter a language code into the `language` parameter in case you know the language of the original audio already. If you don't know the language of the original audio, you may leave the `language` parameter blank and we will automatically detect the language of the original audio. If you want to see the full list of supported languages, you may refer to the table below.
+
+ - `en` (English)
+ - `zh` (Chinese)
+ - `de` (German)
+ - `es` (Spanish)
+ - `ru` (Russian)
+ - `ko` (Korean)
+ - `fr` (French)
+ - `ja` (Japanese)
+ - `pt` (Portuguese)
+ - `tr` (Turkish)
+ - `pl` (Polish)
+ - `ca` (Catalan)
+ - `nl` (Dutch)
+ - `ar` (Arabic)
+ - `sv` (Swedish)
+ - `it` (Italian)
+ - `id` (Indonesian)
+ - `hi` (Hindi)
+ - `fi` (Finnish)
+ - `vi` (Vietnamese)
+ - `he` (Hebrew)
+ - `uk` (Ukrainian)
+ - `el` (Greek)
+ - `ms` (Malay)
+ - `cs` (Czech)
+ - `ro` (Romanian)
+ - `da` (Danish)
+ - `hu` (Hungarian)
+ - `ta` (Tamil)
+ - `no` (Norwegian)
+ - `th` (Thai)
+ - `ur` (Urdu)
+ - `hr` (Croatian)
+ - `bg` (Bulgarian)
+ - `lt` (Lithuanian)
+ - `la` (Latin)
+ - `mi` (Maori)
+ - `ml` (Malayalam)
+ - `cy` (Welsh)
+ - `sk` (Slovak)
+ - `te` (Telugu)
+ - `fa` (Persian)
+ - `lv` (Latvian)
+ - `bn` (Bengali)
+ - `sr` (Serbian)
+ - `az` (Azerbaijani)
+ - `sl` (Slovenian)
+ - `kn` (Kannada)
+ - `et` (Estonian)
+ - `mk` (Macedonian)
+ - `br` (Breton)
+ - `eu` (Basque)
+ - `is` (Icelandic)
+ - `hy` (Armenian)
+ - `ne` (Nepali)
+ - `mn` (Mongolian)
+ - `bs` (Bosnian)
+ - `kk` (Kazakh)
+ - `sq` (Albanian)
+ - `sw` (Swahili)
+ - `gl` (Galician)
+ - `mr` (Marathi)
+ - `pa` (Punjabi)
+ - `si` (Sinhala)
+ - `km` (Khmer)
+ - `sn` (Shona)
+ - `yo` (Yoruba)
+ - `so` (Somali)
+ - `af` (Afrikaans)
+ - `oc` (Occitan)
+ - `ka` (Georgian)
+ - `be` (Belarusian)
+ - `tg` (Tajik)
+ - `sd` (Sindhi)
+ - `gu` (Gujarati)
+ - `am` (Amharic)
+ - `yi` (Yiddish)
+ - `lo` (Lao)
+ - `uz` (Uzbek)
+ - `fo` (Faroese)
+ - `ps` (Pashto)
+ - `tk` (Turkmen)
+ - `nn` (Nynorsk)
+ - `mt` (Maltese)
+ - `sa` (Sanskrit)
+ - `lb` (Luxembourgish)
+ - `my` (Myanmar)
+ - `bo` (Tibetan)
+ - `tl` (Tagalog)
+ - `mg` (Malagasy)
+ - `as` (Assamese)
+ - `tt` (Tatar)
+ - `haw` (Hawaiian)
+ - `ln` (Lingala)
+ - `ha` (Hausa)
+ - `ba` (Bashkir)
+ - `jw` (Javanese)
+ - `su` (Sundanese)
+ - `yue` (Cantonese)
+ - `my` (Burmese)
+ - `ca` (Valencian)
+ - `nl` (Flemish)
+ - `ht` (Haitian)
+ - `lb` (Letzeburgesch)
+ - `ps` (Pushto)
+ - `pa` (Panjabi)
+ - `ro` (Moldavian)
+ - `si` (Sinhalese)
+ - `es` (Castilian)
+ - `zh` (Mandarin)

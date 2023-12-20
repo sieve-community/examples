@@ -41,7 +41,7 @@ def audio_split_by_silence(
     :param speaker_diarization: Whether to perform speaker diarization. Defaults to False.
     :param speed_boost: Whether to use a smaller, less accurate model for faster speed. Defaults to False.
     :param decode_boost: Whether to enable a more accurate post-processing step at the cost of speed. Defaults to False.
-    :param source_language: Language of the audio. Defaults to auto-detect if not specified. Otherwise, specify the language code {en, fr, de, es, it, ja, zh, nl, uk, pt}. This may improve transcription speed.
+    :param source_language: Language of the audio. Defaults to auto-detect if not specified. See README for supported language codes.
     :param target_language: Language code of the language to translate to (doesn't translate if left blank). See README for supported language codes.
     :param min_speakers: Minimum number of speakers to detect for diarization. Defaults to auto-detect when set to -1.
     :param max_speakers: Maximum number of speakers to detect for diarization. Defaults to auto-detect when set to -1.
@@ -124,10 +124,7 @@ def audio_split_by_silence(
 
     count = 0
     audio_path = file.path
-    if decode_boost:
-        whisperx = sieve.function.get("sieve/stable-ts")
-    else:
-        whisperx = sieve.function.get("sieve/whisperx")
+    whisper = sieve.function.get("sieve/whisper")
     translate = sieve.function.get("sieve/seamless_text2text")
 
     # create a temporary directory to store the audio files
@@ -142,16 +139,17 @@ def audio_split_by_silence(
         t = time.time()
         start_time, end_time = segment
 
-        whisperx_job = whisperx.push(
+        whisper_job = whisper.push(
             sieve.File(path=file.path),
             language=source_language,
             word_level_timestamps=word_level_timestamps,
+            decode_boost=decode_boost,
             speed_boost=speed_boost,
             start_time=start_time,
             end_time=end_time,
         )
         print(f"Took {time.time() - t:.2f} seconds to push segment from {start_time:.2f} to {end_time:.2f}")
-        return whisperx_job
+        return whisper_job
 
     segments = split_silences(
         audio_path,
@@ -159,13 +157,11 @@ def audio_split_by_silence(
         min_segment_length=min_segment_length,
     )
     if not segments:
-        segments.append(whisperx.push(sieve.File(path=file.path), language=source_language, word_level_timestamps=word_level_timestamps, speed_boost=speed_boost))
+        segments.append(whisper.push(sieve.File(path=file.path), language=source_language, word_level_timestamps=word_level_timestamps, speed_boost=speed_boost, decode_boost=decode_boost))
 
     job_outputs = []
     for job in executor.map(process_segment, segments):
         job_output = job.result()
-        if decode_boost:
-            job_output["language_code"] = TO_LANGUAGE_CODE[job_output["language_code"]]
         job_segments = job_output["segments"]
         if len(job_segments) > 0:
             print(f"transcribed {100*job_segments[-1]['end'] / audio_length:.2f}% of {audio_length:.2f} seconds")

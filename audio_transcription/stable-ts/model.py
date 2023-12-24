@@ -1,101 +1,60 @@
 import sieve
 from typing import List
-from pydantic import BaseModel
 import os
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
 
 metadata = sieve.Metadata(
-    description="WhisperX: Automatic Speech Recognition with Word-level Timestamps (& Diarization)",
-    code_url="https://github.com/sieve-community/examples/tree/main/audio_transcription/whisperx",
+    description="An version of Whisper that offers accurate word-level timestamps and little hallucination.",
+    code_url="https://github.com/sieve-community/examples/tree/main/audio_transcription/stable-ts",
     image=sieve.Image(
-        url="https://github.com/m-bain/whisperX/raw/main/figures/pipeline.png"
+        url="https://storage.googleapis.com/mango-public-models/stable-ts-icon.png"
     ),
     tags=["Audio", "Speech", "Transcription"],
-    readme=open(os.path.join(file_dir, "WHISPERX_README.md"), "r").read(),
+    readme=open(os.path.join(file_dir, "README.md"), "r").read(),
 )
 
 
-class Word(BaseModel):
-    start: float
-    end: float
-    score: float
-    word: str
-
-
-class Segment(BaseModel):
-    start: float
-    end: float
-    text: str
-    words: List[Word]
-
 @sieve.Model(
-    name="whisperx",
+    name="stable-ts",
     gpu="l4",
     python_packages=[
-        "torch==2.0",
-        "torchaudio==2.0.0",
-        "git+https://github.com/m-bain/whisperx.git@e9c507ce5dea0f93318746411c03fed0926b70be",
+        "git+https://github.com/jianfch/stable-ts.git",
     ],
     cuda_version="11.8",
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
     python_version="3.8",
     run_commands=[
-        "mkdir -p /root/.cache/models/",
-        "wget -c 'https://whisperx.s3.eu-west-2.amazonaws.com/model_weights/segmentation/0b5b3216d60a2d32fc086b47ea8c67589aaeb26b7e07fcbe620d6d0b83e209ea/pytorch_model.bin' -P /root/.cache/models/",
-        'python -c \'from faster_whisper.utils import download_model; download_model("large-v3", cache_dir="/root/.cache/models/")\'',
-        'python -c \'from faster_whisper.utils import download_model; download_model("base", cache_dir="/root/.cache/models/")\'',
-        "mkdir -p /root/.cache/torch/",
-        "mkdir -p /root/.cache/torch/hub/",
-        "mkdir -p /root/.cache/torch/hub/checkpoints/",
-        "wget -c 'https://download.pytorch.org/torchaudio/models/wav2vec2_fairseq_base_ls960_asr_ls960.pth' -P /root/.cache/torch/hub/checkpoints/",
-        "pip install ffmpeg-python",
+        "pip install faster-whisper",
+        "python -c 'import stable_whisper as whisper; model = whisper.load_faster_whisper(\"large-v3\", device=\"cpu\")'",
+        "python -c 'import stable_whisper as whisper; model = whisper.load_faster_whisper(\"base\", device=\"cpu\")'",
         "pip install python-dotenv",
     ],
-    metadata=metadata,
+    metadata=metadata
 )
 class Whisper:
     def __setup__(self):
-        import os
         import time
 
         from dotenv import load_dotenv
         load_dotenv()
 
         start_time = time.time()
+        import time
+        t = time.time()
+        import stable_whisper
+        self.model = stable_whisper.load_faster_whisper('large-v3', device="cuda")
+        self.model_medium = stable_whisper.load_faster_whisper('base', device="cuda")
+
+        self.setup_time = time.time() - t
+        self.first_time = True
+
         import numpy as np
-        import whisperx
-        from whisperx.asr import load_model
-
-        self.model = load_model(
-            "large-v3",
-            "cuda",
-            # language="en",
-            asr_options={
-                "initial_prompt": os.getenv("initial_prompt"),
-            },
-            vad_options={"model_fp": "/root/.cache/models/pytorch_model.bin"},
-            compute_type="int8",
-            download_root="/root/.cache/models/",
-        )
-
-        self.model_medium = load_model(
-            "base",
-            "cuda",
-            # language="en",
-            asr_options={
-                "initial_prompt": os.getenv("initial_prompt"),
-            },
-            vad_options={"model_fp": "/root/.cache/models/pytorch_model.bin"},
-            compute_type="int8"
-        )
         # Pass in a dummy audio to warm up the model
         audio_np = np.zeros((32000 * 30), dtype=np.float32)
-        self.model.transcribe(audio_np, batch_size=4)
+        self.model.transcribe(audio_np)
+        self.model_medium.transcribe(audio_np)
 
-        self.model_a, self.metadata = whisperx.load_align_model(
-            language_code="en", device="cuda"
-        )
 
         self.diarize_model = sieve.function.get("sieve/pyannote-diarization")
 
@@ -105,7 +64,6 @@ class Whisper:
     def load_audio(self, fp: str, start=None, end=None, sr: int = 16000):
         import ffmpeg
         import numpy as np
-        import time
 
         try:
             if start is None and end is None:
@@ -142,11 +100,9 @@ class Whisper:
         start_time: float = 0,
         end_time: float = -1,
         initial_prompt: str = "",
-        prefix: str = "",
         language: str = "",
         diarize_min_speakers: int = -1,
         diarize_max_speakers: int = -1,
-        batch_size: int = 32,
     ) -> List:
         """
         :param audio: an audio file
@@ -165,19 +121,14 @@ class Whisper:
         """
         import time
         overall_time = time.time()
-        import faster_whisper
 
-        new_asr_options = self.model.options._asdict()
-        new_asr_options["initial_prompt"] = initial_prompt
-        new_asr_options["prefix"] = prefix
-        new_options = faster_whisper.transcribe.TranscriptionOptions(**new_asr_options)
-        self.model.options = new_options
+        if language == "":
+            language = None
 
         if self.first_time:
             print("first_time_setup: ", self.setup_time)
             self.first_time = False
         import numpy as np
-        from whisperx.audio import load_audio
 
         t = time.time()
         audio_path = audio.path
@@ -188,6 +139,7 @@ class Whisper:
                 min_speakers=diarize_min_speakers,
                 max_speakers=diarize_max_speakers,
             )
+        
         print("get_audio_path_time: ", time.time() - t)
         if (hasattr(audio, "start_time") and hasattr(audio, "end_time")):
             import time
@@ -202,35 +154,30 @@ class Whisper:
             audio_np = self.load_audio(audio_path, start=start_time, end=end_time)
         else:
             t = time.time()
-            audio_np = load_audio(audio_path).astype(np.float32)
-            if audio_np.shape[0] < 32000 * 30:
-                audio_np = np.pad(
-                    audio_np, (0, 32000 * 30 - audio_np.shape[0]), "constant"
-                )
+            audio_np = self.load_audio(audio_path)
+            # if audio_np.shape[0] < 32000 * 30:
+            #     audio_np = np.pad(
+            #         audio_np, (0, 32000 * 30 - audio_np.shape[0]), "constant"
+            #     )
         print("load_time: ", time.time() - t)
 
         process_time = time.time()
         if speed_boost:
-            result = self.model_medium.transcribe(audio_np, batch_size=batch_size, language=language)
+            result = self.model_medium.transcribe_stable(audio_np, language=language, initial_prompt=initial_prompt, input_sr=16000, word_timestamps=word_level_timestamps)
         else:
-            result = self.model.transcribe(audio_np, batch_size=batch_size, language=language)
+            result = self.model.transcribe_stable(audio_np, language=language, initial_prompt=initial_prompt, input_sr=16000, word_timestamps=word_level_timestamps)
+        
+        result = result.to_dict()
         print("transcribe_time: ", time.time() - process_time)
         process_time = time.time()
-        import whisperx
 
-        if word_level_timestamps:
-            result_aligned = whisperx.align(
-                result["segments"], self.model_a, self.metadata, audio_np, "cuda"
-            )
-
-            print("align_time: ", time.time() - process_time)
-        else:
-            result_aligned = result
+        print("result: ", result)
         process_time = time.time()
 
         out_segments = []
         full_text = ""
-        for segment in result_aligned["segments"]:
+
+        for segment in result["segments"]:
             new_segment = {}
             new_segment["start"] = segment["start"] + start_time
             new_segment["end"] = segment["end"] + start_time
@@ -249,13 +196,13 @@ class Whisper:
                         new_word["start"] = word["start"] + start_time
                     if "end" in word:
                         new_word["end"] = word["end"] + start_time
-                    if "score" in word:
-                        new_word["score"] = word["score"]
+                    if "probability" in word:
+                        new_word["confidence"] = word["probability"]
                     new_word["word"] = word["word"]
                     new_segment["words"].append(new_word)
 
             out_segments.append(new_segment)
-
+        
         if speaker_diarization:
             diarization_job_output = diarization_job.result()
             print("diarization finished")
@@ -279,7 +226,20 @@ class Whisper:
                             if diarization_segments:
                                 word["speaker"] = max(diarization_segments, key=lambda x: x['end'] - x['start'])['speaker_id']
             print("overall_time: ", time.time() - overall_time)
-        
-        print("overall_time: ", time.time() - overall_time)
         return temp_out
         
+
+if __name__=="__main__":
+    import time
+    start_time = time.time()
+    model = Whisper()
+    print("setup_time: ", time.time() - start_time)
+    start_time = time.time()
+    result = model(
+        audio=sieve.File(
+            path="/home/ubuntu/experiments/assets/downsampled.mp3"
+        ),
+        word_level_timestamps=False,
+    )
+    print("predict_time: ", time.time() - start_time)
+    # print(result)

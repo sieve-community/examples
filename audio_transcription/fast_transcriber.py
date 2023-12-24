@@ -1,4 +1,5 @@
 import sieve
+from language_maps import *
 
 metadata = sieve.Metadata(
     description="Fast, high quality speech transcription with word-level timestamps and translation capabilities",
@@ -9,80 +10,6 @@ metadata = sieve.Metadata(
     tags=["Audio", "Speech", "Transcription", "Featured"],
     readme=open("README.md", "r").read(),
 )
-
-whisper_to_seamless_languages = {
-    "en": "eng",
-    "zh": "cmn",
-    "de": "deu",
-    "es": "spa",
-    "ru": "rus",
-    "ko": "kor",
-    "fr": "fra",
-    "ja": "jpn",
-    "pt": "por",
-    "tr": "tur",
-    "pl": "pol",
-    "ca": "cat",
-    "nl": "nld",
-    "ar": "arb",
-    "sv": "swe",
-    "it": "ita",
-    "id": "ind",
-    "hi": "hin",
-    "fi": "fin",
-    "vi": "vie",
-    "he": "heb",
-    "uk": "ukr",
-    "el": "ell",
-    "ms": "zsm",
-    "cs": "ces",
-    "ro": "ron",
-    "da": "dan",
-    "hu": "hun",
-    "ta": "tam",
-    "no": "nob",
-    "th": "tha",
-    "ur": "urd",
-    "hr": "hrv",
-    "bg": "bul",
-    "lt": "lit",
-    "cy": "cym",
-    "sk": "slk",
-    "te": "tel",
-    "bn": "ben",
-    "sr": "srp",
-    "sl": "slv",
-    "kn": "kan",
-    "et": "est",
-    "mk": "mkd",
-    "eu": "eus",
-    "is": "isl",
-    "hy": "hye",
-    "bs": "bos",
-    "kk": "kaz",
-    "gl": "glg",
-    "mr": "mar",
-    "pa": "pan",
-    "km": "khm",
-    "sn": "sna",
-    "yo": "yor",
-    "so": "som",
-    "af": "afr",
-    "ka": "kat",
-    "be": "bel",
-    "tg": "tgk",
-    "sd": "snd",
-    "gu": "guj",
-    "am": "amh",
-    "lo": "lao",
-    "nn": "nno",
-    "mt": "mlt",
-    "my": "mya",
-    "tl": "tgl",
-    "as": "asm",
-    "jw": "jav",
-    "yue": "yue",
-}
 
 @sieve.function(
     name="speech_transcriber",
@@ -100,6 +27,7 @@ def audio_split_by_silence(
     word_level_timestamps: bool = True,
     speaker_diarization: bool = False,
     speed_boost: bool = False,
+    decode_boost: bool = False,
     source_language: str = "",
     target_language: str = "",
     min_speakers: int = -1,
@@ -111,13 +39,14 @@ def audio_split_by_silence(
     :param file: Audio file
     :param word_level_timestamps: Whether to return word-level timestamps. Defaults to True.
     :param speaker_diarization: Whether to perform speaker diarization. Defaults to False.
-    :param speed_boost: Whether to use a faster, smaller transcription model. Defaults to False.
-    :param source_language: Language of the audio. Defaults to auto-detect if not specified. Otherwise, specify the language code {en, fr, de, es, it, ja, zh, nl, uk, pt}. This may improve transcription speed.
+    :param speed_boost: Whether to use a smaller, less accurate model for faster speed. Defaults to False.
+    :param decode_boost: Whether to enable a more accurate post-processing step at the cost of speed. Defaults to False.
+    :param source_language: Language of the audio. Defaults to auto-detect if not specified. See README for supported language codes.
     :param target_language: Language code of the language to translate to (doesn't translate if left blank). See README for supported language codes.
     :param min_speakers: Minimum number of speakers to detect for diarization. Defaults to auto-detect when set to -1.
     :param max_speakers: Maximum number of speakers to detect for diarization. Defaults to auto-detect when set to -1.
     :param min_silence_length: Minimum length of silence in seconds to use for splitting audio for parallel processing. Defaults to 0.8.
-    :param min_segment_length: Minimum length of audio segment in seconds to use for splitting audio for parallel processing. Defaults to audio length / 20 if set to -1.
+    :param min_segment_length: Minimum length of audio segment in seconds to use for splitting audio for parallel processing. If set to -1, we pick a value based on your settings.
     '''
     import os
     import sys
@@ -145,6 +74,8 @@ def audio_split_by_silence(
     min_segment_length = float(min_segment_length)
     if min_segment_length < 0:
         min_segment_length = audio_length / 20
+        min_segment_length = max(min_segment_length, 15.0)
+
     import re
 
     def split_silences(
@@ -193,7 +124,7 @@ def audio_split_by_silence(
 
     count = 0
     audio_path = file.path
-    whisperx = sieve.function.get("sieve/whisperx")
+    whisper = sieve.function.get("sieve/whisper")
     translate = sieve.function.get("sieve/seamless_text2text")
 
     # create a temporary directory to store the audio files
@@ -208,16 +139,17 @@ def audio_split_by_silence(
         t = time.time()
         start_time, end_time = segment
 
-        whisperx_job = whisperx.push(
+        whisper_job = whisper.push(
             sieve.File(path=file.path),
             language=source_language,
             word_level_timestamps=word_level_timestamps,
+            decode_boost=decode_boost,
             speed_boost=speed_boost,
             start_time=start_time,
             end_time=end_time,
         )
         print(f"Took {time.time() - t:.2f} seconds to push segment from {start_time:.2f} to {end_time:.2f}")
-        return whisperx_job
+        return whisper_job
 
     segments = split_silences(
         audio_path,
@@ -225,7 +157,7 @@ def audio_split_by_silence(
         min_segment_length=min_segment_length,
     )
     if not segments:
-        segments.append(whisperx.push(sieve.File(path=file.path)))
+        segments.append(whisper.push(sieve.File(path=file.path), language=source_language, word_level_timestamps=word_level_timestamps, speed_boost=speed_boost, decode_boost=decode_boost))
 
     job_outputs = []
     for job in executor.map(process_segment, segments):
@@ -234,22 +166,22 @@ def audio_split_by_silence(
         if len(job_segments) > 0:
             print(f"transcribed {100*job_segments[-1]['end'] / audio_length:.2f}% of {audio_length:.2f} seconds")
         if len(target_language) > 0 and job_output["language_code"] != target_language and job_output["text"]:
-            if target_language not in whisper_to_seamless_languages:
+            if target_language not in WHISPER_TO_SEAMLESS_LANGUAGE_MAP:
                 raise Exception(
                     f"Target language not supported for translation: ",
                     target_language,
                 )
-            if job_output["language_code"] not in whisper_to_seamless_languages:
+            if job_output["language_code"] not in WHISPER_TO_SEAMLESS_LANGUAGE_MAP:
                 raise Exception(
                     f"Detected language not supported for translation: ",
                     job_output["language_code"],
                 )
 
             # Output language is in Whisper's language coding, so we need to transform to seamless
-            seamless_target_lang = whisper_to_seamless_languages[
+            seamless_target_lang = WHISPER_TO_SEAMLESS_LANGUAGE_MAP[
                 target_language
             ]
-            seamless_source_lang = whisper_to_seamless_languages[
+            seamless_source_lang = WHISPER_TO_SEAMLESS_LANGUAGE_MAP[
                 job_output["language_code"]
             ]
             text = translate.run(

@@ -1,21 +1,19 @@
-# Speech Transcription
+# Whisper
 
-This app can transcribe audio data at high quality, fast.
+This is an implementation of Whisper built on top of the two most best improvements to the original Whisper algorithm.
+- [stable-ts](https://github.com/jianfch/stable-ts)
+- [whisper-timestamped](https://github.com/linto-ai/whisper-timestamped)
 
-Some key features include:
-- Word-level timestamps
-- Speaker diarization
-- Speed boost option for faster results
-- Decoding boost option for highly accurate timestamps
-- Auto translation into many languages
+The biggest improvements are around hallucinations, timestamp accuracy, and ability to detect filler words.
 
 ## Picking the right settings
-- `decode_boost` is basically the option that switches between which implementation to use during the decoding process. Setting it to true will use a slower but more accurate algorithm specifically for timestamps and filler words while leaving it off is faster but less accurate on timestamps. However, it is key to note that both of these approaches make significant improvements on top of what typical AI transcription services provide.
+- `decode_boost` is basically the option that switches between which implementation to use during the decoding process. Setting it to true will use the `whisper-timestamped`` implementation and setting it to false will use the `stable-ts` implementation. `whisper-timestamped` is slower but more accurate specifically on timestamps and filler words while `stable-ts` is faster but less accurate on timestamps. However, it is key to note that both of these approaches make significant improvements to the timestamps you might get from the original Whisper implementation or other implementations such as WhisperX.
 - Enabling `speaker_diarization` returns speaker IDs for each word in the transcript. This is useful if you want to know who said what.
-- Enabling `speed_boost` will use smaller models with either decoding approach. This is useful if you want to get results faster and don't mind sacrificing some accuracy.
+- Enabling `speed_boost` will use smaller versions of Whisper with either decoding approach. This is useful if you want to get results faster and don't mind sacrificing some accuracy.
+- `initial_prompt` basically allows you to include uncommon words that might appear in your audio. This is useful if you want to improve the accuracy and spelling on these types of words.
 
 ## Languages
-We support 99 total languages. You may enter a language code into the `language` parameter in case you know the language of the original audio already. If you don't know the language of the original audio, you may leave the `language` parameter blank and we will automatically detect the language of the original audio. If you want to see the full list of supported languages, you may refer to the table below.
+Whisper supports 99 total languages. You may enter a language code into the `language` parameter in case you know the language of the original audio already. If you don't know the language of the original audio, you may leave the `language` parameter blank and Whisper will automatically detect the language of the original audio. If you want to see the full list of supported languages, you may refer to the table below.
 
  - `en` (English)
  - `zh` (Chinese)

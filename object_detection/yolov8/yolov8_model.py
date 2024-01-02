@@ -26,12 +26,23 @@ class YOLOv8:
 
         self.model = YOLO('yolov8l.pt')
 
-    def __predict__(self, file: sieve.File, confidence_threshold: float = 0.5, classes: int = -1):
+    def __predict__(
+            self,
+            file: sieve.File,
+            confidence_threshold: float = 0.5,
+            classes: int = -1,
+            start_frame: int = 0,
+            end_frame: int = -1,
+            fps: int = -1,
+        ):
         """
         :param file: Image or video file. If video, a generator is returned with the results for each frame.
         :param confidence_threshold: Confidence threshold for the predictions.
         :param return_visualization: Whether to return the visualization of the results.
         :param classes: The class that should be detected. There are 80 classes to choose from for detections (see README). Entering -1 for the classes parameter detects all of them. To detect any one, you can enter the corresponding class number as input for classes.
+        :param start_frame: The frame number to start processing from. Defaults to 0.
+        :param end_frame: The frame number to stop processing at. Defaults to -1, which means the end of the video.
+        :param fps: The fps to process the video at. Defaults to -1, which means the original fps of the video. If the specified fps is higher than the original fps, the original fps is used.
         :return: A dictionary with the results.
         """
         import cv2
@@ -45,18 +56,32 @@ class YOLOv8:
         if file_extension in video_extensions:
             video_path = file.path
             cap = cv2.VideoCapture(video_path)
-            count = 0
+            original_fps = cap.get(cv2.CAP_PROP_FPS)
+            if fps == -1 or fps > original_fps:
+                fps = original_fps
+                skip_frames = 1
+            else:
+                skip_frames = int(original_fps / fps)
+
+            if end_frame == -1:
+                end_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) - 1
+            else:
+                end_frame = min(end_frame, int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) - 1)
+
+            count = start_frame
             start_time = time.time()
             while True:
+                if skip_frames != 1:
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, count)
                 ret, frame = cap.read()
-                if ret:
+                if ret and count <= end_frame:
                     if classes == -1:
                         results = self.model(frame)
                     else:
                         results = self.model(frame, classes=classes)
                     results_dict = self.__process_results__(results)
                     results_dict["frame_number"] = count
-                    count += 1
+                    count += skip_frames
                     # Filter results based on confidence threshold
                     results_dict["boxes"] = [box for box in results_dict["boxes"] if box["confidence"] > confidence_threshold]
                     yield results_dict
@@ -65,7 +90,7 @@ class YOLOv8:
 
             cap.release()
             end_time = time.time()
-            fps = count / (end_time - start_time)
+            fps = (count / skip_frames) / (end_time - start_time)
             print(f"Processing FPS: {fps}")
         elif file_extension in image_extensions:
             image_path = file.path

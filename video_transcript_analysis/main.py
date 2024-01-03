@@ -90,7 +90,7 @@ def analyze_transcript(
     # count segments with low confidence
     num_low_confidence_segments = sum([1 for confidence in average_confidence_per_segment if confidence < 0.5])
 
-    text = " ".join([word["word"] for segment in transcript for word in segment["words"]])
+    text = "".join([word["word"] for segment in transcript for word in segment["words"]])
     yield {"text": text, "language_code": language_code, "media_length_seconds": video_length}
     yield {"transcript": transcript}
 

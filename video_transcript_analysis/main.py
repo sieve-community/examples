@@ -78,16 +78,25 @@ def analyze_transcript(
     language_code = transcript[0]["language_code"]
     # flatten transcript into single list. right now it is a list of list of segments
     print("speech to text finished")
-    text = " ".join([segment["text"] for segment in transcript]).strip()
-    yield {"text": text, "language_code": language_code, "media_length_seconds": video_length}
 
     transcript = [segment["segments"] for segment in transcript]
     transcript = [item for sublist in transcript for item in sublist]
+    average_confidence_per_segment = []
+    for segment in transcript:
+        average_confidence_per_segment.append(
+            sum([word["confidence"] for word in segment["words"]]) / len(segment["words"])
+        )
+    
+    # count segments with low confidence
+    num_low_confidence_segments = sum([1 for confidence in average_confidence_per_segment if confidence < 0.5])
+
+    text = " ".join([word["word"] for segment in transcript for word in segment["words"]])
+    yield {"text": text, "language_code": language_code, "media_length_seconds": video_length}
     yield {"transcript": transcript}
 
-    if len(text.split(" ")) < 15:
-        yield {"summary": "No summary available. Video is too short or has no audio."}
-        yield {"title": "No title available. Video is too short or has no audio."}
+    if len(text.split(" ")) < 15 or num_low_confidence_segments > 0.25 * len(transcript):
+        yield {"summary": "No summary available. Video is too short, has no audio, or has too many low confidence segments."}
+        yield {"title": "No title available. Video is too short, has no audio, or has too many low confidence segments."}
         yield {"tags": []}
         if generate_chapters:
             yield {"chapters": []}

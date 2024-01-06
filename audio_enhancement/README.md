@@ -11,5 +11,5 @@ To use this function, you need to call the `enhance_audio` function with the fol
 
 * `audio`: An audio input (mp3 and wav supported)
 * `filter_type`: Task to perform, one of ["upsample", "noise", "all"]
-* `enhancement_steps`: Number of enhancement steps applied to the audio between 10 and 150. Higher values may improve quality but will take longer to process. Defaults to 50. Only applicable if `enhance_speed_boost` is False.
-* `enhance_speed_boost`: If True, use a faster but less accurate model for audio enhancement. Defaults to False.
+* `enhancement_steps`: Number of enhancement steps applied to the audio between 10 and 150. Higher values may improve quality but will take longer to process. Defaults to 50. Only applicable if `speed_boost` is False.
+* `enhance_speed_boost`: If True, use a faster but more experimental model for audio enhancement. Depending on the type of audio files you're processing, it may work better at times. Defaults to False.

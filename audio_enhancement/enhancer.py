@@ -5,7 +5,7 @@ valid_tasks = ["upsample", "noise", "all"]
 
 metadata = sieve.Metadata(
     title="Audio Enhancer",
-    description="Remove background noise from audio and upsample to 48kHz.",
+    description="Remove background noise from audio and upsample it.",
     code_url="https://github.com/sieve-community/examples/tree/main/audio_enhancement",
     image=sieve.Image(
         url="https://storage.googleapis.com/sieve-public-data/audio_noise_reduction/cover.png"
@@ -16,13 +16,13 @@ metadata = sieve.Metadata(
 
 
 @sieve.function(name="audio_enhancement", metadata=metadata)
-def enhance_audio(audio: sieve.Audio, filter_type: str = "all", enhance_speed_boost: bool = False, enhancement_steps: int = 50) -> sieve.Audio:
+def enhance_audio(audio: sieve.Audio, filter_type: str = "all", speed_boost: bool = False, enhancement_steps: int = 50) -> sieve.Audio:
     '''
     :param audio: An audio input (mp3 and wav supported)
     :param filter_type: Task to perform, one of ["upsample", "noise", "all"]
     :param enhancement_steps: Number of enhancement steps applied to the audio between 10 and 150. Higher values may improve quality but will take longer to process. Defaults to 50. Only applicable if enhance_speed_boost is False.
-    :param enhance_speed_boost: If True, use a faster but less accurate model for audio enhancement. Defaults to False.
-    :return: Enhanced + denoised audio
+    :param speed_boost: If True, use a faster, more experimental model for audio enhancement. Defaults to False.
+    :return: enhanced + denoised audio
     '''
     audio_format = audio.path.split('.')[-1]
     if audio_format not in ['mp3', 'wav']:
@@ -32,8 +32,8 @@ def enhance_audio(audio: sieve.Audio, filter_type: str = "all", enhance_speed_bo
     if task not in valid_tasks:
         raise ValueError(f"Task must be one of {valid_tasks}")
 
-    if enhance_speed_boost:
-        enhancement_model = "hifi_gan_plus"
+    if speed_boost:
+        enhancement_model = "resemble-enhance"
     else:
         enhancement_model = "audiosr"
     
@@ -41,12 +41,12 @@ def enhance_audio(audio: sieve.Audio, filter_type: str = "all", enhance_speed_bo
         print("Running both noise reduction and upsampling")
     else:
         print(f"Running {filter_type} task")
-    print("enhance_speed_boost:", enhance_speed_boost)
+    print("speed_boost:", speed_boost)
     print("enhancement_steps:", enhancement_steps)
     print("-"*50)
 
     enhance_func = sieve.function.get(f"sieve/{enhancement_model}")
-    denoise_func = sieve.function.get("sieve/deepfilternet_v2")
+    denoise_func = sieve.function.get("sieve/resemble-enhance")
 
     if task == "upsample":
         print("Running upsampling task")
@@ -54,7 +54,7 @@ def enhance_audio(audio: sieve.Audio, filter_type: str = "all", enhance_speed_bo
         if enhancement_model == "audiosr":
             val = enhance_func.run(audio, enhancement_steps)
         else:
-            val = enhance_func.run(audio)
+            val = enhance_func.run(audio, process="enhance", cfm_func_evals=100)
         duration = time.time() - duration
         print(f"Audio upsampled to 48kHz in {duration} seconds")
         print("-"*50)
@@ -62,7 +62,7 @@ def enhance_audio(audio: sieve.Audio, filter_type: str = "all", enhance_speed_bo
     elif task == "noise":
         print("Running noise reduction task")
         duration = time.time()
-        val = denoise_func.run(audio)
+        val = denoise_func.run(audio, process="denoise", cfm_func_evals=100)
         duration = time.time() - duration
         print(f"Audio denoised in {duration} seconds")
         print("-"*50)
@@ -73,14 +73,14 @@ def enhance_audio(audio: sieve.Audio, filter_type: str = "all", enhance_speed_bo
     if enhancement_model == "audiosr":
         enhanced = enhance_func.run(audio, enhancement_steps)
     else:
-        enhanced = enhance_func.run(audio)
+        enhanced = enhance_func.run(audio, process="enhance", cfm_func_evals=100)
     duration = time.time() - duration
     print(f"Audio upsampled to 48kHz in {duration} seconds")
     print("-"*50)
 
     print("Running noise reduction task")
     duration = time.time()
-    denoised = denoise_func.run(enhanced)
+    denoised = denoise_func.run(enhanced, process="denoise", cfm_func_evals=100)
     duration = time.time() - duration
     print(f"Audio denoised in {duration} seconds")
     print("-"*50)

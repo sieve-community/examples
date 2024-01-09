@@ -69,6 +69,7 @@ class YOLOv8:
                 end_frame = min(end_frame, int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) - 1)
 
             count = start_frame
+            cap.set(cv2.CAP_PROP_POS_FRAMES, count)
             start_time = time.time()
             while True:
                 if skip_frames != 1:

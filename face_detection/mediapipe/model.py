@@ -51,6 +51,7 @@ class FaceDetector:
         ) -> List[BoundingBox]:
         """
         :param file: Image or video file. If video, a generator is returned with the results for each frame.
+        :param confidence_threshold: Confidence threshold for the predictions.
         :param start_frame: The frame number to start processing from. Defaults to 0.
         :param end_frame: The frame number to stop processing at. Defaults to -1, which means the end of the video.
         :param fps: The fps to process the video at. Defaults to -1, which means the original fps of the video. If the specified fps is higher than the original fps, the original fps is used.

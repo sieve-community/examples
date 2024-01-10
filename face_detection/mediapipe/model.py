@@ -36,13 +36,15 @@ class FaceDetector:
         import mediapipe as mp
 
         self.mp_face_detection = mp.solutions.face_detection
+        self.confidence_threshold = 0.5
         self.face_detection = self.mp_face_detection.FaceDetection(
-            min_detection_confidence=0.5
+            min_detection_confidence=self.confidence_threshold
         )
 
     def __predict__(
             self, 
-            file: sieve.File, 
+            file: sieve.File,
+            confidence_threshold: float = 0.5,
             start_frame: int = 0, 
             end_frame: int = -1, 
             fps: int = -1
@@ -57,6 +59,12 @@ class FaceDetector:
         import cv2
         import os
         import time
+
+        if confidence_threshold != self.confidence_threshold:
+            self.confidence_threshold = confidence_threshold
+            self.face_detection = self.mp_face_detection.FaceDetection(
+                min_detection_confidence=self.confidence_threshold
+            )
 
         video_extensions = ['mp4', 'avi', 'mov', 'flv']
         image_extensions = ['jpg', 'jpeg', 'png', 'bmp', 'tiff']

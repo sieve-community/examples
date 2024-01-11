@@ -19,18 +19,24 @@ metadata = sieve.Metadata(
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
     python_version="3.10",
     metadata=metadata,
+    run_commands=[
+        "mkdir -p /root/.models/",
+        "wget -O /root/.models/yolov8l-face.pt https://github.com/akanametov/yolov8-face/releases/download/v0.0.0/yolov8l-face.pt"
+    ]
 )
 class YOLOv8:
     def __setup__(self):
         from ultralytics import YOLO
 
         self.model = YOLO('yolov8l.pt')
+        self.face_model = YOLO("/root/.models/yolov8l-face.pt")
 
     def __predict__(
             self,
             file: sieve.File,
             confidence_threshold: float = 0.5,
             classes: int = -1,
+            face_detection: bool = False,
             start_frame: int = 0,
             end_frame: int = -1,
             fps: int = -1,
@@ -40,6 +46,7 @@ class YOLOv8:
         :param confidence_threshold: Confidence threshold for the predictions.
         :param return_visualization: Whether to return the visualization of the results.
         :param classes: The class that should be detected. There are 80 classes to choose from for detections (see README). Entering -1 for the classes parameter detects all of them. To detect any one, you can enter the corresponding class number as input for classes.
+        :param face_detection: Whether to use the finetuned face detection only version of YOLOv8.
         :param start_frame: The frame number to start processing from. Defaults to 0.
         :param end_frame: The frame number to stop processing at. Defaults to -1, which means the end of the video.
         :param fps: The fps to process the video at. Defaults to -1, which means the original fps of the video. If the specified fps is higher than the original fps, the original fps is used.
@@ -51,6 +58,8 @@ class YOLOv8:
 
         video_extensions = ["mp4", "avi", "mov", "flv"]
         image_extensions = ["jpg", "jpeg", "png", "bmp", "tiff"]
+
+        model_to_use = self.model if not face_detection else self.face_model
 
         file_extension = os.path.splitext(file.path)[1][1:]
         if file_extension in video_extensions:
@@ -77,10 +86,10 @@ class YOLOv8:
                 ret, frame = cap.read()
                 if ret and count <= end_frame:
                     if classes == -1:
-                        results = self.model(frame)
+                        results = model_to_use(frame)
                     else:
-                        results = self.model(frame, classes=classes)
-                    results_dict = self.__process_results__(results)
+                        results = model_to_use(frame, classes=classes)
+                    results_dict = self.__process_results__(results, face_detection=face_detection)
                     results_dict["frame_number"] = count
                     count += skip_frames
                     # Filter results based on confidence threshold
@@ -96,10 +105,10 @@ class YOLOv8:
         elif file_extension in image_extensions:
             image_path = file.path
             if classes == -1:
-                results = self.model(image_path)
+                results = model_to_use(image_path)
             else:
-                results = self.model(image_path, classes=classes)
-            results_dict = self.__process_results__(results)
+                results = model_to_use(image_path, classes=classes)
+            results_dict = self.__process_results__(results, face_detection=face_detection)
 
             # Filter results based on confidence threshold
             results_dict["boxes"] = [
@@ -114,7 +123,7 @@ class YOLOv8:
                 f"Unsupported file extension: {file_extension}. Supported extensions are {video_extensions + image_extensions}"
             )
 
-    def __process_results__(self, results) -> dict:
+    def __process_results__(self, results, face_detection=False) -> dict:
         results_dict = {
             "boxes": [],
         }
@@ -134,7 +143,7 @@ class YOLOv8:
                     "confidence": box.conf.cpu().numpy().tolist()[0],
                     "class_number": box.cls.cpu().numpy().tolist()[0],
                 }
-                box_info["class_name"] = self.model.names[box_info["class_number"]]
+                box_info["class_name"] = self.model.names[box_info["class_number"]] if not face_detection else "face"
                 results_dict["boxes"].append(box_info)
 
         return results_dict

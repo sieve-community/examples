@@ -36,18 +36,36 @@ class FaceDetector:
         import mediapipe as mp
 
         self.mp_face_detection = mp.solutions.face_detection
+        self.confidence_threshold = 0.5
         self.face_detection = self.mp_face_detection.FaceDetection(
-            min_detection_confidence=0.5
+            min_detection_confidence=self.confidence_threshold
         )
 
-    def __predict__(self, file: sieve.File) -> List[BoundingBox]:
+    def __predict__(
+            self, 
+            file: sieve.File,
+            confidence_threshold: float = 0.5,
+            start_frame: int = 0, 
+            end_frame: int = -1, 
+            fps: int = -1
+        ) -> List[BoundingBox]:
         """
-        :param image: Image to detect faces in
-        :return: List of faces with their bounding boxes, classes, and scores
+        :param file: Image or video file. If video, a generator is returned with the results for each frame.
+        :param confidence_threshold: Confidence threshold for the predictions.
+        :param start_frame: The frame number to start processing from. Defaults to 0.
+        :param end_frame: The frame number to stop processing at. Defaults to -1, which means the end of the video.
+        :param fps: The fps to process the video at. Defaults to -1, which means the original fps of the video. If the specified fps is higher than the original fps, the original fps is used.
+        :return: A dictionary with the results.
         """
         import cv2
         import os
         import time
+
+        if confidence_threshold != self.confidence_threshold:
+            self.confidence_threshold = confidence_threshold
+            self.face_detection = self.mp_face_detection.FaceDetection(
+                min_detection_confidence=self.confidence_threshold
+            )
 
         video_extensions = ['mp4', 'avi', 'mov', 'flv']
         image_extensions = ['jpg', 'jpeg', 'png', 'bmp', 'tiff']
@@ -101,11 +119,27 @@ class FaceDetector:
         if file_extension in video_extensions:
             video_path = file.path
             cap = cv2.VideoCapture(video_path)
-            count = 0
+            original_fps = cap.get(cv2.CAP_PROP_FPS)
+            if fps == -1 or fps > original_fps:
+                fps = original_fps
+                skip_frames = 1
+            else:
+                skip_frames = int(original_fps / fps)
+
+            if end_frame == -1:
+                end_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) - 1
+            else:
+                end_frame = min(end_frame, int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) - 1)
+
+            count = start_frame
+            if count != 0:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, count)
             start_time = time.time()
             while True:
+                if skip_frames != 1:
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, count)
                 ret, frame = cap.read()
-                if ret:
+                if ret and count <= end_frame:
                     results = process_frame(frame)
                     if results:
                         yield {
@@ -117,13 +151,13 @@ class FaceDetector:
                             "frame_number": count,
                             "boxes": []
                         }
-                    count += 1
+                    count += skip_frames
                 else:
                     break
 
             cap.release()
             end_time = time.time()
-            fps = count / (end_time - start_time)
+            fps = (count / skip_frames) / (end_time - start_time)
             print(f"Processing FPS: {fps}")
 
         elif file_extension in image_extensions:

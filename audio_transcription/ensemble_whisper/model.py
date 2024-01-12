@@ -154,10 +154,10 @@ class Whisper:
         full_text = ""
         for segment in result["segments"]:
             new_segment = {}
-            new_segment["start"] = segment["start"] + start_time
-            new_segment["end"] = segment["end"] + start_time
+            new_segment["start"] = float(segment["start"] + start_time)
+            new_segment["end"] = float(segment["end"] + start_time)
             new_segment["text"] = segment["text"]
-            new_segment["confidence"] = segment["confidence"]
+            new_segment["confidence"] = float(segment["confidence"])
             if "speaker" in segment:
                 new_segment["speaker"] = segment["speaker"]
             
@@ -169,11 +169,11 @@ class Whisper:
                     if "speaker" in word:
                         new_word["speaker"] = word["speaker"]
                     if "start" in word:
-                        new_word["start"] = word["start"] + start_time
+                        new_word["start"] = float(word["start"] + start_time)
                     if "end" in word:
-                        new_word["end"] = word["end"] + start_time
+                        new_word["end"] = float(word["end"] + start_time)
                     if "confidence" in word:
-                        new_word["confidence"] = word["confidence"]
+                        new_word["confidence"] = float(word["confidence"])
                     new_word["word"] = word["text"]
                     new_segment["words"].append(new_word)
 
@@ -276,8 +276,8 @@ class Whisper:
 
         for segment in result["segments"]:
             new_segment = {}
-            new_segment["start"] = segment["start"] + start_time
-            new_segment["end"] = segment["end"] + start_time
+            new_segment["start"] = float(segment["start"] + start_time)
+            new_segment["end"] = float(segment["end"] + start_time)
             new_segment["text"] = segment["text"]
             if "speaker" in segment:
                 new_segment["speaker"] = segment["speaker"]
@@ -290,11 +290,11 @@ class Whisper:
                     if "speaker" in word:
                         new_word["speaker"] = word["speaker"]
                     if "start" in word:
-                        new_word["start"] = word["start"] + start_time
+                        new_word["start"] = float(word["start"] + start_time)
                     if "end" in word:
-                        new_word["end"] = word["end"] + start_time
+                        new_word["end"] = float(word["end"] + start_time)
                     if "probability" in word:
-                        new_word["confidence"] = word["probability"]
+                        new_word["confidence"] = float(word["probability"])
                     new_word["word"] = word["word"]
                     new_segment["words"].append(new_word)
 

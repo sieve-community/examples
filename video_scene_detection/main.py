@@ -18,6 +18,8 @@ class Scene(BaseModel):
     start_timecode: str
     end_timecode: str
     scene_number: int
+    start_frame: int
+    end_frame: int
 
 @sieve.function(
     name="pyscenedetect",
@@ -70,6 +72,8 @@ def scene_detection(video: sieve.Video, threshold: float = 27.0) -> Scene:
             scene_number=i + 1,
             start_timecode=scene[0].get_timecode(),
             end_timecode=scene[1].get_timecode(),
+            start_frame=scene[0].get_frames(),
+            end_frame=scene[1].get_frames()
         ).dict()
 
     video_manager.release()

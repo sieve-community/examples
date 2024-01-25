@@ -55,6 +55,11 @@ class YOLOv8:
         import cv2
         import os
         import time
+        import torch
+
+        # Check if CUDA is available
+        if not torch.cuda.is_available():
+            raise Exception("No CUDA devices are visible. Please check your CUDA setup.")
 
         video_extensions = ["mp4", "avi", "mov", "flv"]
         image_extensions = ["jpg", "jpeg", "png", "bmp", "tiff"]

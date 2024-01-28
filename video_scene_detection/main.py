@@ -31,7 +31,7 @@ class Scene(BaseModel):
     metadata=model_metadata,
 )
 def scene_detection(
-    video: sieve.Video,
+    video: sieve.File,
     threshold: float = 27.0,
     adaptive_threshold: bool = False,
 ) -> Scene:
@@ -45,6 +45,11 @@ def scene_detection(
     from scenedetect.detectors import ContentDetector, AdaptiveDetector
     from scenedetect.scene_manager import SceneManager
     from scenedetect.video_manager import VideoManager
+
+    import cv2
+    cap = cv2.VideoCapture(video.path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    cap.release()
 
     video_manager = VideoManager([video.path])
     scene_manager = SceneManager()
@@ -72,8 +77,8 @@ def scene_detection(
             )
         )
 
-        start_time_in_seconds = scene[0].get_frames() / video.fps
-        end_time_in_seconds = scene[1].get_frames() / video.fps
+        start_time_in_seconds = scene[0].get_frames() / fps
+        end_time_in_seconds = scene[1].get_frames() / fps
         yield Scene(
             start_seconds=start_time_in_seconds,
             end_seconds=end_time_in_seconds,

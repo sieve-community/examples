@@ -35,7 +35,7 @@ class Segment(BaseModel):
     python_packages=[
         "torch==2.0",
         "torchaudio==2.0.0",
-        "git+https://github.com/m-bain/whisperx.git@e9c507ce5dea0f93318746411c03fed0926b70be",
+        "git+https://github.com/m-bain/whisperx.git",
     ],
     cuda_version="11.8",
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
@@ -93,14 +93,22 @@ class Whisper:
         audio_np = np.zeros((32000 * 30), dtype=np.float32)
         self.model.transcribe(audio_np, batch_size=4)
 
-        self.model_a, self.metadata = whisperx.load_align_model(
-            language_code="en", device="cuda"
-        )
+        self.models = {}
+        self.get_model_for_language("en", "cuda")
 
         self.diarize_model = sieve.function.get("sieve/pyannote-diarization")
 
         self.setup_time = time.time() - start_time
         self.first_time = True
+    
+    def get_model_for_language(self, language_code, device):
+        import whisperx
+        if language_code not in self.models:
+            # If model for the language is not in dictionary, then load it
+            model, metadata = whisperx.load_align_model(language_code=language_code, device=device)
+            self.models[language_code] = {"model": model, "metadata": metadata}
+        # Return the model and metadata (whether it was just loaded or fetched from the dictionary)
+        return self.models[language_code]["model"], self.models[language_code]["metadata"]
 
     def load_audio(self, fp: str, start=None, end=None, sr: int = 16000):
         import ffmpeg
@@ -146,6 +154,7 @@ class Whisper:
         language: str = "",
         diarize_min_speakers: int = -1,
         diarize_max_speakers: int = -1,
+        align_only: str = "",
         batch_size: int = 32,
     ) -> List:
         """
@@ -160,6 +169,7 @@ class Whisper:
         :param language: Language code of the audio (defaults to English), faster inference if the language is known.
         :param diarize_min_speakers: Minimum number of speakers to detect. If set to -1, the number of speakers is automatically detected.
         :param diarize_max_speakers: Maximum number of speakers to detect. If set to -1, the number of speakers is automatically detected.
+        :param align_only: A stringified json list of segments to align. Must specify language code. If set, the model will only align the segments provided.
         :param batch_size: Batch size for inference. Defaults to 32.
         :return: a list of segments, each with a start time, end time, and text
         """
@@ -209,6 +219,29 @@ class Whisper:
                 )
         print("load_time: ", time.time() - t)
 
+        if align_only:
+            if not language:
+                raise ValueError("Must specify language code when align_only is set")
+            # convert string to json list
+            import json
+            align_only = json.loads(align_only)
+            # just align the segments provided
+            import whisperx
+            model_a, metadata = self.get_model_for_language(language_code=language, device="cuda")
+            result = whisperx.align(
+                align_only, model_a, metadata, audio_np, "cuda"
+            )
+
+            full_text = ""
+            for segment in result["segments"]:
+                full_text += segment["text"] + " "
+
+            return {
+                "text": full_text.strip(),
+                "language_code": language,
+                "segments": result["segments"],
+            }
+
         process_time = time.time()
         if speed_boost:
             result = self.model_medium.transcribe(audio_np, batch_size=batch_size, language=language)
@@ -219,8 +252,10 @@ class Whisper:
         import whisperx
 
         if word_level_timestamps:
+            language = result["language"]
+            model_a, metadata = self.get_model_for_language(language_code=language, device="cuda")
             result_aligned = whisperx.align(
-                result["segments"], self.model_a, self.metadata, audio_np, "cuda"
+                result["segments"], model_a, metadata, audio_np, "cuda"
             )
 
             print("align_time: ", time.time() - process_time)

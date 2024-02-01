@@ -365,7 +365,8 @@ class Whisper:
         :param compute_word_confidence: Only applicable when `decode_boost` is enabled. Whether to compute word confidence. If True, a finer confidence for each segment will be computed as well.
         :return: a list of segments, each with a start time, end time, and text
         """
-
+        if initial_prompt == "":
+            initial_prompt = None
         if not decode_boost:
             from language_maps import TO_LANGUAGE_CODE
             output = self.__stable_predict__(audio, word_level_timestamps, speaker_diarization, speed_boost, start_time, end_time, initial_prompt, language, diarize_min_speakers, diarize_max_speakers)

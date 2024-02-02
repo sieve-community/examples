@@ -79,6 +79,18 @@ class Whisper:
             download_root="/root/.cache/models/",
         )
 
+        self.model_v2 = load_model(
+            "large-v2",
+            "cuda",
+            # language="en",
+            asr_options={
+                "initial_prompt": os.getenv("initial_prompt"),
+            },
+            vad_options={"model_fp": "/root/.cache/models/pytorch_model.bin"},
+            compute_type="int8",
+            download_root="/root/.cache/models/",
+        )
+
         self.model_medium = load_model(
             "base",
             "cuda",
@@ -147,6 +159,7 @@ class Whisper:
         word_level_timestamps: bool = True,
         speaker_diarization: bool = False,
         speed_boost: bool = False,
+        version: str = "large-v3",
         start_time: float = 0,
         end_time: float = -1,
         initial_prompt: str = "",
@@ -161,7 +174,8 @@ class Whisper:
         :param audio: an audio file
         :param word_level_timestamps: whether to return word-level timestamps
         :param speaker_diarization: whether to perform speaker diarization
-        :param speed_boost: whether to use the smaller, faster model (large-v3 vs base)
+        :param speed_boost: whether to use the smaller, faster model (large vs base)
+        :param version: The version of the model to use between large-v3 and large-v2. Defaults to large-v3. Only used if speed_boost is False.
         :param start_time: start time of the audio in seconds. Defaults to 0.
         :param end_time: end time of the audio in seconds. Defaults to -1 (end of audio).
         :param initial_prompt: A prompt to correct misspellings and style.
@@ -246,7 +260,10 @@ class Whisper:
         if speed_boost:
             result = self.model_medium.transcribe(audio_np, batch_size=batch_size, language=language)
         else:
-            result = self.model.transcribe(audio_np, batch_size=batch_size, language=language)
+            if version == "large-v3":
+                result = self.model.transcribe(audio_np, batch_size=batch_size, language=language)
+            elif version == "large-v2":
+                result = self.model_v2.transcribe(audio_np, batch_size=batch_size, language=language)
         print("transcribe_time: ", time.time() - process_time)
         process_time = time.time()
         import whisperx

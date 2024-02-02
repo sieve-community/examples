@@ -1,10 +1,18 @@
-# yolov8l
+# yolov8
 
 Ultralytics YOLOv8, the latest version of the acclaimed real-time object detection model.
 
 ![example image](https://user-images.githubusercontent.com/26833433/243418624-5785cb93-74c9-4541-9179-d5c6782d491a.png)
 
 Check out the original repo [here](https://github.com/ultralytics/ultralytics).
+
+## Supported Models
+We support the following YOLOv8 models:
+- `yolov8l`: YOLOv8-Large
+- `yolov8n`: YOLOv8-Nano
+- `yolov8l-face`: YOLOv8-Large trained on the WIDER FACE dataset
+- `yolov8n-face`: YOLOv8-Nano trained on the WIDER FACE dataset
+- `yolov8l-pose`: YOLOv8-Large trained on the COCO dataset for human pose estimation
 
 ## Output Format
 

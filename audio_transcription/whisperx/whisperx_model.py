@@ -70,10 +70,6 @@ class Whisper:
         self.model = load_model(
             "large-v3",
             "cuda",
-            # language="en",
-            asr_options={
-                "initial_prompt": os.getenv("initial_prompt"),
-            },
             vad_options={"model_fp": "/root/.cache/models/pytorch_model.bin"},
             compute_type="int8",
             download_root="/root/.cache/models/",
@@ -82,10 +78,6 @@ class Whisper:
         self.model_v2 = load_model(
             "large-v2",
             "cuda",
-            # language="en",
-            asr_options={
-                "initial_prompt": os.getenv("initial_prompt"),
-            },
             vad_options={"model_fp": "/root/.cache/models/pytorch_model.bin"},
             compute_type="int8",
             download_root="/root/.cache/models/",
@@ -94,10 +86,6 @@ class Whisper:
         self.model_medium = load_model(
             "base",
             "cuda",
-            # language="en",
-            asr_options={
-                "initial_prompt": os.getenv("initial_prompt"),
-            },
             vad_options={"model_fp": "/root/.cache/models/pytorch_model.bin"},
             compute_type="int8"
         )
@@ -191,11 +179,13 @@ class Whisper:
         overall_time = time.time()
         import faster_whisper
 
+        if initial_prompt == "":
+            initial_prompt = None
+
         new_asr_options = self.model.options._asdict()
         new_asr_options["initial_prompt"] = initial_prompt
         new_asr_options["prefix"] = prefix
         new_options = faster_whisper.transcribe.TranscriptionOptions(**new_asr_options)
-        self.model.options = new_options
 
         if self.first_time:
             print("first_time_setup: ", self.setup_time)
@@ -258,11 +248,14 @@ class Whisper:
 
         process_time = time.time()
         if speed_boost:
+            self.model_medium.options = new_options
             result = self.model_medium.transcribe(audio_np, batch_size=batch_size, language=language)
         else:
             if version == "large-v3":
+                self.model.options = new_options
                 result = self.model.transcribe(audio_np, batch_size=batch_size, language=language)
             elif version == "large-v2":
+                self.model_v2.options = new_options
                 result = self.model_v2.transcribe(audio_np, batch_size=batch_size, language=language)
         print("transcribe_time: ", time.time() - process_time)
         process_time = time.time()

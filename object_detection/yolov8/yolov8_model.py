@@ -23,7 +23,8 @@ metadata = sieve.Metadata(
         "mkdir -p /root/.models/",
         "wget -O /root/.models/yolov8l-face.pt https://github.com/akanametov/yolov8-face/releases/download/v0.0.0/yolov8l-face.pt",
         "wget -O /root/.models/yolov8n-face.pt https://github.com/akanametov/yolov8-face/releases/download/v0.0.0/yolov8n-face.pt",
-        "pip install decord"
+        "pip install decord",
+        "pip install 'imageio[ffmpeg]'"
     ]
 )
 class YOLOv8:
@@ -103,33 +104,62 @@ class YOLOv8:
             cap = cv2.VideoCapture(video_path)
             original_fps = cap.get(cv2.CAP_PROP_FPS)
             num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            cap.release()
             if fps == -1 or fps > original_fps:
                 fps = original_fps
-                skip_frames = 1
-            else:
-                skip_frames = int(original_fps / fps)
-
+                
             if end_frame == -1:
                 end_frame = int(num_frames) - 1
             else:
                 end_frame = min(end_frame, int(num_frames) - 1)
 
-            count = start_frame
-            cap.set(cv2.CAP_PROP_POS_FRAMES, count)
-            num_frames_to_process = int((end_frame - start_frame) / skip_frames) + 1
             start_time = time.time()
             outputs = []
-            while True:
-                if skip_frames != 1:
-                    cap.set(cv2.CAP_PROP_POS_FRAMES, count)
-                ret, frame = cap.read()
-                if ret and count <= end_frame:
+
+            frames_number_to_read = []
+            for i in range(int(end_frame - start_frame) + 1):
+                frame_number = int(start_frame + i * (original_fps / fps))
+                if start_frame <= frame_number < end_frame:
+                    frames_number_to_read.append(frame_number)
+
+            if end_frame not in frames_number_to_read:
+                frames_number_to_read.append(end_frame)
+            
+            t = time.time()
+            import imageio
+            cap = imageio.get_reader(file.path)
+            current_frame_number = start_frame
+            if start_frame != 0:
+                cap.set_image_index(start_frame)
+            print(f"load & seek time: {round(time.time() - t, 2)}s")
+            current_frame = cap.get_next_data()
+            for p in frames_number_to_read:
+                frame_to_process = None
+                if p == current_frame_number:
+                    frame_to_process = current_frame
+                    # convert the frame to RGB
+                    # frame_to_process = cv2.cvtColor(frame_to_process, cv2.COLOR_RGB2BGR)
+                else:
+                    new_frame_number = p
+                    if new_frame_number != current_frame_number + 1:
+                        # print(f"Seeking to frame {new_frame_number}")
+                        cap.set_image_index(new_frame_number)
+                    new_frame = cap.get_next_data()
+                    if new_frame is not None:
+                        current_frame_number = p
+                        current_frame = new_frame
+                        frame_to_process = current_frame
+                        # frame_to_process = cv2.cvtColor(frame_to_process, cv2.COLOR_RGB2BGR)
+                    else:
+                        break
+
+                if frame_to_process is not None:
                     combined_boxes = []
                     for x, model_to_use in enumerate(models_to_use):
                         if classes == -1:
-                            results = model_to_use(frame)
+                            results = model_to_use(frame_to_process)
                         else:
-                            results = model_to_use(frame, classes=classes)
+                            results = model_to_use(frame_to_process, classes=classes)
                         face_detection = "face" in models[x]
                         results_dict = self.__process_results__(results, face_detection=face_detection)
                         # Filter results based on confidence threshold
@@ -139,18 +169,14 @@ class YOLOv8:
                     if max_num_boxes != -1 and len(combined_boxes) > max_num_boxes:
                         combined_boxes = sorted(combined_boxes, key=lambda x: x["confidence"], reverse=True)[:max_num_boxes]
                     
-                    output_dict = {"frame_number": count, "boxes": combined_boxes}
+                    output_dict = {"frame_number": p, "boxes": combined_boxes}
                     outputs.append(output_dict)
-                    count += skip_frames
-                else:
-                    break
-                if count % 100 == 0:
-                    print(f"Processed {round((len(outputs) / num_frames_to_process * 100), 2)}% of frames ({len(outputs)} / {num_frames_to_process})")
 
-            # del vr
-            cap.release()
+                if len(outputs) % 100 == 0:
+                    print(f"Processed {round((len(outputs) / len(frames_number_to_read) * 100), 2)}% of frames ({len(outputs)} / {len(frames_number_to_read)})")
+            cap.close()
             end_time = time.time()
-            fps = (count / skip_frames) / (end_time - start_time)
+            fps = len(outputs) / (end_time - start_time)
             print(f"Processing FPS: {fps}")
             return outputs
         elif file_extension in image_extensions:

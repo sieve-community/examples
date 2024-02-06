@@ -144,7 +144,10 @@ class YOLOv8:
                     if new_frame_number != current_frame_number + 1:
                         # print(f"Seeking to frame {new_frame_number}")
                         cap.set_image_index(new_frame_number)
-                    new_frame = cap.get_next_data()
+                    try:
+                        new_frame = cap.get_next_data()
+                    except IndexError:
+                        break
                     if new_frame is not None:
                         current_frame_number = p
                         current_frame = new_frame

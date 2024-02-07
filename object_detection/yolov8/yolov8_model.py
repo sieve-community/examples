@@ -185,11 +185,12 @@ class YOLOv8:
         elif file_extension in image_extensions:
             image_path = file.path
             combined_boxes = []
-            for model_to_use in models_to_use:
+            for x, model_to_use in enumerate(models_to_use):
                 if classes == -1:
                     results = model_to_use(image_path)
                 else:
                     results = model_to_use(image_path, classes=classes)
+                face_detection = "face" in models[x]
                 results_dict = self.__process_results__(results, face_detection=face_detection)
 
                 # Filter results based on confidence threshold

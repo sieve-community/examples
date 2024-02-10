@@ -45,6 +45,7 @@ class Segment(BaseModel):
         "wget -c 'https://whisperx.s3.eu-west-2.amazonaws.com/model_weights/segmentation/0b5b3216d60a2d32fc086b47ea8c67589aaeb26b7e07fcbe620d6d0b83e209ea/pytorch_model.bin' -P /root/.cache/models/",
         'python -c \'from faster_whisper.utils import download_model; download_model("large-v3", cache_dir="/root/.cache/models/")\'',
         'python -c \'from faster_whisper.utils import download_model; download_model("base", cache_dir="/root/.cache/models/")\'',
+        'python -c \'from faster_whisper.utils import download_model; download_model("large-v2", cache_dir="/root/.cache/models/")\'',
         "mkdir -p /root/.cache/torch/",
         "mkdir -p /root/.cache/torch/hub/",
         "mkdir -p /root/.cache/torch/hub/checkpoints/",
@@ -87,7 +88,8 @@ class Whisper:
             "base",
             "cuda",
             vad_options={"model_fp": "/root/.cache/models/pytorch_model.bin"},
-            compute_type="int8"
+            compute_type="int8",
+            download_root="/root/.cache/models/",
         )
         # Pass in a dummy audio to warm up the model
         audio_np = np.zeros((32000 * 30), dtype=np.float32)

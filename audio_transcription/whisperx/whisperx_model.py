@@ -181,6 +181,12 @@ class Whisper:
         overall_time = time.time()
         import faster_whisper
 
+        if language == "":
+            language = None
+
+        if prefix == "":
+            prefix = None
+
         if initial_prompt == "":
             initial_prompt = None
 

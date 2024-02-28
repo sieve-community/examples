@@ -12,7 +12,8 @@ We support the following YOLOv8 models:
 - `yolov8n`: YOLOv8-Nano
 - `yolov8l-face`: YOLOv8-Large trained on the WIDER FACE dataset
 - `yolov8n-face`: YOLOv8-Nano trained on the WIDER FACE dataset
-- `yolov8l-pose`: YOLOv8-Large trained on the COCO dataset for human pose estimation
+- `yolov8l-world`: YOLOv8-Large used for open-vocabulary object detection (specify any object you want to detect)
+- `yolov8s-world`: YOLOv8-Small used for open-vocabulary object detection (specify any object you want to detect)
 
 ## Output Format
 
@@ -51,8 +52,9 @@ The model returns a dictionary with the following structure:
 Each box in the "boxes" array represents a detected object. The fields "x1", "y1", "x2", "y2" represent the coordinates of the top left and bottom right corners of the bounding box respectively. The "width" and "height" fields represent the width and height of the bounding box. The "confidence" field represents the confidence score of the detection. The "class_number" and "class_name" fields represent the class of the detected object.
 
 ## Classes
+If you are using the `yolov8l-world` or `yolov8s-world` models, you can specify any object you want to detect using the `classes` parameter.
 
-There are 80 classes to choose from for detections. Entering `-1` for the `classes` parameter detects all of them. To detect any one, you can enter the corresponding class number as input for `classes`. These are the possible detection classes:
+Otherwise, there are 80 classes to choose from for detections. These are the possible detection classes:
 ```python
 "classes": {
   0: "person",

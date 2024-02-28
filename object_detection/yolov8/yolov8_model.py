@@ -1,7 +1,7 @@
 import sieve
 
 metadata = sieve.Metadata(
-    description="Ultralytics YOLOv8, the latest version of the acclaimed real-time object detection model.",
+    description="YOLOv8 real-time object detection model with COCO, face, and world variants.",
     code_url="https://github.com/sieve-community/examples/blob/main/object_detection/yolov8",
     tags=["Image", "Object", "Detection"],
     image=sieve.Image(
@@ -13,7 +13,7 @@ metadata = sieve.Metadata(
 
 @sieve.Model(
     name="yolov8",
-    gpu=True,
+    gpu=sieve.gpu.T4(split=2),
     python_packages=["ultralytics", "torch==1.13.1", "torchvision==0.14.1"],
     cuda_version="11.7.1",
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
@@ -24,7 +24,8 @@ metadata = sieve.Metadata(
         "wget -O /root/.models/yolov8l-face.pt https://github.com/akanametov/yolov8-face/releases/download/v0.0.0/yolov8l-face.pt",
         "wget -O /root/.models/yolov8n-face.pt https://github.com/akanametov/yolov8-face/releases/download/v0.0.0/yolov8n-face.pt",
         "pip install decord",
-        "pip install 'imageio[ffmpeg]'"
+        "pip install 'imageio[ffmpeg]'",
+        "pip install --upgrade ultralytics",
     ]
 )
 class YOLOv8:
@@ -33,15 +34,16 @@ class YOLOv8:
 
         self.model = YOLO('yolov8l.pt')
         self.fast_model = YOLO('yolov8n.pt')
-        self.pose_model = YOLO('yolov8l-pose.pt')
         self.face_model = YOLO("/root/.models/yolov8l-face.pt")
         self.face_fast_model = YOLO("/root/.models/yolov8n-face.pt")
+        self.world_model = YOLO('yolov8l-world.pt')
+        self.world_fast_model = YOLO('yolov8s-world.pt')
 
     def __predict__(
             self,
             file: sieve.File,
-            confidence_threshold: float = 0.5,
-            classes: int = -1,
+            confidence_threshold: float = 0.05,
+            classes: str = "person, bicycle, car, motorcycle, airplane, bus, train, truck, boat, traffic light, fire hydrant, stop sign, parking meter, bench, bird, cat, dog, horse, sheep, cow, elephant, bear, zebra, giraffe, backpack, umbrella, handbag, tie, suitcase, frisbee, skis, snowboard, sports ball, kite, baseball bat, baseball glove, skateboard, surfboard, tennis racket, bottle, wine glass, cup, fork, knife, spoon, bowl, banana, apple, sandwich, orange, broccoli, carrot, hot dog, pizza, donut, cake, chair, couch, potted plant, bed, dining table, toilet, tv, laptop, mouse, remote, keyboard, cell phone, microwave, oven, toaster, sink, refrigerator, book, clock, vase, scissors, teddy bear, hair drier, toothbrush",
             models: str = "yolov8l",
             start_frame: int = 0,
             end_frame: int = -1,
@@ -52,8 +54,8 @@ class YOLOv8:
         :param file: Image or video file.
         :param confidence_threshold: Confidence threshold for the predictions.
         :param return_visualization: Whether to return the visualization of the results.
-        :param classes: The class that should be detected. There are 80 classes to choose from for detections (see README). Entering -1 for the classes parameter detects all of them. To detect any one, you can enter the corresponding class number as input for classes.
-        :param models: The models to use for inference. The models are specified as a comma-separated string. The supported models are yolov8l, yolov8n, yolov8l-pose, yolov8l-face, and yolov8n-face. The default model is yolov8l. If multiple models are specified, the results from all the models are combined.
+        :param classes: The classes to use for inference. The classes are specified as a comma-separated string. Only applicable if the model is yolov8l-world or yolov8s-world which support natural language prompts. The default classes are the COCO classes.
+        :param models: The models to use for inference. The models are specified as a comma-separated string. The supported models are yolov8l, yolov8n, yolov8l-face, yolov8n-face, yolov8l-world, and yolov8s-world. The default model is yolov8l. If multiple models are specified, the results from all the models are combined.
         :param start_frame: The frame number to start processing from. Defaults to 0.
         :param end_frame: The frame number to stop processing at. Defaults to -1, which means the end of the video.
         :param speed_boost: Whether to use the faster version of YOLOv8. This is less accurate but faster.
@@ -77,6 +79,11 @@ class YOLOv8:
         # split the models string by comma and remove any whitespace
         models = [model.strip() for model in models.split(",")]
         models_to_use = []
+
+        def process_categories(categories):
+            categories = categories.split(",")
+            categories = [category.strip() for category in categories]
+            return categories + [" "]
         # remove any duplicate models
         models = list(set(models))
         for model in models:
@@ -86,15 +93,19 @@ class YOLOv8:
                 models_to_use.append(self.model)
             elif model == "yolov8n":
                 models_to_use.append(self.fast_model)
-            elif model == "yolov8l-pose":
-                models_to_use.append(self.pose_model)
             elif model == "yolov8l-face":
                 models_to_use.append(self.face_model)
             elif model == "yolov8n-face":
                 models_to_use.append(self.face_fast_model)
+            elif model == "yolov8l-world":
+                models_to_use.append(self.world_model)
+                self.world_model.set_classes(process_categories(classes))
+            elif model == "yolov8s-world":
+                models_to_use.append(self.world_fast_model)
+                self.world_fast_model.set_classes(process_categories(classes))
             else:
                 raise ValueError(
-                    f"Unsupported model: {model}. Supported models are yolov8l, yolov8n, yolov8l-pose, yolov8l-face, and yolov8n-face."
+                    f"Unsupported model: {model}. Supported models are yolov8l, yolov8n, yolov8l-face, yolov8n-face, yolov8l-world, and yolov8s-world"
                 )
 
         file_extension = os.path.splitext(file.path)[1][1:]
@@ -129,10 +140,14 @@ class YOLOv8:
             import imageio
             cap = imageio.get_reader(file.path)
             current_frame_number = start_frame
-            if start_frame != 0:
-                cap.set_image_index(start_frame)
-            print(f"load & seek time: {round(time.time() - t, 2)}s")
-            current_frame = cap.get_next_data()
+            try:
+                if start_frame != 0:
+                    cap.set_image_index(start_frame)
+                print(f"load & seek time: {round(time.time() - t, 2)}s")
+                current_frame = cap.get_next_data()
+                current_frame = cv2.cvtColor(current_frame, cv2.COLOR_RGB2BGR)
+            except IndexError:
+                return [{"frame_number": current_frame_number, "boxes": []}]
             for p in frames_number_to_read:
                 frame_to_process = None
                 if p == current_frame_number:
@@ -159,12 +174,8 @@ class YOLOv8:
                 if frame_to_process is not None:
                     combined_boxes = []
                     for x, model_to_use in enumerate(models_to_use):
-                        if classes == -1:
-                            results = model_to_use(frame_to_process)
-                        else:
-                            results = model_to_use(frame_to_process, classes=classes)
-                        face_detection = "face" in models[x]
-                        results_dict = self.__process_results__(results, face_detection=face_detection)
+                        results = model_to_use.predict(frame_to_process, conf=confidence_threshold)
+                        results_dict = self.__process_results__(results, model_to_use)
                         # Filter results based on confidence threshold
                         results_dict["boxes"] = [box for box in results_dict["boxes"] if box["confidence"] > confidence_threshold]
                         combined_boxes.extend(results_dict["boxes"])
@@ -186,12 +197,8 @@ class YOLOv8:
             image_path = file.path
             combined_boxes = []
             for x, model_to_use in enumerate(models_to_use):
-                if classes == -1:
-                    results = model_to_use(image_path)
-                else:
-                    results = model_to_use(image_path, classes=classes)
-                face_detection = "face" in models[x]
-                results_dict = self.__process_results__(results, face_detection=face_detection)
+                results = model_to_use.predict(image_path, conf=confidence_threshold)
+                results_dict = self.__process_results__(results, model_to_use)
 
                 # Filter results based on confidence threshold
                 results_dict["boxes"] = [
@@ -207,7 +214,7 @@ class YOLOv8:
                 f"Unsupported file extension: {file_extension}. Supported extensions are {video_extensions + image_extensions}"
             )
 
-    def __process_results__(self, results, face_detection=False) -> dict:
+    def __process_results__(self, results, model_to_use) -> dict:
         results_dict = {
             "boxes": [],
         }
@@ -227,7 +234,7 @@ class YOLOv8:
                     "confidence": float(box.conf.cpu().numpy().tolist()[0]),
                     "class_number": int(box.cls.cpu().numpy().tolist()[0]),
                 }
-                box_info["class_name"] = self.model.names[box_info["class_number"]] if not face_detection else "face"
+                box_info["class_name"] = model_to_use.names[box_info["class_number"]]
                 results_dict["boxes"].append(box_info)
 
         return results_dict

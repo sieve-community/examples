@@ -25,7 +25,7 @@ metadata = sieve.Metadata(
         "wget -O /root/.models/yolov8n-face.pt https://github.com/akanametov/yolov8-face/releases/download/v0.0.0/yolov8n-face.pt",
         "pip install decord",
         "pip install 'imageio[ffmpeg]'",
-        "pip install --upgrade ultralytics",
+        "pip install git+https://github.com/ultralytics/ultralytics.git@29dc1a3987eb8aa2d55d067daffdd26d14929020",
     ]
 )
 class YOLOv8:
@@ -35,9 +35,11 @@ class YOLOv8:
         self.model = YOLO('yolov8l.pt')
         self.fast_model = YOLO('yolov8n.pt')
         self.face_model = YOLO("/root/.models/yolov8l-face.pt")
-        self.face_fast_model = YOLO("/root/.models/yolov8n-face.pt")
-        self.world_model = YOLO('yolov8l-world.pt')
-        self.world_fast_model = YOLO('yolov8s-world.pt')
+        self.face_fast_model = self.face_model
+        self.world_model = YOLO('yolov8l-worldv2.pt')
+        self.world_fast_model = YOLO('yolov8s-worldv2.pt')
+        self.current_world_classes = None
+        self.current_world_fast_classes = None
 
     def __predict__(
             self,
@@ -99,10 +101,16 @@ class YOLOv8:
                 models_to_use.append(self.face_fast_model)
             elif model == "yolov8l-world":
                 models_to_use.append(self.world_model)
-                self.world_model.set_classes(process_categories(classes))
+                new_classes = process_categories(classes)
+                if self.current_world_classes != new_classes:
+                    self.current_world_classes = new_classes
+                    self.world_model.set_classes(new_classes)
             elif model == "yolov8s-world":
                 models_to_use.append(self.world_fast_model)
-                self.world_fast_model.set_classes(process_categories(classes))
+                new_classes = process_categories(classes)
+                if self.current_world_fast_classes != new_classes:
+                    self.current_world_fast_classes = new_classes
+                    self.world_fast_model.set_classes(new_classes)
             else:
                 raise ValueError(
                     f"Unsupported model: {model}. Supported models are yolov8l, yolov8n, yolov8l-face, yolov8n-face, yolov8l-world, and yolov8s-world"
@@ -153,7 +161,7 @@ class YOLOv8:
                 if p == current_frame_number:
                     frame_to_process = current_frame
                     # convert the frame to RGB
-                    # frame_to_process = cv2.cvtColor(frame_to_process, cv2.COLOR_RGB2BGR)
+                    frame_to_process = cv2.cvtColor(frame_to_process, cv2.COLOR_RGB2BGR)
                 else:
                     new_frame_number = p
                     if new_frame_number != current_frame_number + 1:

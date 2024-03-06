@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 import os
 
 API_KEY = os.getenv("OPENAI_API_KEY")
-if API_KEY is None:
+if API_KEY is None or API_KEY == "":
     raise Exception("OPENAI_API_KEY environment variable not set")
 
 def add_timecodes_to_chapters(chapters):

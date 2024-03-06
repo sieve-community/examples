@@ -51,7 +51,7 @@ async def description_runner(
     gpt_json = GPTJSON[DescriptionSchema](api_key=API_KEY, model="gpt-3.5-turbo-16k")
     text = text = " ".join([segment["text"] for segment in transcript])
 
-    max_num_tokens = 10000
+    max_num_tokens = 7000
     max_num_words = 3 * (max_num_tokens / 4)
 
     if text.count(" ") > max_num_words:
@@ -208,7 +208,7 @@ async def chapter_runner(transcript):
         [f"{segment['start_time']}: {segment['text']}" for segment in segment_info]
     )
 
-    max_num_tokens = 10000
+    max_num_tokens = 7000
     max_num_words = 3 * (max_num_tokens / 4)
     if segments_str.count(" ") > max_num_words:
         print("splitting transcript into multiple messages due to length")

@@ -3,9 +3,11 @@ from gpt_json import GPTJSON, GPTMessage, GPTMessageRole, GPTModelVersion
 from pydantic import BaseModel, Field
 import os
 
-API_KEY = os.getenv("OPENAI_API_KEY")
-if API_KEY is None or API_KEY == "":
-    raise Exception("OPENAI_API_KEY environment variable not set")
+def get_api_key():
+    API_KEY = os.getenv("OPENAI_API_KEY")
+    if API_KEY is None or API_KEY == "":
+        raise Exception("OPENAI_API_KEY environment variable not set")
+    return API_KEY
 
 def add_timecodes_to_chapters(chapters):
     chapters = [chapter.dict() for chapter in chapters]
@@ -48,7 +50,7 @@ async def description_runner(
     {json_schema}
     """
 
-    gpt_json = GPTJSON[DescriptionSchema](api_key=API_KEY, model="gpt-3.5-turbo-16k")
+    gpt_json = GPTJSON[DescriptionSchema](api_key=get_api_key(), model="gpt-3.5-turbo-16k")
     text = text = " ".join([segment["text"] for segment in transcript])
 
     max_num_tokens = 7000
@@ -193,7 +195,7 @@ async def chapter_runner(transcript):
     - start_time: start time of the chapter as a float in seconds
     """
 
-    gpt_json = GPTJSON[ChaptersSchema](api_key=API_KEY, model="gpt-3.5-turbo-16k")
+    gpt_json = GPTJSON[ChaptersSchema](api_key=get_api_key(), model="gpt-3.5-turbo-16k")
     text = " ".join([segment["text"] for segment in transcript])
     segment_info = [
         {

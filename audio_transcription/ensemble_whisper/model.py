@@ -16,16 +16,17 @@ metadata = sieve.Metadata(
     name="whisper",
     gpu="l4",
     python_packages=[
+        "openai-whisper==20230314",
         "torch==1.13.1",
         "torchaudio==0.13.1",
         "git+https://github.com/linto-ai/whisper-timestamped",
-        "git+https://github.com/jianfch/stable-ts.git",
     ],
-    cuda_version="11.8",
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],
     python_version="3.8",
     run_commands=[
-        "pip install onnxruntime",
+        "pip install tqdm",
+        "pip install git+https://github.com/jianfch/stable-ts.git --no-deps",
+        "pip install onnxruntime==1.15.0",
         "pip install transformers",
         "pip install faster-whisper",
         "python -c 'import stable_whisper as whisper; model = whisper.load_faster_whisper(\"large-v3\", device=\"cpu\")'",
@@ -98,6 +99,9 @@ class Whisper:
         language: str = "",
         diarize_min_speakers: int = -1,
         diarize_max_speakers: int = -1,
+        detect_disfluencies: bool = True,
+        compute_word_confidence=False,
+        vad=False,
     ):
         import time
         overall_time = time.time()
@@ -145,19 +149,20 @@ class Whisper:
         import whisper_timestamped as whisper
 
         if speed_boost:
-            result = whisper.transcribe_timestamped(self.timestamped_model_base, audio_np, language=language, initial_prompt=initial_prompt, detect_disfluencies=True)
+            result = whisper.transcribe_timestamped(self.timestamped_model_base, audio_np, language=language, initial_prompt=initial_prompt, detect_disfluencies=detect_disfluencies, compute_word_confidence=compute_word_confidence, vad=vad)
         else:
-            result = whisper.transcribe_timestamped(self.timestamped_model, audio_np, language=language, initial_prompt=initial_prompt, detect_disfluencies=True)
+            result = whisper.transcribe_timestamped(self.timestamped_model, audio_np, language=language, initial_prompt=initial_prompt, detect_disfluencies=detect_disfluencies, compute_word_confidence=compute_word_confidence, vad=vad)
         print(f"transcribe: {time.time() - t}")
 
         out_segments = []
         full_text = ""
         for segment in result["segments"]:
             new_segment = {}
-            new_segment["start"] = segment["start"] + start_time
-            new_segment["end"] = segment["end"] + start_time
+            new_segment["start"] = float(segment["start"] + start_time)
+            new_segment["end"] = float(segment["end"] + start_time)
             new_segment["text"] = segment["text"]
-            new_segment["confidence"] = segment["confidence"]
+            if "confidence" in segment:
+                new_segment["confidence"] = float(segment["confidence"])
             if "speaker" in segment:
                 new_segment["speaker"] = segment["speaker"]
             
@@ -169,11 +174,11 @@ class Whisper:
                     if "speaker" in word:
                         new_word["speaker"] = word["speaker"]
                     if "start" in word:
-                        new_word["start"] = word["start"] + start_time
+                        new_word["start"] = float(word["start"] + start_time)
                     if "end" in word:
-                        new_word["end"] = word["end"] + start_time
+                        new_word["end"] = float(word["end"] + start_time)
                     if "confidence" in word:
-                        new_word["confidence"] = word["confidence"]
+                        new_word["confidence"] = float(word["confidence"])
                     new_word["word"] = word["text"]
                     new_segment["words"].append(new_word)
 
@@ -276,8 +281,8 @@ class Whisper:
 
         for segment in result["segments"]:
             new_segment = {}
-            new_segment["start"] = segment["start"] + start_time
-            new_segment["end"] = segment["end"] + start_time
+            new_segment["start"] = float(segment["start"] + start_time)
+            new_segment["end"] = float(segment["end"] + start_time)
             new_segment["text"] = segment["text"]
             if "speaker" in segment:
                 new_segment["speaker"] = segment["speaker"]
@@ -290,11 +295,11 @@ class Whisper:
                     if "speaker" in word:
                         new_word["speaker"] = word["speaker"]
                     if "start" in word:
-                        new_word["start"] = word["start"] + start_time
+                        new_word["start"] = float(word["start"] + start_time)
                     if "end" in word:
-                        new_word["end"] = word["end"] + start_time
+                        new_word["end"] = float(word["end"] + start_time)
                     if "probability" in word:
-                        new_word["confidence"] = word["probability"]
+                        new_word["confidence"] = float(word["probability"])
                     new_word["word"] = word["word"]
                     new_segment["words"].append(new_word)
 
@@ -338,6 +343,9 @@ class Whisper:
         language: str = "",
         diarize_min_speakers: int = -1,
         diarize_max_speakers: int = -1,
+        detect_disfluencies: bool = True,
+        vad: bool = False,
+        compute_word_confidence: bool = True,
     ):
         """
         :param audio: an audio file
@@ -352,13 +360,17 @@ class Whisper:
         :param language: Language code of the audio (auto-detects if left blank), faster inference if the language is known.
         :param diarize_min_speakers: Minimum number of speakers to detect. If set to -1, the number of speakers is automatically detected.
         :param diarize_max_speakers: Maximum number of speakers to detect. If set to -1, the number of speakers is automatically detected.
+        :param detect_disfluencies: Only applicable when `decode_boost` is enabled. Whether to detect disfluencies (i.e. hesitations, filler words, repetitions, corrections, etc.) that Whisper model might have omitted in the transcription. This should make the word timestamp prediction more accurate. And probable disfluencies will be marked as special words "[*]".
+        :param vad: Only applicable when `decode_boost` is enabled. Whether to perform voice activity detection (VAD) on the audio file, to remove silent parts before transcribing with Whisper model. This should decrease hallucinations from the Whisper model.
+        :param compute_word_confidence: Only applicable when `decode_boost` is enabled. Whether to compute word confidence. If True, a finer confidence for each segment will be computed as well.
         :return: a list of segments, each with a start time, end time, and text
         """
-
+        if initial_prompt == "":
+            initial_prompt = None
         if not decode_boost:
             from language_maps import TO_LANGUAGE_CODE
             output = self.__stable_predict__(audio, word_level_timestamps, speaker_diarization, speed_boost, start_time, end_time, initial_prompt, language, diarize_min_speakers, diarize_max_speakers)
             output["language_code"] = TO_LANGUAGE_CODE[output["language_code"]]
             return output
         else:
-            return self.__timestamped_predict__(audio, word_level_timestamps, speaker_diarization, speed_boost, start_time, end_time, initial_prompt, language, diarize_min_speakers, diarize_max_speakers)
+            return self.__timestamped_predict__(audio, word_level_timestamps, speaker_diarization, speed_boost, start_time, end_time, initial_prompt, language, diarize_min_speakers, diarize_max_speakers, detect_disfluencies=detect_disfluencies, compute_word_confidence=compute_word_confidence, vad=vad)

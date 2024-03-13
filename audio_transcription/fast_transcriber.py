@@ -58,6 +58,9 @@ def audio_split_by_silence(
     import requests
     import subprocess
 
+    if source_language == "auto":
+        source_language = ""
+
     # Do diarization if specified
     if speaker_diarization:
         pyannote = sieve.function.get("sieve/pyannote-diarization")

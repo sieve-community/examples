@@ -14,7 +14,7 @@ model_metadata = sieve.Metadata(
 ### Text 2 Text
 @sieve.Model(
     name="seamless_text2text",
-    gpu=sieve.gpu.T4(),
+    gpu=sieve.gpu.L4(),
     python_packages=["git+https://github.com/facebookresearch/seamless_communication@711707abb077efcec664888290904700c8f7b680"],
     system_packages=[
         "libsndfile1",

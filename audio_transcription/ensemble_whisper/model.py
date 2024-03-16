@@ -29,7 +29,7 @@ metadata = sieve.Metadata(
         "pip install onnxruntime==1.15.0",
         "pip install transformers",
         "pip install faster-whisper",
-        "python -c 'import stable_whisper as whisper; model = whisper.load_faster_whisper(\"large-v3\", device=\"cpu\")'",
+        "python -c 'import stable_whisper as whisper; model = whisper.load_faster_whisper(\"large-v2\", device=\"cpu\")'",
         "python -c 'import stable_whisper as whisper; model = whisper.load_faster_whisper(\"base\", device=\"cpu\")'",
         "pip install python-dotenv",
         "python -c 'import whisper_timestamped as whisper; model = whisper.load_model(\"large-v2\", device=\"cpu\")'",
@@ -47,7 +47,7 @@ class Whisper:
         self.timestamped_model_base = whisper.load_model("base", device="cuda")
 
         import stable_whisper
-        self.stable_model = stable_whisper.load_faster_whisper('large-v3', device="cuda")
+        self.stable_model = stable_whisper.load_faster_whisper('large-v2', device="cuda")
         self.stable_model_base = stable_whisper.load_faster_whisper('base', device="cuda")
 
         self.diarize_model = sieve.function.get("sieve/pyannote-diarization")
@@ -367,10 +367,17 @@ class Whisper:
         """
         if initial_prompt == "":
             initial_prompt = None
-        if not decode_boost:
-            from language_maps import TO_LANGUAGE_CODE
-            output = self.__stable_predict__(audio, word_level_timestamps, speaker_diarization, speed_boost, start_time, end_time, initial_prompt, language, diarize_min_speakers, diarize_max_speakers)
-            output["language_code"] = TO_LANGUAGE_CODE[output["language_code"]]
-            return output
-        else:
-            return self.__timestamped_predict__(audio, word_level_timestamps, speaker_diarization, speed_boost, start_time, end_time, initial_prompt, language, diarize_min_speakers, diarize_max_speakers, detect_disfluencies=detect_disfluencies, compute_word_confidence=compute_word_confidence, vad=vad)
+        try:
+            if not decode_boost:
+                from language_maps import TO_LANGUAGE_CODE
+                output = self.__stable_predict__(audio, word_level_timestamps, speaker_diarization, speed_boost, start_time, end_time, initial_prompt, language, diarize_min_speakers, diarize_max_speakers)
+                output["language_code"] = TO_LANGUAGE_CODE[output["language_code"]]
+                return output
+            else:
+                return self.__timestamped_predict__(audio, word_level_timestamps, speaker_diarization, speed_boost, start_time, end_time, initial_prompt, language, diarize_min_speakers, diarize_max_speakers, detect_disfluencies=detect_disfluencies, compute_word_confidence=compute_word_confidence, vad=vad)
+        except RuntimeError:
+                return {
+                "text": "",
+                "language_code": "",
+                "segments": []
+            }

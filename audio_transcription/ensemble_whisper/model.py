@@ -29,7 +29,7 @@ metadata = sieve.Metadata(
         "pip install onnxruntime==1.15.0",
         "pip install transformers",
         "pip install faster-whisper",
-        "python -c 'import stable_whisper as whisper; model = whisper.load_faster_whisper(\"large-v2\", device=\"cpu\")'",
+        "python -c 'import stable_whisper as whisper; model = whisper.load_faster_whisper(\"large-v3\", device=\"cpu\")'",
         "python -c 'import stable_whisper as whisper; model = whisper.load_faster_whisper(\"base\", device=\"cpu\")'",
         "pip install python-dotenv",
         "python -c 'import whisper_timestamped as whisper; model = whisper.load_model(\"large-v2\", device=\"cpu\")'",
@@ -47,7 +47,7 @@ class Whisper:
         self.timestamped_model_base = whisper.load_model("base", device="cuda")
 
         import stable_whisper
-        self.stable_model = stable_whisper.load_faster_whisper('large-v2', device="cuda")
+        self.stable_model = stable_whisper.load_faster_whisper('large-v3', device="cuda")
         self.stable_model_base = stable_whisper.load_faster_whisper('base', device="cuda")
 
         self.diarize_model = sieve.function.get("sieve/pyannote-diarization")

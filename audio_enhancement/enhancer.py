@@ -48,6 +48,19 @@ def enhance_audio(audio: sieve.Audio, filter_type: str = "all", speed_boost: boo
     enhance_func = sieve.function.get(f"sieve/{enhancement_model}")
     denoise_func = sieve.function.get("sieve/resemble-enhance")
 
+    # use resemble enhance for both tasks if speed_boost is True
+    if speed_boost and task == "all":
+        # enhancement steps could be between 10 and 150, scale that to be between 1 and 100
+        new_enhancement_steps = int(1 + (enhancement_steps - 10) * (99 / 140))
+        print("Running joint enhancement and denoising task")
+        duration = time.time()
+        enhance_func = sieve.function.get("sieve/resemble-enhance")
+        val = enhance_func.run(audio, process="enhance", cfm_func_evals=new_enhancement_steps)
+        duration = time.time() - duration
+        print(f"Audio enhanced and denoised in {duration} seconds")
+        print("-"*50)
+        return val
+
     if task == "upsample":
         print("Running upsampling task")
         duration = time.time()

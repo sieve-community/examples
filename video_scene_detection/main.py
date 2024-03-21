@@ -3,12 +3,13 @@ from pydantic import BaseModel
 from typing import List
 
 model_metadata = sieve.Metadata(
+    title="Detect Scenes in Video",
     description="Detect scene changes in a video with PySceneDetect.",
     code_url="https://github.com/sieve-community/examples/blob/main/video_scene_detection/",
     image=sieve.Image(
         url="https://raw.githubusercontent.com/Breakthrough/PySceneDetect/main/website/pages/img/pyscenedetect_logo_small.png"
     ),
-    tags=["Detection", "Video", "Featured"],
+    tags=["Detection", "Video", "Showcase"],
     readme=open("README.md", "r").read(),
 )
 

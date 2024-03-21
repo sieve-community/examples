@@ -1,12 +1,13 @@
 import sieve
 
 metadata = sieve.Metadata(
+    title="Text to Video Lipsync",
     description="Generate a video of a person speaking a given text using lipsyncing.",
     code_url="https://github.com/sieve-community/examples/blob/main/text_to_video_lipsync",
     image=sieve.Image(
         url="https://storage.googleapis.com/mango-public-models/dalle-lipsync-lego.png"
     ),
-    tags=["Audio", "Speech", "TTS", "Voice Cloning", "Video", "Lipsyncing", "Featured"],
+    tags=["Audio", "Speech", "TTS", "Voice Cloning", "Video", "Lipsyncing", "Showcase"],
     readme=open("README.md", "r").read(),
 )
 

@@ -4,13 +4,13 @@ import time
 valid_tasks = ["upsample", "noise", "all"]
 
 metadata = sieve.Metadata(
-    title="Audio Enhancer",
+    title="Enhance Audio",
     description="Remove background noise from audio and upsample it.",
     code_url="https://github.com/sieve-community/examples/tree/main/audio_enhancement",
     image=sieve.Image(
         url="https://storage.googleapis.com/sieve-public-data/audio_noise_reduction/cover.png"
     ),
-    tags=["Audio", "Speech", "Enhancement", "Featured"],
+    tags=["Audio", "Speech", "Enhancement", "Showcase"],
     readme=open("README.md", "r").read(),
 )
 

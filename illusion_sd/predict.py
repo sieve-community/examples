@@ -42,7 +42,6 @@ def resize_for_condition_image(input_image, width, height):
     return img
 
 metadata = sieve.Metadata(
-    title="Illusion Diffusion HQ",
     description="Controlnet with Stable Diffusion Realistic Vision",
     code_url="https://github.com/sieve-community/examples/tree/main/illusion_sd",
     image=sieve.Image(

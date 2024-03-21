@@ -1,13 +1,12 @@
 import sieve
 
 metadata = sieve.Metadata(
-    title="Video Background Remover",
     description="Remove background from image and video",
     code_url="https://github.com/sieve-community/examples/tree/main/background_removal",
     image=sieve.Image(
         url="https://github.com/xuebinqin/DIS/raw/main/figures/dis5k-v1-sailship.jpeg"
     ),
-    tags=["Video", "Background", "Removal", "Featured"],
+    tags=["Video", "Background", "Removal"],
     readme=open("README.md", "r").read(),
 )
 

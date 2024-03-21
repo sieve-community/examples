@@ -2,6 +2,7 @@ import sieve
 from language_maps import *
 
 metadata = sieve.Metadata(
+    title="Transcribe Speech",
     description="Fast, high quality speech transcription with word-level timestamps and translation capabilities",
     code_url="https://github.com/sieve-community/examples/tree/main/audio_transcription",
     image=sieve.Image(

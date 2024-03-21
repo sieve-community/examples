@@ -4,7 +4,6 @@ device = "cuda"
 solver = "midpoint"
 
 metadata = sieve.Metadata(
-    title="Resemble Enhance",
     description="Resemble Enhance is an AI-powered tool that aims to improve the overall quality of speech by performing denoising and enhancement",
     code_url="https://github.com/sieve-community/examples/tree/main/audio_enhancement/resemble-enhance",
     image = sieve.Image(

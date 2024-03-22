@@ -50,15 +50,3 @@ class ImageCaptioner:
         caption_ids = self.model.generate(image, max_length=64)[0]
         caption_text = self.clean_text(self.tokenizer.decode(caption_ids))
         return caption_text
-
-
-wf_metadata = sieve.Metadata(
-    title="Caption an Image",
-    description="Understand and generate captions for images.",
-    code_url="https://github.com/sieve-community/examples/tree/main/image_captioning/main.py",
-    image=sieve.Image(
-        url="https://storage.googleapis.com/sieve-public-data/image_captioning/cover.jpg"
-    ),
-    tags=["Generative", "Image"],
-    readme=open("README.md", "r").read(),
-)

@@ -75,45 +75,75 @@ class HeadSegmentationModel:
             fps = video.get(cv2.CAP_PROP_FPS)
             size = (frame_width, frame_height)
 
-            if os.path.exists("temp.mp4"):
-                os.remove("temp.mp4")
-            out = cv2.VideoWriter('temp.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, size)
-
             if debug_viz:
-                if os.path.exists("temp_viz.mp4"):
-                    os.remove("temp_viz.mp4")
-                out_viz = cv2.VideoWriter('temp_viz.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, size)
+                if os.path.exists("temp_viz.avi"):
+                    os.remove("temp_viz.avi")
+                out_viz = cv2.VideoWriter('temp_viz.avi', cv2.VideoWriter_fourcc(*'XVID'), fps, size)
 
+            masks_dir = "masks"
+
+            import shutil
+            shutil.rmtree(masks_dir, ignore_errors=True)
+            os.makedirs(masks_dir)
+
+            counter = 0
             while True:
-                ret, frame = video.read()
-                if not ret:
-                    break      
-                frame_image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-                vis_parsing_anno = self.get_parsing_anno(frame_image)
-                if debug_viz:
-                    vis_im = vis_parsing_maps(frame_image, vis_parsing_anno)
-                    out_viz.write(cv2.cvtColor(vis_im, cv2.COLOR_RGB2BGR))
+                import time
 
-                vis_parsing_anno_color = cv2.cvtColor(vis_parsing_anno, cv2.COLOR_GRAY2RGB)
-                out.write(vis_parsing_anno_color)
+                start_time = time.time()
+                ret, frame = video.read()
+                read_time = time.time() - start_time
+                print(f"Time taken to read frame: {read_time} seconds")
+
+                if not ret:
+                    break
+
+                start_time = time.time()
+                frame_image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                convert_time = time.time() - start_time
+                print(f"Time taken to convert frame to RGB: {convert_time} seconds")
+
+                start_time = time.time()
+                vis_parsing_anno = self.get_parsing_anno(frame_image)
+                parsing_time = time.time() - start_time
+                print(f"Time taken for parsing annotation: {parsing_time} seconds")
+
+                if debug_viz:
+                    start_time = time.time()
+                    vis_im = vis_parsing_maps(frame_image, vis_parsing_anno)
+                    viz_time = time.time() - start_time
+                    print(f"Time taken for visualization: {viz_time} seconds")
+
+                    start_time = time.time()
+                    out_viz.write(cv2.cvtColor(vis_im, cv2.COLOR_RGB2BGR))
+                    write_viz_time = time.time() - start_time
+                    print(f"Time taken to write visualization: {write_viz_time} seconds")
+
+                start_time = time.time()
+                cv2.imwrite(f"{masks_dir}/%06d.png" % counter, vis_parsing_anno)
+                write_mask_time = time.time() - start_time
+                print(f"Time taken to write mask: {write_mask_time} seconds")
+
+                counter +=1 
 
             import subprocess
 
             video.release()
-            out.release()
 
-            import subprocess
-            command = "ffmpeg -loglevel error -y -i temp.mp4 -c:v libx264 -crf 23 segmentation_map.mp4"
+            if os.path.exists('masks.zip'):
+                os.remove('masks.zip')
+
+            command = "zip -r masks.zip masks"
             subprocess.call(command, shell=True)
 
             if debug_viz:
                 out_viz.release()
-                command = "ffmpeg -loglevel error -y -i temp_viz.mp4 -c:v libx264 -crf 23 segmentation_map_viz.mp4"
+                command = "ffmpeg -loglevel error -y -i temp_viz.avi -c:v libx264 -qp 0 segmentation_map_viz.avi"
                 subprocess.call(command, shell=True)
 
-                return (sieve.File(path="segmentation_map.mp4"), sieve.File(path="segmentation_map_viz.mp4"))
+                return (sieve.File(path="masks.zip"), sieve.File(path="segmentation_map_viz.avi"))
 
-            return sieve.File(path="segmentation_map.mp4")
+            return sieve.File(path="masks.zip")
         else:
             image = Image.open(file.path)
             save_path = "save_path.jpg"
@@ -175,4 +205,4 @@ def vis_parsing_maps(im, vis_parsing_anno):
 
 if __name__ == "__main__":
     a = HeadSegmentationModel()
-    a.__predict__(sieve.File(path="/home/abhinav_ayalur_gmail_com/examples/head_segmentation/face_parsing/face-parsing.PyTorch/hdtr.mp4"), debug_viz=False)
+    a.__predict__(sieve.File(path="/home/abhinav_ayalur_gmail_com/examples/head_segmentation/face_parsing/hdtr.mp4"), debug_viz=False)

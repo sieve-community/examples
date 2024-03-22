@@ -5,12 +5,12 @@ from typing import Dict, List
 import tempfile
 
 metadata = sieve.Metadata(
-    title="Video Transcript Analysis",
+    title="Analyze Transcripts",
     description="Given a video or audio, generate a title, chapters, summary and tags",
     code_url="https://github.com/sieve-community/examples/tree/main/video_transcript_analysis/main.py",
     tags=["Video", "Featured", "Transcription"],
     image=sieve.Image(
-        url="https://www.tubebuddy.com/wp-content/uploads/2022/06/video-chapter-snippet-1024x674.png"
+        url="https://storage.googleapis.com/sieve-public-data/video_transcript_analyzer.jpg"
     ),
     readme=open("README.md", "r").read(),
 )
@@ -18,9 +18,9 @@ metadata = sieve.Metadata(
 
 @sieve.function(
     name="video_transcript_analyzer",
-    python_packages=["gpt-json", "numpy"],
+    python_packages=["gpt-json>=0.4.2", "numpy"],
     system_packages=["ffmpeg"],
-    python_version="3.10",
+    python_version="3.11",
     environment_variables=[
         sieve.Env(name="OPENAI_API_KEY", description="OpenAI API Key")
     ],

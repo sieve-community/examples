@@ -124,12 +124,18 @@ def clone_audio(
 
     shutil.rmtree(temp_dir)
 
+    if response.status_code != 200:
+        raise ValueError(f"Could not clone voice. API Response:\n {response.text}")
+    
+    if "voice_id" not in response.json():
+        raise ValueError(f"Could not clone voice. Please verify that you have not hit a limit on the number of voices you can create. API Response:\n {response.text}")
+
     try:
         return response.json()
     
     except Exception as e:
         print(response.text)
-        raise ValueError("Could not generate voice", response.text)
+        raise ValueError(f"Could not generate voice. API Response: {response.text}")
 
 synthesis_metadata = sieve.Metadata(
     description="Text to speech using ElevenLabs",
@@ -144,7 +150,7 @@ synthesis_metadata = sieve.Metadata(
 @sieve.function(
     name="elevenlabs_speech_synthesis",
     system_packages=["ffmpeg"],
-    environment_variables=[
+    environment_variables=[ 
         sieve.Env(name="ELEVEN_LABS_API_KEY", description="API key for ElevenLabs")
     ],
     metadata=synthesis_metadata

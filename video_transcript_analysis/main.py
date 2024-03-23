@@ -32,7 +32,7 @@ def analyze_transcript(
     max_title_length: int = 10,
     num_tags: int = 5,
     generate_chapters: bool = True,
-    denoise_audio: bool = False,
+    denoise_audio: bool = True,
 ):
     '''
     :param file: Video or audio file

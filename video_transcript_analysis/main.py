@@ -31,7 +31,8 @@ def analyze_transcript(
     max_summary_length: int = 5,
     max_title_length: int = 10,
     num_tags: int = 5,
-    generate_chapters: bool = True
+    generate_chapters: bool = True,
+    denoise_audio: bool = False,
 ):
     '''
     :param file: Video or audio file
@@ -39,6 +40,7 @@ def analyze_transcript(
     :param max_title_length: Maximum number of words in title. Defaults to 10.
     :param num_tags: Number of tags to generate. Defaults to 5.
     :param generate_chapters: Whether to generate chapters or not. Defaults to True.
+    :param denoise_audio: Whether to denoise audio before analysis. Results in better transcription but slower processing. Defaults to True.
     '''
     print("converting to audio")
     # video to audio
@@ -69,7 +71,7 @@ def analyze_transcript(
     # audio to text
     whisper = sieve.function.get("sieve/speech_transcriber")
     transcript = []
-    for transcript_chunk in whisper.run(sieve.File(path=audio_path)):
+    for transcript_chunk in whisper.run(sieve.File(path=audio_path), denoise_audio=denoise_audio):
         transcript.append(transcript_chunk)
         segments = transcript_chunk["segments"]
         if len(segments) > 0:

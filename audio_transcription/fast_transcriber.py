@@ -36,6 +36,7 @@ def audio_split_by_silence(
     min_silence_length: float = 0.8,
     min_segment_length: float = -1,
     chunks: str = "",
+    denoise_audio: bool = False,
 ):
     '''
     :param file: Audio file
@@ -50,6 +51,7 @@ def audio_split_by_silence(
     :param min_silence_length: Minimum length of silence in seconds to use for splitting audio for parallel processing. Defaults to 0.8.
     :param min_segment_length: Minimum length of audio segment in seconds to use for splitting audio for parallel processing. If set to -1, we pick a value based on your settings.
     :param chunks: A parameter to manually specify the start and end times of each chunk when splitting audio for parallel processing. If set to "", we use silence detection to split the audio. If set to a string formatted with a start and end second on each line, we use the specified chunks. Example: '0,10' and '10,20' on separate lines.
+    :param denoise_audio: Whether to apply denoising to the audio to get rid of background noise before transcription. Defaults to False.
     '''
     import os
     import sys
@@ -59,11 +61,20 @@ def audio_split_by_silence(
     import requests
     import subprocess
 
+    # denoise the audio if specified
+    if denoise_audio:
+        print("Denoising audio...")
+        denoiser = sieve.function.get("sieve/resemble-enhance")
+        denoised_file = denoiser.run(sieve.Audio(path=file.path), process="denoise")
+        file = denoised_file
+        print("Denoising complete.")
+
     if source_language == "auto":
         source_language = ""
 
     # Do diarization if specified
     if speaker_diarization:
+        print("Pushing speaker diarization job...")
         pyannote = sieve.function.get("sieve/pyannote-diarization")
         diarization_job = pyannote.push(
             sieve.File(path=file.path),

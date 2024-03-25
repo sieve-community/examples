@@ -2,7 +2,6 @@ import sieve
 from utils import *
 
 metadata = sieve.Metadata(
-    title="Generate Educational Animations with Manim",
     description="Generate educational and math animations from a text prompt using Manim.",
     code_url="https://github.com/sieve-community/examples/tree/main/animation/text-to-manim",
     image=sieve.Image(

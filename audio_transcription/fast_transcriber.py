@@ -6,7 +6,7 @@ metadata = sieve.Metadata(
     description="Fast, high quality speech transcription with word-level timestamps and translation capabilities",
     code_url="https://github.com/sieve-community/examples/tree/main/audio_transcription",
     image=sieve.Image(
-        path="logo-transcribe.webp"
+        url="https://storage.googleapis.com/sieve-public-data/logo-transcribe.webp"
     ),
     tags=["Audio", "Speech", "Transcription", "Featured"],
     readme=open("README.md", "r").read(),

@@ -143,6 +143,7 @@ class SpeechTranscriber:
         chunks: str = "",
         denoise_audio: bool = False,
         use_vad: bool = False,
+        initial_prompt: str = "",
     ):
         '''
         :param file: Audio file
@@ -159,6 +160,7 @@ class SpeechTranscriber:
         :param chunks: A parameter to manually specify the start and end times of each chunk when splitting audio for parallel processing. If set to "", we use silence detection to split the audio. If set to a string formatted with a start and end second on each line, we use the specified chunks. Example: '0,10' and '10,20' on separate lines.
         :param denoise_audio: Whether to apply denoising to the audio to get rid of background noise before transcription. Defaults to False.
         :param use_vad: Whether to use Silero VAD for splitting audio into segments. Defaults to False. More accurate than ffmpeg silence detection.
+        :param initial_prompt: A prompt to correct misspellings and style. Defaults to "".
         '''
         print("Starting transcription...")
         import subprocess
@@ -225,6 +227,7 @@ class SpeechTranscriber:
                 speed_boost=speed_boost,
                 start_time=start_time,
                 end_time=end_time,
+                initial_prompt=initial_prompt,
             )
             print(f"Took {time.time() - t:.2f} seconds to push segment from {start_time:.2f} to {end_time:.2f}")
             return whisper_job
@@ -256,7 +259,7 @@ class SpeechTranscriber:
                     "Invalid chunks format. Please provide a string formatted with a start and end second on each line. Example: '0,10\n10,20\n20,30'"
                 )
         if not segments:
-            segments.append(whisper.push(sieve.File(path=file.path), language=source_language, word_level_timestamps=word_level_timestamps, speed_boost=speed_boost, decode_boost=decode_boost))
+            segments.append(whisper.push(sieve.File(path=file.path), language=source_language, word_level_timestamps=word_level_timestamps, speed_boost=speed_boost, decode_boost=decode_boost, initial_prompt=initial_prompt))
 
         job_outputs = []
         for job in executor.map(process_segment, segments):

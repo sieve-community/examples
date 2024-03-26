@@ -142,7 +142,7 @@ class SpeechTranscriber:
         min_segment_length: float = -1,
         chunks: str = "",
         denoise_audio: bool = False,
-        use_vad: bool = True,
+        use_vad: bool = False,
     ):
         '''
         :param file: Audio file
@@ -158,13 +158,13 @@ class SpeechTranscriber:
         :param min_segment_length: Minimum length of audio segment in seconds to use for splitting audio for parallel processing. If set to -1, we pick a value based on your settings.
         :param chunks: A parameter to manually specify the start and end times of each chunk when splitting audio for parallel processing. If set to "", we use silence detection to split the audio. If set to a string formatted with a start and end second on each line, we use the specified chunks. Example: '0,10' and '10,20' on separate lines.
         :param denoise_audio: Whether to apply denoising to the audio to get rid of background noise before transcription. Defaults to False.
-        :param use_vad: Whether to use Silero VAD for splitting audio into segments. Defaults to True. More accurate than ffmpeg silence detection.
+        :param use_vad: Whether to use Silero VAD for splitting audio into segments. Defaults to False. More accurate than ffmpeg silence detection.
         '''
         print("Starting transcription...")
         import subprocess
 
         if use_vad:
-            # resample the audio to 16kHz
+            # create wav file
             new_audio_path = "file.wav"
             subprocess.run(["ffmpeg", "-y", "-i", file.path, new_audio_path])
             file = sieve.File(path=new_audio_path)

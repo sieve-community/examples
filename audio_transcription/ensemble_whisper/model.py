@@ -367,10 +367,17 @@ class Whisper:
         """
         if initial_prompt == "":
             initial_prompt = None
-        if not decode_boost:
-            from language_maps import TO_LANGUAGE_CODE
-            output = self.__stable_predict__(audio, word_level_timestamps, speaker_diarization, speed_boost, start_time, end_time, initial_prompt, language, diarize_min_speakers, diarize_max_speakers)
-            output["language_code"] = TO_LANGUAGE_CODE[output["language_code"]]
-            return output
-        else:
-            return self.__timestamped_predict__(audio, word_level_timestamps, speaker_diarization, speed_boost, start_time, end_time, initial_prompt, language, diarize_min_speakers, diarize_max_speakers, detect_disfluencies=detect_disfluencies, compute_word_confidence=compute_word_confidence, vad=vad)
+        try:
+            if not decode_boost:
+                from language_maps import TO_LANGUAGE_CODE
+                output = self.__stable_predict__(audio, word_level_timestamps, speaker_diarization, speed_boost, start_time, end_time, initial_prompt, language, diarize_min_speakers, diarize_max_speakers)
+                output["language_code"] = TO_LANGUAGE_CODE[output["language_code"]]
+                return output
+            else:
+                return self.__timestamped_predict__(audio, word_level_timestamps, speaker_diarization, speed_boost, start_time, end_time, initial_prompt, language, diarize_min_speakers, diarize_max_speakers, detect_disfluencies=detect_disfluencies, compute_word_confidence=compute_word_confidence, vad=vad)
+        except RuntimeError:
+                return {
+                "text": "",
+                "language_code": "",
+                "segments": []
+            }

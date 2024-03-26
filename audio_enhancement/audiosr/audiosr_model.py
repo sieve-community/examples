@@ -22,7 +22,7 @@ model_metadata = sieve.Metadata(
 
 @sieve.Model(
     name="audiosr",
-    gpu="a100",
+    gpu=sieve.gpu.L4(),
     python_packages=[
         "torch==1.13.1",
         "torchaudio",

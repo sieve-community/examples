@@ -5,12 +5,12 @@ from typing import Dict, List
 import tempfile
 
 metadata = sieve.Metadata(
-    title="Video Transcript Analysis",
+    title="Analyze Transcripts",
     description="Given a video or audio, generate a title, chapters, summary and tags",
     code_url="https://github.com/sieve-community/examples/tree/main/video_transcript_analysis/main.py",
     tags=["Video", "Featured", "Transcription"],
     image=sieve.Image(
-        url="https://www.tubebuddy.com/wp-content/uploads/2022/06/video-chapter-snippet-1024x674.png"
+        url="https://storage.googleapis.com/sieve-public-data/video_transcript_analyzer.jpg"
     ),
     readme=open("README.md", "r").read(),
 )
@@ -18,9 +18,9 @@ metadata = sieve.Metadata(
 
 @sieve.function(
     name="video_transcript_analyzer",
-    python_packages=["gpt-json", "numpy"],
+    python_packages=["gpt-json>=0.4.2", "numpy"],
     system_packages=["ffmpeg"],
-    python_version="3.10",
+    python_version="3.11",
     environment_variables=[
         sieve.Env(name="OPENAI_API_KEY", description="OpenAI API Key")
     ],
@@ -31,7 +31,8 @@ def analyze_transcript(
     max_summary_length: int = 5,
     max_title_length: int = 10,
     num_tags: int = 5,
-    generate_chapters: bool = True
+    generate_chapters: bool = True,
+    denoise_audio: bool = True,
 ):
     '''
     :param file: Video or audio file
@@ -39,6 +40,7 @@ def analyze_transcript(
     :param max_title_length: Maximum number of words in title. Defaults to 10.
     :param num_tags: Number of tags to generate. Defaults to 5.
     :param generate_chapters: Whether to generate chapters or not. Defaults to True.
+    :param denoise_audio: Whether to denoise audio before analysis. Results in better transcription but slower processing. Defaults to True.
     '''
     print("converting to audio")
     # video to audio
@@ -69,7 +71,7 @@ def analyze_transcript(
     # audio to text
     whisper = sieve.function.get("sieve/speech_transcriber")
     transcript = []
-    for transcript_chunk in whisper.run(sieve.File(path=audio_path)):
+    for transcript_chunk in whisper.run(sieve.File(path=audio_path), denoise_audio=denoise_audio):
         transcript.append(transcript_chunk)
         segments = transcript_chunk["segments"]
         if len(segments) > 0:

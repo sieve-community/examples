@@ -12,7 +12,7 @@ metadata = sieve.Metadata(
 @sieve.Model(
     name="xtts",
     metadata=metadata,
-    gpu=sieve.gpu.A100(split=4),
+    gpu=sieve.gpu.L4(),
     python_packages=[
         "git+https://github.com/coqui-ai/TTS.git@v0.21.2",
         "transformers",

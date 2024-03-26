@@ -4,13 +4,13 @@ import time
 valid_tasks = ["upsample", "noise", "all"]
 
 metadata = sieve.Metadata(
-    title="Audio Enhancer",
+    title="Enhance Audio",
     description="Remove background noise from audio and upsample it.",
     code_url="https://github.com/sieve-community/examples/tree/main/audio_enhancement",
     image=sieve.Image(
         url="https://storage.googleapis.com/sieve-public-data/audio_noise_reduction/cover.png"
     ),
-    tags=["Audio", "Speech", "Enhancement", "Featured"],
+    tags=["Audio", "Speech", "Enhancement", "Showcase"],
     readme=open("README.md", "r").read(),
 )
 
@@ -47,6 +47,19 @@ def enhance_audio(audio: sieve.Audio, filter_type: str = "all", speed_boost: boo
 
     enhance_func = sieve.function.get(f"sieve/{enhancement_model}")
     denoise_func = sieve.function.get("sieve/resemble-enhance")
+
+    # use resemble enhance for both tasks if speed_boost is True
+    if speed_boost and task == "all":
+        # enhancement steps could be between 10 and 150, scale that to be between 1 and 100
+        new_enhancement_steps = int(1 + (enhancement_steps - 10) * (99 / 140))
+        print("Running joint enhancement and denoising task")
+        duration = time.time()
+        enhance_func = sieve.function.get("sieve/resemble-enhance")
+        val = enhance_func.run(audio, process="enhance", cfm_func_evals=new_enhancement_steps)
+        duration = time.time() - duration
+        print(f"Audio enhanced and denoised in {duration} seconds")
+        print("-"*50)
+        return val
 
     if task == "upsample":
         print("Running upsampling task")

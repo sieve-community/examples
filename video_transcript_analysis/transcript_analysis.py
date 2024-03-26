@@ -86,9 +86,7 @@ async def description_runner(
                 },
             )
 
-            schema, transforms = payload
-
-            outputs.append(schema)
+            outputs.append(payload.response)
 
         # now consolidate outputs in case there are duplicates or overlapping chapters due to splitting
         CONSOLIDATE_PROMPT = """
@@ -141,9 +139,7 @@ async def description_runner(
             },
         )
 
-        schema, transforms = payload
-
-        return schema.summary, schema.title, schema.tags
+        return payload.response.summary, payload.response.title, payload.response.tags
     else:
         payload = await gpt_json.run(
             messages=[
@@ -160,9 +156,7 @@ async def description_runner(
             },
         )
 
-        schema, transforms = payload
-
-        return schema.summary, schema.title, schema.tags
+        return payload.response.summary, payload.response.title, payload.response.tags
 
 
 async def chapter_runner(transcript):
@@ -238,9 +232,7 @@ async def chapter_runner(transcript):
                 ]
             )
 
-            schema, transforms = payload
-
-            chapters.extend(schema.chapters)
+            chapters.extend(payload.response.chapters)
 
         # now consolidate chapters in case there are duplicates or overlapping chapters due to splitting
         CONSOLIDATE_PROMPT = """
@@ -296,9 +288,7 @@ async def chapter_runner(transcript):
             ]
         )
 
-        schema, transforms = payload
-
-        return add_timecodes_to_chapters(schema.chapters)
+        return add_timecodes_to_chapters(payload.response.chapters)
         
     else:
         payload = await gpt_json.run(
@@ -311,6 +301,4 @@ async def chapter_runner(transcript):
             ]
         )
 
-        schema, transforms = payload
-
-        return add_timecodes_to_chapters(schema.chapters)
+        return add_timecodes_to_chapters(payload.response.chapters)

@@ -6,7 +6,7 @@ import tempfile
 
 metadata = sieve.Metadata(
     title="Analyze Transcripts",
-    description="Given a video or audio, generate a title, chapters, summary and tags",
+    description="Given a video or audio, generate a title, chapters, summary, tags, and highlights.",
     code_url="https://github.com/sieve-community/examples/tree/main/video_transcript_analysis/main.py",
     tags=["Video", "Featured", "Transcription"],
     image=sieve.Image(
@@ -33,7 +33,8 @@ def analyze_transcript(
     num_tags: int = 5,
     generate_chapters: bool = True,
     denoise_audio: bool = True,
-    highlights_topic: str = "Most likely to go viral",
+    generate_highlights: bool = True,
+    highlight_search_phrases : str = "Most likely to go viral, funniest",
     max_highlight_duration: int = 30,
 ):
     '''
@@ -43,7 +44,7 @@ def analyze_transcript(
     :param num_tags: Number of tags to generate. Defaults to 5.
     :param generate_chapters: Whether to generate chapters or not. Defaults to True.
     :param denoise_audio: Whether to denoise audio before analysis. Results in better transcription but slower processing. Defaults to True.
-    :param highlights_topic: Topic of highlights to generate. Can be anything from "Most likely to go viral" to "Technology". Defaults to "Most likely to go viral".
+    :param highlights_topic: Topic(s) of highlights to generate, can be multiple comma-separated phrases. Can be anything from "Most likely to go viral" to "Technology". Defaults to "Most likely to go viral, funniest".
     :param max_highlight_duration: Maximum duration of each highlight in seconds. Defaults to 30, set to -1 to disable highlights.
     '''
     print("converting to audio")
@@ -76,7 +77,7 @@ def analyze_transcript(
     whisper = sieve.function.get("sieve/speech_transcriber")
     transcript = []
     transcript_segments = []
-    for transcript_chunk in whisper.run(sieve.File(path=audio_path), denoise_audio=denoise_audio):
+    for transcript_chunk in whisper.run(sieve.File(path=audio_path), denoise_audio=denoise_audio, min_silence_length = 10, min_segment_length = max_highlight_duration*2, use_vad = True, initial_prompt = "I made sure to add full capitalization and punctuation."):
         transcript.append(transcript_chunk)
         segments = transcript_chunk["segments"]
         transcript_segments.append(segments)
@@ -112,13 +113,8 @@ def analyze_transcript(
 
     import os
     import asyncio
-
-    from transcript_analysis import description_runner, chapter_runner, highlight_runner, compute_scores
-
-    def seconds_to_timestamp(seconds):
-        minutes = int(seconds // 60)
-        remaining_seconds = int(seconds % 60)
-        return f"{minutes:02d}:{remaining_seconds:02d}"
+    from datetime import timedelta
+    from transcript_analysis import description_runner, chapter_runner, highlight_runner, compute_scores, seconds_to_timestamp
 
     transcript_segments = [item for sublist in transcript_segments for item in sublist]
     
@@ -131,9 +127,9 @@ def analyze_transcript(
                 'score': 0 
             } for index, segment in enumerate(transcript_segments)
         }
-    if max_highlight_duration != -1:
+    if generate_highlights:
         print("running highlight runner")
-        scores = asyncio.run(highlight_runner([segment['text'] for segment in extended_dict.values()], highlights_topic))
+        scores = asyncio.run(highlight_runner([segment['text'] for segment in extended_dict.values()], highlight_search_phrases))
 
     max_num_sentences = max_summary_length
     max_num_words = max_title_length
@@ -151,8 +147,8 @@ def analyze_transcript(
     yield {"summary": summary}
     yield {"title": title}
     yield {"tags": tags}
-    if max_highlight_duration != -1:
-        optimal_windows = compute_scores(extended_dict, scores, max_highlight_duration)
+    if generate_highlights:
+        optimal_windows = compute_scores(extended_dict, scores, max_highlight_duration, summary)
         yield {"highlights": optimal_windows}
 
     print("running chapter runner")
@@ -167,6 +163,3 @@ def analyze_transcript(
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
-
-if __name__ == "__main__":
-    analyze_transcript.run("video.mp4", max_summary_length=5, max_title_length=10, num_tags=5, generate_chapters=True, denoise_audio=True, highlights_topic="interesting")

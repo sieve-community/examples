@@ -328,13 +328,13 @@ async def highlight_prompt_handler(highlights):
     )
     return payload.response.system_prompt
 
-async def highlight_titles_handler(highlights):
+async def highlight_titles_handler(highlights, summary):
     class HighlightTitles(BaseModel):
         titles: list[str] = Field(description="List of titles for the video highlights")
 
     HIGHLIGHTS_TITLES_PROMPT = """
 
-    Write a list of titles for the video highlights based on the segments of the video transcript. 
+    Write a list of titles for the video highlights based on the segments of the video transcript given its summary. 
 
     - The titles should be concise and descriptive of the content of the segment.
     - Each title should be a short phrase or sentence that captures the essence of the segment.
@@ -348,7 +348,10 @@ async def highlight_titles_handler(highlights):
     payload = await gpt_json.run(
         messages=[
             GPTMessage(role=GPTMessageRole.SYSTEM, content=HIGHLIGHTS_TITLES_PROMPT),
-            GPTMessage(role=GPTMessageRole.USER, content=f"generate titles based on: {highlights}"),
+            GPTMessage(role=GPTMessageRole.USER, content=f"""
+                        video's summary: {summary}               
+                        generate titles based on: {highlights}
+                        """),
         ]
     )
     return payload.response.titles
@@ -379,6 +382,7 @@ async def highlight_runner(gpt_input, highlights):
     - The prompt should be designed to generate highlights for a video by scoring segments of the video transcript out of 100.
     - The input to the system prompt will be a list of segments from the video, where each segment is a short piece of text from the transcript.
     - The prompt must be concise and must mention the need for scoring each segment.
+    - The prompt should encourage using other segments to score the current segment.
 
     Respond with the following JSON schema:
 
@@ -393,7 +397,7 @@ async def highlight_runner(gpt_input, highlights):
     )
     system_prompt = payload.response.system_prompt
 
-    batch_size = 10
+    batch_size = 20
     scores = []
     tasks = []
 
@@ -433,20 +437,27 @@ def create_detailed_highlights(segments, max_duration):
             highlight = {
                 "start_time": sequence[0]["start_time"],
                 "end_time": sequence[-1]["end_time"],
+                "duration": sequence[-1]["end_time"] - sequence[0]["start_time"],
+                "transcript": " ".join(segment["text"] for segment in sequence),
                 "relevance_score": score,
-                "duration": sum(segment["duration"] for segment in sequence),
-                "transcript": " ".join(segment["text"] for segment in sequence)
             }
             detailed_highlights.append(highlight)
             used_segments.update(segment["text"] for segment in sequence)
     
     # Sort the highlights based on their cumulative score in descending order making sure they are at least half the max duration
-    detailed_highlights = [highlight for highlight in detailed_highlights if highlight["duration"] >= max_duration / 2]
+    detailed_highlights = [highlight for highlight in detailed_highlights if highlight["duration"] >= seconds_to_timestamp(max_duration) / 2]
+
+    print("det_highlights", detailed_highlights)
+
+    # remove duration from highlights
+    for highlight in detailed_highlights:
+        del highlight["duration"]
+
     detailed_highlights.sort(key=lambda x: x["relevance_score"], reverse=True)
     
     return detailed_highlights
 
-def compute_scores(extended_dict, scores, max_duration):
+def compute_scores(extended_dict, scores, max_duration, summary):
     # Update score in extended_dict
     for index, score in enumerate(scores):
         extended_dict[index]['score'] = score
@@ -465,11 +476,25 @@ def compute_scores(extended_dict, scores, max_duration):
     for window in optimal_windows:
         window['relevance_score'] = round(window['relevance_score'] / max_score * 100, 2)
 
-    # add titles and timestamps to optimal_windows
+    # add titles and timestamps to optimal_windows and remove transcript
     for i, window in enumerate(optimal_windows):
-        title = asyncio.run(highlight_titles_handler([window['transcript']]))[0]
+        title = asyncio.run(highlight_titles_handler([window['transcript']], summary))[0]
+        del window['transcript']
         window['title'] = title
         window['start_time'] = window['start_time']
         window['end_time'] = window['end_time']
 
     return optimal_windows
+
+## Utils
+
+from datetime import timedelta
+
+def seconds_to_timestamp(seconds):
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        remaining_seconds = int(seconds % 60)
+        milliseconds = int((seconds - int(seconds)) * 1000)
+        timestr = f"{hours:02d}:{minutes:02d}:{remaining_seconds:02d}.{milliseconds:03d}"
+        hours, minutes, seconds = map(float, timestr.split(':'))
+        return timedelta(hours=hours, minutes=minutes, seconds=seconds)

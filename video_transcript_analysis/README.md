@@ -1,3 +1,3 @@
 # Transcript Analyzer
 
-Generate summaries, titles, tags, and chapters automatically for your video or audio files.
+Generate summaries, titles, tags, chapters and highlights automatically for your video or audio files.

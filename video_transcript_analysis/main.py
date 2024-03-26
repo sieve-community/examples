@@ -44,7 +44,8 @@ def analyze_transcript(
     :param num_tags: Number of tags to generate. Defaults to 5.
     :param generate_chapters: Whether to generate chapters or not. Defaults to True.
     :param denoise_audio: Whether to denoise audio before analysis. Results in better transcription but slower processing. Defaults to True.
-    :param highlights_topic: Topic(s) of highlights to generate, can be multiple comma-separated phrases. Can be anything from "Most likely to go viral" to "Technology". Defaults to "Most likely to go viral, funniest".
+    :param generate_highlights: Whether to generate highlights or not. Defaults to False.
+    :param highlight_search_phrases: Topic(s) of highlights to generate, can be multiple comma-separated phrases. Can be anything from "Most likely to go viral" to "Technology". Defaults to "Most likely to go viral, funniest".
     :param max_highlight_duration: Maximum duration of each highlight in seconds. Defaults to 30, set to -1 to disable highlights.
     '''
     print("converting to audio")
@@ -119,14 +120,14 @@ def analyze_transcript(
     transcript_segments = [item for sublist in transcript_segments for item in sublist]
     
     extended_dict = {
-            index: {
-                'text': segment['text'],
-                'duration': segment['end'] - segment['start'],
-                'start_time': seconds_to_timestamp(segment['start']),
-                'end_time': seconds_to_timestamp(segment['end']),
-                'score': 0 
-            } for index, segment in enumerate(transcript_segments)
-        }
+        index: {
+            'text': segment['text'],
+            'duration': segment['end'] - segment['start'],
+            'start_time': segment['start'],
+            'end_time': segment['end'],
+            'score': 0 
+        } for index, segment in enumerate(transcript_segments)
+    }
     if generate_highlights:
         print("running highlight runner")
         scores = asyncio.run(highlight_runner([segment['text'] for segment in extended_dict.values()], highlight_search_phrases))
@@ -147,6 +148,7 @@ def analyze_transcript(
     yield {"summary": summary}
     yield {"title": title}
     yield {"tags": tags}
+    
     if generate_highlights:
         optimal_windows = compute_scores(extended_dict, scores, max_highlight_duration, summary)
         yield {"highlights": optimal_windows}
@@ -163,3 +165,7 @@ def analyze_transcript(
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
+if __name__ == "__main__":
+    for out in analyze_transcript.run(sieve.File(url="https://storage.googleapis.com/sieve-prod-us-central1-public-file-upload-bucket/702b88c8-d5f9-42bb-9fa5-5bce2e4b96ee/c127322c-a884-4fe9-97b9-de38e58f78dd-input-file.mp4")):
+        print(out)

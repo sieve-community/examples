@@ -6,7 +6,7 @@ import tempfile
 
 metadata = sieve.Metadata(
     title="Analyze Transcripts",
-    description="Given a video or audio, generate a title, chapters, summary and tags",
+    description="Given a video or audio, generate a title, chapters, summary, tags, and highlights.",
     code_url="https://github.com/sieve-community/examples/tree/main/video_transcript_analysis/main.py",
     tags=["Video", "Featured", "Transcription"],
     image=sieve.Image(
@@ -28,11 +28,14 @@ metadata = sieve.Metadata(
 )
 def analyze_transcript(
     file: sieve.File,
+    generate_chapters: bool = True,
+    generate_highlights: bool = False,
     max_summary_length: int = 5,
     max_title_length: int = 10,
     num_tags: int = 5,
-    generate_chapters: bool = True,
     denoise_audio: bool = True,
+    highlight_search_phrases : str = "Most likely to go viral, funniest",
+    max_highlight_duration: int = 30,
 ):
     '''
     :param file: Video or audio file
@@ -41,6 +44,9 @@ def analyze_transcript(
     :param num_tags: Number of tags to generate. Defaults to 5.
     :param generate_chapters: Whether to generate chapters or not. Defaults to True.
     :param denoise_audio: Whether to denoise audio before analysis. Results in better transcription but slower processing. Defaults to True.
+    :param generate_highlights: Whether to generate highlights or not. Defaults to False.
+    :param highlight_search_phrases: Topic(s) of highlights to generate, can be multiple comma-separated phrases. Can be anything from "Most likely to go viral" to "Technology". Defaults to "Most likely to go viral, funniest".
+    :param max_highlight_duration: Maximum duration of each highlight in seconds.
     '''
     print("converting to audio")
     # video to audio
@@ -71,9 +77,11 @@ def analyze_transcript(
     # audio to text
     whisper = sieve.function.get("sieve/speech_transcriber")
     transcript = []
-    for transcript_chunk in whisper.run(sieve.File(path=audio_path), denoise_audio=denoise_audio):
+    transcript_segments = []
+    for transcript_chunk in whisper.run(sieve.File(path=audio_path), denoise_audio=denoise_audio, min_segment_length = max_highlight_duration*2, use_vad = True, initial_prompt = "I made sure to add full capitalization and punctuation."):
         transcript.append(transcript_chunk)
         segments = transcript_chunk["segments"]
+        transcript_segments.append(segments)
         if len(segments) > 0:
             print(f"transcribed {100*segments[-1]['end'] / video_length:.2f}% of {video_length:.2f} seconds")
 
@@ -106,8 +114,23 @@ def analyze_transcript(
 
     import os
     import asyncio
+    from datetime import timedelta
+    from transcript_analysis import description_runner, chapter_runner, highlight_runner, compute_scores, seconds_to_timestamp
 
-    from transcript_analysis import description_runner, chapter_runner
+    transcript_segments = [item for sublist in transcript_segments for item in sublist]
+    
+    extended_dict = {
+        index: {
+            'text': segment['text'],
+            'duration': segment['end'] - segment['start'],
+            'start_time': segment['start'],
+            'end_time': segment['end'],
+            'score': 0 
+        } for index, segment in enumerate(transcript_segments)
+    }
+    if generate_highlights:
+        print("running highlight runner")
+        scores = asyncio.run(highlight_runner([segment['text'] for segment in extended_dict.values()], highlight_search_phrases))
 
     max_num_sentences = max_summary_length
     max_num_words = max_title_length
@@ -125,6 +148,10 @@ def analyze_transcript(
     yield {"summary": summary}
     yield {"title": title}
     yield {"tags": tags}
+    
+    if generate_highlights:
+        optimal_windows = compute_scores(extended_dict, scores, max_highlight_duration, summary)
+        yield {"highlights": optimal_windows}
 
     print("running chapter runner")
 
@@ -138,3 +165,7 @@ def analyze_transcript(
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
+if __name__ == "__main__":
+    for out in analyze_transcript.run(sieve.File(url="https://storage.googleapis.com/sieve-prod-us-central1-public-file-upload-bucket/702b88c8-d5f9-42bb-9fa5-5bce2e4b96ee/c127322c-a884-4fe9-97b9-de38e58f78dd-input-file.mp4")):
+        print(out)

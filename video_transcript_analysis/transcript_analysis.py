@@ -409,17 +409,14 @@ async def highlight_runner(gpt_input, highlights):
 
 def create_detailed_highlights(segments, max_duration):
     def generate_sequences(segments):
-        n = len(segments)
-        for start_idx in range(n):
-            total_duration = 0
-            sequence = []
-            for end_idx in range(start_idx, n):
-                if total_duration + segments[end_idx]["duration"] <= max_duration:
-                    sequence.append(segments[end_idx])
-                    total_duration += segments[end_idx]["duration"]
-                else:
-                    break
-                yield sequence.copy()
+        for start_idx in range(len(segments)):
+            for end_idx in range(start_idx, len(segments)):
+                sequence = segments[start_idx:end_idx + 1]
+                start_time = sequence[0]["start_time"]
+                end_time = sequence[-1]["end_time"]
+                duration = end_time - start_time
+                if duration <= max_duration:
+                    yield sequence.copy()
     
     sequences = list(generate_sequences(segments))
     sequences_with_scores = [(seq, sum(item["score"] for item in seq)) for seq in sequences]

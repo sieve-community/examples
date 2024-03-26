@@ -307,9 +307,7 @@ async def highlight_prompt_handler(highlights):
     class HighlightPrompt(BaseModel):
         system_prompt: str = Field(description="A prompt for creating video highlights")
 
-    HIGHLIGHTS_SYSTEM_PROMPT = """
-
-    Write a system prompt that will be used to generate highlights for a video. 
+    HIGHLIGHTS_SYSTEM_PROMPT = """Write a system prompt that will be used to generate highlights for a video. 
 
     - The prompt should be designed to generate highlights for a video by scoring segments of the video transcript out of 100.
     - The input to the system prompt will be a list of segments from the video, where each segment is a short piece of text from the transcript.
@@ -375,9 +373,7 @@ async def highlight_runner(gpt_input, highlights):
     class HighlightPrompt(BaseModel):
         system_prompt: str = Field(description="A prompt for creating video highlights")
 
-    HIGHLIGHTS_SYSTEM_PROMPT = """
-
-    Write a system prompt that will be used to generate highlights for a video. 
+    HIGHLIGHTS_SYSTEM_PROMPT = """Write a system prompt that will be used to generate highlights for a video. 
 
     - The prompt should be designed to generate highlights for a video by scoring segments of the video transcript out of 100.
     - The input to the system prompt will be a list of segments from the video, where each segment is a short piece of text from the transcript.
@@ -413,17 +409,14 @@ async def highlight_runner(gpt_input, highlights):
 
 def create_detailed_highlights(segments, max_duration):
     def generate_sequences(segments):
-        n = len(segments)
-        for start_idx in range(n):
-            total_duration = 0
-            sequence = []
-            for end_idx in range(start_idx, n):
-                if total_duration + segments[end_idx]["duration"] <= max_duration:
-                    sequence.append(segments[end_idx])
-                    total_duration += segments[end_idx]["duration"]
-                else:
-                    break
-                yield sequence.copy()
+        for start_idx in range(len(segments)):
+            for end_idx in range(start_idx, len(segments)):
+                sequence = segments[start_idx:end_idx + 1]
+                start_time = sequence[0]["start_time"]
+                end_time = sequence[-1]["end_time"]
+                duration = end_time - start_time
+                if duration <= max_duration:
+                    yield sequence.copy()
     
     sequences = list(generate_sequences(segments))
     sequences_with_scores = [(seq, sum(item["score"] for item in seq)) for seq in sequences]
@@ -435,19 +428,19 @@ def create_detailed_highlights(segments, max_duration):
     for sequence, score in sequences_with_scores:
         if not any(segment["text"] in used_segments for segment in sequence):
             highlight = {
+                "relevance_score": score,
                 "start_time": sequence[0]["start_time"],
                 "end_time": sequence[-1]["end_time"],
+                "start_timecode": seconds_to_timestamp(sequence[0]["start_time"]),
+                "end_timecode": seconds_to_timestamp(sequence[-1]["end_time"]),
                 "duration": sequence[-1]["end_time"] - sequence[0]["start_time"],
                 "transcript": " ".join(segment["text"] for segment in sequence),
-                "relevance_score": score,
             }
             detailed_highlights.append(highlight)
             used_segments.update(segment["text"] for segment in sequence)
     
     # Sort the highlights based on their cumulative score in descending order making sure they are at least half the max duration
-    detailed_highlights = [highlight for highlight in detailed_highlights if highlight["duration"] >= seconds_to_timestamp(max_duration) / 2]
-
-    print("det_highlights", detailed_highlights)
+    detailed_highlights = [highlight for highlight in detailed_highlights if highlight["duration"] >= max_duration / 2]
 
     # remove duration from highlights
     for highlight in detailed_highlights:
@@ -487,14 +480,13 @@ def compute_scores(extended_dict, scores, max_duration, summary):
     return optimal_windows
 
 ## Utils
-
 from datetime import timedelta
 
 def seconds_to_timestamp(seconds):
-        hours = int(seconds // 3600)
-        minutes = int((seconds % 3600) // 60)
-        remaining_seconds = int(seconds % 60)
-        milliseconds = int((seconds - int(seconds)) * 1000)
-        timestr = f"{hours:02d}:{minutes:02d}:{remaining_seconds:02d}.{milliseconds:03d}"
-        hours, minutes, seconds = map(float, timestr.split(':'))
-        return timedelta(hours=hours, minutes=minutes, seconds=seconds)
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    remaining_seconds = int(seconds % 60)
+    milliseconds = int((seconds - int(seconds)) * 1000)
+    timestr = f"{hours:02d}:{minutes:02d}:{remaining_seconds:02d}.{milliseconds:03d}"
+    hours, minutes, seconds = map(float, timestr.split(':'))
+    return timedelta(hours=hours, minutes=minutes, seconds=seconds)

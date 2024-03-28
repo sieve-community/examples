@@ -379,6 +379,7 @@ async def highlight_runner(gpt_input, highlights):
     - The input to the system prompt will be a list of segments from the video, where each segment is a short piece of text from the transcript.
     - The prompt must be concise and must mention the need for scoring each segment.
     - The prompt should encourage using other segments to score the current segment.
+    - The prompt should encourage looking at things like flow, coherence, engagement, and relevance when scoring the segments.
 
     Respond with the following JSON schema:
 
@@ -408,46 +409,60 @@ async def highlight_runner(gpt_input, highlights):
     return scores
 
 def create_detailed_highlights(segments, max_duration):
-    def generate_sequences(segments):
-        for start_idx in range(len(segments)):
-            for end_idx in range(start_idx, len(segments)):
-                sequence = segments[start_idx:end_idx + 1]
-                start_time = sequence[0]["start_time"]
-                end_time = sequence[-1]["end_time"]
-                duration = end_time - start_time
-                if duration <= max_duration:
-                    yield sequence.copy()
+    # Helper function to calculate the average score of a sequence
+    def average_score(sequence):
+        return sum(item["score"] for item in sequence) / len(sequence)
+
+    # Helper function to calculate total duration of a sequence
+    def total_duration(sequence):
+        return sequence[-1]["end_time"] - sequence[0]["start_time"]
     
-    sequences = list(generate_sequences(segments))
-    sequences_with_scores = [(seq, sum(item["score"] for item in seq)) for seq in sequences]
-    sequences_with_scores.sort(key=lambda x: x[1], reverse=True)
-    
-    used_segments = set()
+    # Helper function to generate clusters based on the new rules
+    def generate_clusters(segments):
+        clusters = []
+        i = 0
+        while i < len(segments):
+            if segments[i]["score"] > 65:
+                temp_cluster = [segments[i]]
+                last_high_idx = i
+                i += 1
+                while i < len(segments):
+                    buffer_end = min(last_high_idx + 5, len(segments))  # Extend buffer to 5 segments beyond last high score
+                    found_high_in_buffer = False
+                    for j in range(last_high_idx + 1, buffer_end):
+                        if segments[j]["score"] > 65:
+                            found_high_in_buffer = True
+                            last_high_idx = j
+                            break
+                    if found_high_in_buffer:
+                        temp_cluster.extend(segments[last_high_idx:j+1])  # Include up to the new high-scoring segment
+                        i = j + 1  # Move i to the segment after the new high-scoring segment
+                    else:
+                        break  # Exit the while loop if no high score found in the current buffer
+                if total_duration(temp_cluster) > 10:
+                    clusters.append(temp_cluster)
+            else:
+                i += 1
+        return clusters
+
+    clusters = generate_clusters(segments)
+
+    # Prepare detailed highlights including start and end timecodes
     detailed_highlights = []
-    
-    for sequence, score in sequences_with_scores:
-        if not any(segment["text"] in used_segments for segment in sequence):
-            highlight = {
-                "relevance_score": score,
-                "start_time": sequence[0]["start_time"],
-                "end_time": sequence[-1]["end_time"],
-                "start_timecode": seconds_to_timestamp(sequence[0]["start_time"]),
-                "end_timecode": seconds_to_timestamp(sequence[-1]["end_time"]),
-                "duration": sequence[-1]["end_time"] - sequence[0]["start_time"],
-                "transcript": " ".join(segment["text"] for segment in sequence),
-            }
-            detailed_highlights.append(highlight)
-            used_segments.update(segment["text"] for segment in sequence)
-    
-    # Sort the highlights based on their cumulative score in descending order making sure they are at least half the max duration
-    detailed_highlights = [highlight for highlight in detailed_highlights if highlight["duration"] >= max_duration / 2]
+    for cluster in clusters:
+        highlight = {
+            "relevance_score": average_score(cluster),
+            "start_time": cluster[0]["start_time"],
+            "end_time": cluster[-1]["end_time"],
+            "start_timecode": seconds_to_timestamp(cluster[0]["start_time"]),
+            "end_timecode": seconds_to_timestamp(cluster[-1]["end_time"]),
+            "transcript": " ".join(segment["text"] for segment in cluster),
+        }
+        detailed_highlights.append(highlight)
 
-    # remove duration from highlights
-    for highlight in detailed_highlights:
-        del highlight["duration"]
-
+    # Sort detailed highlights by relevance score in descending order
     detailed_highlights.sort(key=lambda x: x["relevance_score"], reverse=True)
-    
+
     return detailed_highlights
 
 def compute_scores(extended_dict, scores, max_duration, summary):
@@ -465,9 +480,9 @@ def compute_scores(extended_dict, scores, max_duration, summary):
     optimal_windows = optimal_windows[:slice_size]
 
     # Adjust scores to be relative to the highest score
-    max_score = max(window['relevance_score'] for window in optimal_windows)
-    for window in optimal_windows:
-        window['relevance_score'] = round(window['relevance_score'] / max_score * 100, 2)
+    # max_score = max(window['relevance_score'] for window in optimal_windows)
+    # for window in optimal_windows:
+    #     window['relevance_score'] = round(window['relevance_score'] / max_score * 100, 2)
 
     # add titles and timestamps to optimal_windows and remove transcript
     for i, window in enumerate(optimal_windows):

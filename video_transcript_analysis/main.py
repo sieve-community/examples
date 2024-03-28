@@ -53,7 +53,7 @@ def analyze_transcript(
     import subprocess
     import os
     import uuid
-
+        
     # Extract the length of the video using ffprobe
     result = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", file.path], capture_output=True, text=True)
     video_length = float(result.stdout)
@@ -167,5 +167,5 @@ def analyze_transcript(
         os.remove(audio_path)
 
 if __name__ == "__main__":
-    for out in analyze_transcript.run(sieve.File(url="https://storage.googleapis.com/sieve-prod-us-central1-public-file-upload-bucket/702b88c8-d5f9-42bb-9fa5-5bce2e4b96ee/c127322c-a884-4fe9-97b9-de38e58f78dd-input-file.mp4")):
+    for out in analyze_transcript.run(sieve.File(url="https://storage.googleapis.com/sieve-prod-us-central1-public-file-upload-bucket/702b88c8-d5f9-42bb-9fa5-5bce2e4b96ee/c127322c-a884-4fe9-97b9-de38e58f78dd-input-file.mp4"), generate_highlights=True, generate_chapters=True, denoise_audio=False):
         print(out)

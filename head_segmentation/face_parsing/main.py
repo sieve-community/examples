@@ -26,6 +26,7 @@ import sieve
     system_packages=[
         "ffmpeg",
         "libx264-dev",
+        "zip",
     ],
     python_version="3.10",
     cuda_version="11.8",
@@ -69,6 +70,9 @@ class HeadSegmentationModel:
             import numpy as np
             import cv2
 
+            import time
+            st = time.time()
+
             video = cv2.VideoCapture(file_path)
             frame_width = int(video.get(3))
             frame_height = int(video.get(4))
@@ -76,9 +80,9 @@ class HeadSegmentationModel:
             size = (frame_width, frame_height)
 
             if debug_viz:
-                if os.path.exists("temp_viz.avi"):
-                    os.remove("temp_viz.avi")
-                out_viz = cv2.VideoWriter('temp_viz.avi', cv2.VideoWriter_fourcc(*'XVID'), fps, size)
+                if os.path.exists("temp_viz.mp4"):
+                    os.remove("temp_viz.mp4")
+                out_viz = cv2.VideoWriter('temp_viz.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, size)
 
             masks_dir = "masks"
 
@@ -88,42 +92,16 @@ class HeadSegmentationModel:
 
             counter = 0
             while True:
-                import time
-
-                start_time = time.time()
                 ret, frame = video.read()
-                read_time = time.time() - start_time
-                print(f"Time taken to read frame: {read_time} seconds")
-
                 if not ret:
-                    break
-
-                start_time = time.time()
+                    break      
                 frame_image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-                convert_time = time.time() - start_time
-                print(f"Time taken to convert frame to RGB: {convert_time} seconds")
-
-                start_time = time.time()
                 vis_parsing_anno = self.get_parsing_anno(frame_image)
-                parsing_time = time.time() - start_time
-                print(f"Time taken for parsing annotation: {parsing_time} seconds")
-
                 if debug_viz:
-                    start_time = time.time()
                     vis_im = vis_parsing_maps(frame_image, vis_parsing_anno)
-                    viz_time = time.time() - start_time
-                    print(f"Time taken for visualization: {viz_time} seconds")
-
-                    start_time = time.time()
                     out_viz.write(cv2.cvtColor(vis_im, cv2.COLOR_RGB2BGR))
-                    write_viz_time = time.time() - start_time
-                    print(f"Time taken to write visualization: {write_viz_time} seconds")
 
-                start_time = time.time()
                 cv2.imwrite(f"{masks_dir}/%06d.png" % counter, vis_parsing_anno)
-                write_mask_time = time.time() - start_time
-                print(f"Time taken to write mask: {write_mask_time} seconds")
-
                 counter +=1 
 
             import subprocess
@@ -134,14 +112,17 @@ class HeadSegmentationModel:
                 os.remove('masks.zip')
 
             command = "zip -r masks.zip masks"
-            subprocess.call(command, shell=True)
+            process = subprocess.Popen(command, shell=True, cwd=os.getcwd(), stdout=subprocess.PIPE)
+            output, error = process.communicate()
+
+            print("time to process: ", time.time() - st)
 
             if debug_viz:
                 out_viz.release()
-                command = "ffmpeg -loglevel error -y -i temp_viz.avi -c:v libx264 -qp 0 segmentation_map_viz.avi"
+                command = "ffmpeg -loglevel error -y -i temp_viz.mp4 -c:v libx264 -crf 17 segmentation_map_viz.mp4"
                 subprocess.call(command, shell=True)
 
-                return (sieve.File(path="masks.zip"), sieve.File(path="segmentation_map_viz.avi"))
+                return (sieve.File(path="masks.zip"), sieve.File(path="segmentation_map_viz.mp4"))
 
             return sieve.File(path="masks.zip")
         else:

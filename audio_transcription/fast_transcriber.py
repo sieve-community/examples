@@ -115,8 +115,7 @@ class SpeechTranscriber:
             cur_start = 0.0
         else:
             cur_start = speech_timestamps[0]["start"]
-            if cur_start < 1:
-                cur_start = 0.0
+            cur_start = max(cur_start - 1, 0.0)
 
         for item in speech_timestamps:
             start, end = item["start"], item["end"]

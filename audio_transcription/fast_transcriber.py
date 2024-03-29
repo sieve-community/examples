@@ -105,7 +105,7 @@ class SpeechTranscriber:
         wav = read_audio(path, sampling_rate=audio_sample_rate)
         # get speech timestamps from full audio file
         speech_timestamps = get_speech_timestamps(
-            wav, self.model, sampling_rate=SAMPLING_RATE, return_seconds=True, min_silence_duration_ms=min_silence_length * 1000
+            wav, self.model, sampling_rate=SAMPLING_RATE, return_seconds=True, min_silence_duration_ms=min_silence_length * 1000, threshold=0.2
         )
 
         

@@ -108,8 +108,13 @@ class SpeechTranscriber:
             wav, self.model, sampling_rate=SAMPLING_RATE, return_seconds=True, min_silence_duration_ms=min_silence_length * 1000
         )
 
-        cur_start = 0.0
+        
         num_segments = 0
+
+        if len(speech_timestamps) == 0:
+            cur_start = 0.0
+        else:
+            cur_start = speech_timestamps[0]["start"]
 
         for item in speech_timestamps:
             start, end = item["start"], item["end"]
@@ -122,10 +127,10 @@ class SpeechTranscriber:
             cur_start = end
             num_segments += 1
 
-        if duration > cur_start:
+        if duration > cur_start and len(speech_timestamps) > 0:
             yield cur_start, duration
             num_segments += 1
-        print(f"Split {path} into {num_segments} segments")        
+        print(f"Split {path} into {num_segments} segments")
 
     def __predict__(
         self,
@@ -259,7 +264,8 @@ class SpeechTranscriber:
                     "Invalid chunks format. Please provide a string formatted with a start and end second on each line. Example: '0,10\n10,20\n20,30'"
                 )
         if not segments:
-            segments.append(whisper.push(sieve.File(path=file.path), language=source_language, word_level_timestamps=word_level_timestamps, speed_boost=speed_boost, decode_boost=decode_boost, initial_prompt=initial_prompt))
+            if not use_vad:
+                segments.append(whisper.push(sieve.File(path=file.path), language=source_language, word_level_timestamps=word_level_timestamps, speed_boost=speed_boost, decode_boost=decode_boost, initial_prompt=initial_prompt))
 
         job_outputs = []
         for job in executor.map(process_segment, segments):
@@ -303,6 +309,11 @@ class SpeechTranscriber:
             if not speaker_diarization:
                 yield job_output
         
+        if len(job_outputs) == 0:
+            # yield an empty segment if no segments were transcribed
+            job_outputs.append({"text": "", "language_code": source_language, "segments": []})
+            if not speaker_diarization:
+                yield job_outputs[0]
         if speaker_diarization:
             diarization_job_output = diarization_job.result()
             print("diarization finished")

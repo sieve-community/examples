@@ -78,7 +78,7 @@ def analyze_transcript(
     whisper = sieve.function.get("sieve/speech_transcriber")
     transcript = []
     transcript_segments = []
-    for transcript_chunk in whisper.run(sieve.File(path=audio_path), denoise_audio=denoise_audio, min_segment_length = max_highlight_duration*2, initial_prompt = "I made sure to add full capitalization and punctuation."):
+    for transcript_chunk in whisper.run(sieve.File(path=audio_path), denoise_audio=denoise_audio, use_vad=True, min_segment_length = max_highlight_duration*2, initial_prompt = "I made sure to add full capitalization and punctuation."):
         transcript.append(transcript_chunk)
         segments = transcript_chunk["segments"]
         transcript_segments.append(segments)

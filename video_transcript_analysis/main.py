@@ -2,7 +2,6 @@
 
 import sieve
 from typing import Dict, List
-import tempfile
 
 metadata = sieve.Metadata(
     title="Analyze Transcripts",
@@ -14,7 +13,6 @@ metadata = sieve.Metadata(
     ),
     readme=open("README.md", "r").read(),
 )
-
 
 @sieve.function(
     name="video_transcript_analyzer",
@@ -34,8 +32,7 @@ def analyze_transcript(
     max_title_length: int = 10,
     num_tags: int = 5,
     denoise_audio: bool = True,
-    highlight_search_phrases : str = "Most likely to go viral, funniest",
-    max_highlight_duration: int = 30,
+    highlight_search_phrases : str = "Most interesting",
 ):
     '''
     :param file: Video or audio file
@@ -45,8 +42,7 @@ def analyze_transcript(
     :param generate_chapters: Whether to generate chapters or not. Defaults to True.
     :param denoise_audio: Whether to denoise audio before analysis. Results in better transcription but slower processing. Defaults to True.
     :param generate_highlights: Whether to generate highlights or not. Defaults to False.
-    :param highlight_search_phrases: Topic(s) of highlights to generate, can be multiple comma-separated phrases. Can be anything from "Most likely to go viral" to "Technology". Defaults to "Most likely to go viral, funniest".
-    :param max_highlight_duration: Maximum duration of each highlight in seconds.
+    :param highlight_search_phrases: Topic(s) of highlights to generate, can be multiple comma-separated phrases. Can be anything from "Most interesting" to "Technology". Defaults to "Most interesting".
     '''
     print("converting to audio")
     # video to audio
@@ -78,7 +74,7 @@ def analyze_transcript(
     whisper = sieve.function.get("sieve/speech_transcriber")
     transcript = []
     transcript_segments = []
-    for transcript_chunk in whisper.run(sieve.File(path=audio_path), denoise_audio=denoise_audio, min_segment_length = max_highlight_duration*2, use_vad = True, initial_prompt = "I made sure to add full capitalization and punctuation."):
+    for transcript_chunk in whisper.run(sieve.File(path=audio_path), denoise_audio=denoise_audio, min_segment_length = 60, use_vad = True, initial_prompt = "I made sure to add full capitalization and punctuation."):
         transcript.append(transcript_chunk)
         segments = transcript_chunk["segments"]
         transcript_segments.append(segments)
@@ -114,23 +110,7 @@ def analyze_transcript(
 
     import os
     import asyncio
-    from datetime import timedelta
-    from transcript_analysis import description_runner, chapter_runner, highlight_runner, compute_scores, seconds_to_timestamp
-
-    transcript_segments = [item for sublist in transcript_segments for item in sublist]
-    
-    extended_dict = {
-        index: {
-            'text': segment['text'],
-            'duration': segment['end'] - segment['start'],
-            'start_time': segment['start'],
-            'end_time': segment['end'],
-            'score': 0 
-        } for index, segment in enumerate(transcript_segments)
-    }
-    if generate_highlights:
-        print("running highlight runner")
-        scores = asyncio.run(highlight_runner([segment['text'] for segment in extended_dict.values()], highlight_search_phrases))
+    from transcript_analysis import description_runner, chapter_runner, process_segments_in_batches
 
     max_num_sentences = max_summary_length
     max_num_words = max_title_length
@@ -144,18 +124,21 @@ def analyze_transcript(
             num_tags=num_tags,
         )
     )
+    
     print("finished description runner")
     yield {"summary": summary}
     yield {"title": title}
     yield {"tags": tags}
-    
-    if generate_highlights:
-        optimal_windows = compute_scores(extended_dict, scores, max_highlight_duration, summary)
-        yield {"highlights": optimal_windows}
 
-    print("running chapter runner")
+    if generate_highlights:
+        print("running highlight runner")
+        # pass in the segments as a flat list
+        highlights_output = asyncio.run(process_segments_in_batches([item for sublist in transcript_segments for item in sublist], highlight_search_phrases))
+        yield {"highlights": highlights_output}
+        print("finished highlight runner")
 
     if generate_chapters:
+        print("running chapter runner")
         chapters = asyncio.run(chapter_runner(transcript))
         print("finished chapter runner")
         out_list = []

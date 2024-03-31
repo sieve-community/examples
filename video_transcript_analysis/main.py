@@ -132,10 +132,6 @@ def analyze_transcript(
     yield {"summary": summary}
     yield {"title": title}
     yield {"tags": tags}
-    
-    if generate_highlights:
-        optimal_windows = compute_scores(extended_dict, scores, max_highlight_duration, summary)
-        yield {"highlights": optimal_windows}
 
     if generate_highlights:
         print("running highlight runner")

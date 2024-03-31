@@ -132,10 +132,6 @@ def analyze_transcript(
     yield {"summary": summary}
     yield {"title": title}
     yield {"tags": tags}
-    
-    if generate_highlights:
-        optimal_windows = compute_scores(extended_dict, scores, max_highlight_duration, summary)
-        yield {"highlights": optimal_windows}
 
     if generate_highlights:
         print("running highlight runner")
@@ -155,3 +151,7 @@ def analyze_transcript(
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
+
+if __name__ == "__main__":
+    for out in analyze_transcript.run(sieve.File(url="https://storage.googleapis.com/sieve-prod-us-central1-public-file-upload-bucket/702b88c8-d5f9-42bb-9fa5-5bce2e4b96ee/c127322c-a884-4fe9-97b9-de38e58f78dd-input-file.mp4"), generate_highlights = True):
+        print(out)

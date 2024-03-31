@@ -321,8 +321,7 @@ async def chapter_runner(transcript):
             ]
         )
 
-        return add_timecodes_to_chapters(payload.response.chapters)
-  
+        return add_timecodes_to_chapters(payload.response.chapters)  
 async def process_segments_in_batches(transcript_segments, highlight_phrases):
     BATCH_SIZE = 500
     async def process_batch(batch):

@@ -49,7 +49,7 @@ class YOLOv8:
             models: str = "yolov8l",
             start_frame: int = 0,
             end_frame: int = -1,
-            fps: int = -1,
+            fps: float = -1,
             max_num_boxes: int = -1,
         ):
         """

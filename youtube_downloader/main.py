@@ -49,4 +49,4 @@ def download(url: str, include_audio: bool = True):
     highest_res_stream.download(filename=output_filename)
 
     print("finished downloading video, returning...")
-    return sieve.Video(path=output_filename)
+    return sieve.File(path=output_filename)

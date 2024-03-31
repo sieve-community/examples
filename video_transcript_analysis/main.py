@@ -33,6 +33,7 @@ def analyze_transcript(
     num_tags: int = 5,
     denoise_audio: bool = True,
     highlight_search_phrases : str = "Most interesting",
+
 ):
     '''
     :param file: Video or audio file
@@ -43,6 +44,7 @@ def analyze_transcript(
     :param denoise_audio: Whether to denoise audio before analysis. Results in better transcription but slower processing. Defaults to True.
     :param generate_highlights: Whether to generate highlights or not. Defaults to False.
     :param highlight_search_phrases: Topic(s) of highlights to generate, can be multiple comma-separated phrases. Can be anything from "Most interesting" to "Technology". Defaults to "Most interesting".
+
     '''
     print("converting to audio")
     # video to audio
@@ -75,6 +77,7 @@ def analyze_transcript(
     transcript = []
     transcript_segments = []
     for transcript_chunk in whisper.run(sieve.File(path=audio_path), denoise_audio=denoise_audio, min_segment_length = 60, use_vad = True, initial_prompt = "I made sure to add full capitalization and punctuation."):
+
         transcript.append(transcript_chunk)
         segments = transcript_chunk["segments"]
         transcript_segments.append(segments)
@@ -129,6 +132,10 @@ def analyze_transcript(
     yield {"summary": summary}
     yield {"title": title}
     yield {"tags": tags}
+    
+    if generate_highlights:
+        optimal_windows = compute_scores(extended_dict, scores, max_highlight_duration, summary)
+        yield {"highlights": optimal_windows}
 
     if generate_highlights:
         print("running highlight runner")
@@ -148,7 +155,3 @@ def analyze_transcript(
 
     if os.path.exists(audio_path):
         os.remove(audio_path)
-
-if __name__ == "__main__":
-    for out in analyze_transcript.run(sieve.File(url="https://storage.googleapis.com/sieve-prod-us-central1-public-file-upload-bucket/702b88c8-d5f9-42bb-9fa5-5bce2e4b96ee/c127322c-a884-4fe9-97b9-de38e58f78dd-input-file.mp4"), generate_highlights=True, generate_chapters=True, denoise_audio=False):
-        print(out)

@@ -9,6 +9,26 @@ def get_api_key():
         raise Exception("OPENAI_API_KEY environment variable not set")
     return API_KEY
 
+def add_timecodes_to_highlights(highlights):
+    highlights = [highlight.dict() for highlight in highlights]
+
+    out_highlights = []
+
+    for highlight in highlights:
+        duration = highlight["end_time"] - highlight["start_time"] + 1
+        highlight_dict = {
+            "title": highlight["title"],
+            "score": highlight["score"],
+            "start_time": highlight["start_time"],
+            "end_time": highlight["end_time"] + 1,
+            "start_timecode": seconds_to_timestamp(highlight["start_time"]),
+            "end_timecode": seconds_to_timestamp(highlight["end_time"] + 1),
+            "duration": duration 
+        }
+        out_highlights.append(highlight_dict)
+    
+    return out_highlights
+
 def add_timecodes_to_chapters(chapters):
     chapters = [chapter.dict() for chapter in chapters]
 
@@ -301,183 +321,96 @@ async def chapter_runner(transcript):
             ]
         )
 
-        return add_timecodes_to_chapters(payload.response.chapters)
+        return add_timecodes_to_chapters(payload.response.chapters)  
+async def process_segments_in_batches(transcript_segments, highlight_phrases):
+    BATCH_SIZE = 500
+    async def process_batch(batch):
+        return await highlight_generator_gpt4(batch, highlight_phrases)
 
-async def highlight_prompt_handler(highlights):
-    class HighlightPrompt(BaseModel):
-        system_prompt: str = Field(description="A prompt for creating video highlights")
+    # Split the input list into batches
+    batches = [transcript_segments[i:i + BATCH_SIZE] for i in range(0, len(transcript_segments), BATCH_SIZE)]
+    
+    # Use asyncio.gather to call the function concurrently for all batches
+    batch_results = await asyncio.gather(*(process_batch(batch) for batch in batches))
 
-    HIGHLIGHTS_SYSTEM_PROMPT = """Write a system prompt that will be used to generate highlights for a video. 
+    # Merge results from all batches
+    merged_highlights = []
+    for batch_result in batch_results:
+        merged_highlights.extend(batch_result)
 
-    - The prompt should be designed to generate highlights for a video by scoring segments of the video transcript out of 100.
-    - The input to the system prompt will be a list of segments from the video, where each segment is a short piece of text from the transcript.
-    - The prompt must be concise and must mention the need for scoring each segment.
+    # Separate highlights into two groups based on their duration
+    short_highlights = [highlight for highlight in merged_highlights if highlight['duration'] <= 180]
+    long_highlights = [highlight for highlight in merged_highlights if highlight['duration'] > 180]
 
-    Respond with the following JSON schema:
+    # Sort the short highlights by score in descending order
+    short_highlights_sorted = sorted(short_highlights, key=lambda x: x['score'], reverse=True)
 
-    {json_schema}
-    """
-    gpt_json = GPTJSON[HighlightPrompt](get_api_key(), model="gpt-4-turbo-preview")
-    payload = await gpt_json.run(
-        messages=[
-            GPTMessage(role=GPTMessageRole.SYSTEM, content=HIGHLIGHTS_SYSTEM_PROMPT),
-            GPTMessage(role=GPTMessageRole.USER, content=f"generate prompt based on: {highlights}"),
-        ]
-    )
-    return payload.response.system_prompt
+    # Sort the long highlights by duration in ascending order
+    long_highlights_sorted = sorted(long_highlights, key=lambda x: x['duration'])
 
-async def highlight_titles_handler(highlights, summary):
-    class HighlightTitles(BaseModel):
-        titles: list[str] = Field(description="List of titles for the video highlights")
+    # Concatenate the sorted short and long highlights
+    final_sorted_highlights = short_highlights_sorted + long_highlights_sorted
 
-    HIGHLIGHTS_TITLES_PROMPT = """
+    return final_sorted_highlights
 
-    Write a list of titles for the video highlights based on the segments of the video transcript given its summary. 
+async def highlight_generator_gpt4(transcript_segments, highlight_phrases):
+    class Highlight(BaseModel):
+        title: str = Field(description="Title of the Video highlight")
+        start_time: float = Field(description="Start time of the video highlight")
+        end_time: float = Field(description="End time of the video highlight")
+        score: float = Field(description="Score of the video highlight")
 
-    - The titles should be concise and descriptive of the content of the segment.
-    - Each title should be a short phrase or sentence that captures the essence of the segment.
-    - The titles should be engaging and informative, providing a clear idea of what the segment is about.
-    - Please ensure that the titles are relevant to the content of the segment and accurately represent the information presented.
-    - Respond with the following JSON schema:
-
-    {json_schema}
-    """
-    gpt_json = GPTJSON[HighlightTitles](get_api_key(), model="gpt-4-turbo-preview")
-    payload = await gpt_json.run(
-        messages=[
-            GPTMessage(role=GPTMessageRole.SYSTEM, content=HIGHLIGHTS_TITLES_PROMPT),
-            GPTMessage(role=GPTMessageRole.USER, content=f"""
-                        video's summary: {summary}               
-                        generate titles based on: {highlights}
-                        """),
-        ]
-    )
-    return payload.response.titles
-
-async def process_batch(batch, system_prompt):
     class HighlightSchema(BaseModel):
-        highlights_scores: list[int]
+        chapters: list[Highlight] = Field(description="List of Highlights")
 
-    system_prompt = system_prompt + " Respond with the following JSON schema: {json_schema}"
+    PROMPT = """
+    You are a developer assistant where you only provide the code for a question. No explanation required. Write a simple json sample.
+    Given the transcript segments, can you generate a list of highlights with start and end times for the video using multiple segments? Please meet the following constraints:
 
-    gpt_json = GPTJSON[HighlightSchema](get_api_key(), model="gpt-4-turbo-preview")
-    payload = await gpt_json.run(
-        messages=[
-            GPTMessage(role=GPTMessageRole.SYSTEM, content=system_prompt),
-            GPTMessage(role=GPTMessageRole.USER, content=str(batch)),
-        ]
-    )
-    return payload.response.highlights_scores
+    Please meet the following constraints:
+    - The highlights should be a direct part of the video and should not be out of context
+    - The highlights should be interesting and clippable, providing value to the viewer
+    - The highlights should not be too short or too long, but should be just the right length to convey the information
+    - The highlights should include more than one segment to provide context and continuity
+    - The highlights should not cut off in the middle of a sentence or idea
+    - The user provided highlight phrases should be used to generate the highlights
+    - The highlights should be based on the relevance of the segments to the highlight phrases
+    - The highlights should be scored out of 100 based on the relevance of the segments to the highlight phrases
 
-async def highlight_runner(gpt_input, highlights):
-    class HighlightPrompt(BaseModel):
-        system_prompt: str = Field(description="A prompt for creating video highlights")
-
-    HIGHLIGHTS_SYSTEM_PROMPT = """Write a system prompt that will be used to generate highlights for a video. 
-
-    - The prompt should be designed to generate highlights for a video by scoring segments of the video transcript out of 100.
-    - The input to the system prompt will be a list of segments from the video, where each segment is a short piece of text from the transcript.
-    - The prompt must be concise and must mention the need for scoring each segment.
-    - The prompt should encourage using other segments to score the current segment.
-
-    Respond with the following JSON schema:
+    Respond with the following JSON schema for highlights:
 
     {json_schema}
+
+    Each highlight should have the following fields:
+    - title: title of the highlight
+    - start_time: start time of the highlight as a float in seconds
+    - end_time: end time of the highlight as a float in seconds
+    - score: score of the highlight as a float out of 100
     """
-    gpt_json = GPTJSON[HighlightPrompt](get_api_key(), model="gpt-4-turbo-preview")
+
+    input_segments = ""
+
+    for segment in transcript_segments:
+        input_segments += f"segment start time: {segment['start']}, segment end time: {segment['end']}, segment text: {segment['text']}\n"
+
+    gpt_json = GPTJSON[HighlightSchema](api_key=get_api_key(), model="gpt-4-turbo-preview")
     payload = await gpt_json.run(
         messages=[
-            GPTMessage(role=GPTMessageRole.SYSTEM, content=HIGHLIGHTS_SYSTEM_PROMPT),
-            GPTMessage(role=GPTMessageRole.USER, content=f"generate prompt based on: {highlights}"),
+            GPTMessage(
+                role=GPTMessageRole.SYSTEM,
+                content=PROMPT,
+            ),
+            GPTMessage(
+                role=GPTMessageRole.USER,
+                content=f"""
+                highlight phrases: {highlight_phrases},
+                
+                Transcript: {input_segments}""",
+            ),
         ]
     )
-    system_prompt = payload.response.system_prompt
 
-    batch_size = 20
-    scores = []
-    tasks = []
-
-    for i in range(0, len(gpt_input), batch_size):
-        batch = gpt_input[i:i+batch_size]
-        tasks.append(process_batch(batch, system_prompt))
-
-    results = await asyncio.gather(*tasks)
-    for result in results:
-        scores.extend(result)
-
-    return scores
-
-def create_detailed_highlights(segments, max_duration):
-    def generate_sequences(segments):
-        for start_idx in range(len(segments)):
-            for end_idx in range(start_idx, len(segments)):
-                sequence = segments[start_idx:end_idx + 1]
-                start_time = sequence[0]["start_time"]
-                end_time = sequence[-1]["end_time"]
-                duration = end_time - start_time
-                if duration <= max_duration:
-                    yield sequence.copy()
-    
-    sequences = list(generate_sequences(segments))
-    sequences_with_scores = [(seq, sum(item["score"] for item in seq)) for seq in sequences]
-    sequences_with_scores.sort(key=lambda x: x[1], reverse=True)
-    
-    used_segments = set()
-    detailed_highlights = []
-    
-    for sequence, score in sequences_with_scores:
-        if not any(segment["text"] in used_segments for segment in sequence):
-            highlight = {
-                "relevance_score": score,
-                "start_time": sequence[0]["start_time"],
-                "end_time": sequence[-1]["end_time"],
-                "start_timecode": seconds_to_timestamp(sequence[0]["start_time"]),
-                "end_timecode": seconds_to_timestamp(sequence[-1]["end_time"]),
-                "duration": sequence[-1]["end_time"] - sequence[0]["start_time"],
-                "transcript": " ".join(segment["text"] for segment in sequence),
-            }
-            detailed_highlights.append(highlight)
-            used_segments.update(segment["text"] for segment in sequence)
-    
-    # Sort the highlights based on their cumulative score in descending order making sure they are at least half the max duration
-    detailed_highlights = [highlight for highlight in detailed_highlights if highlight["duration"] >= max_duration / 2]
-
-    # remove duration from highlights
-    for highlight in detailed_highlights:
-        del highlight["duration"]
-
-    detailed_highlights.sort(key=lambda x: x["relevance_score"], reverse=True)
-    
-    return detailed_highlights
-
-def compute_scores(extended_dict, scores, max_duration, summary):
-    # Update score in extended_dict
-    for index, score in enumerate(scores):
-        extended_dict[index]['score'] = score
-
-    # Sorting window_data by start_time
-    window_data = sorted(extended_dict.values(), key=lambda x: x['start_time'])
-    optimal_windows = create_detailed_highlights(window_data, max_duration)
-    
-    # Sort and filter optimal_windows
-    optimal_windows.sort(key=lambda x: x['relevance_score'], reverse=True)
-    slice_size = len(optimal_windows) // 4 if len(optimal_windows) > 45 else len(optimal_windows) // 3
-    optimal_windows = optimal_windows[:slice_size]
-
-    # Adjust scores to be relative to the highest score
-    max_score = max(window['relevance_score'] for window in optimal_windows)
-    for window in optimal_windows:
-        window['relevance_score'] = round(window['relevance_score'] / max_score * 100, 2)
-
-    # add titles and timestamps to optimal_windows and remove transcript
-    for i, window in enumerate(optimal_windows):
-        title = asyncio.run(highlight_titles_handler([window['transcript']], summary))[0]
-        del window['transcript']
-        window['title'] = title
-        window['start_time'] = window['start_time']
-        window['end_time'] = window['end_time']
-
-    return optimal_windows
+    return add_timecodes_to_highlights(payload.response.chapters)
 
 ## Utils
 from datetime import timedelta

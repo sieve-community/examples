@@ -20,9 +20,7 @@ The Analyze Transcripts app offers a comprehensive solution for extracting valua
 - `generate_chapters`: Option to generate chapters. Default is True.
 - `denoise_audio`: Option to denoise audio for better transcription accuracy. Default is True.
 - `generate_highlights`: Option to generate highlights based on specific phrases. Default is True.
-- `highlight_search_phrases`: Topics or phrases for highlight extraction. Default is "Most likely to go viral, funniest".
-- `max_highlight_duration`: Maximum duration of each highlight in seconds. Default is 30.
-    - `relevance_score`: Measure of how relevant the highlight is with respect to the provided phrases. Computed by rating segments through GPT4.
+- `highlight_search_phrases`: Topics or phrases for highlight extraction.
 
 ## How It Works
 Upon receiving a video or audio file, the app first converts the video to audio format (if necessary) and then runs a speech-to-text process to transcribe the content. It then processes the transcript to generate a title, chapters, a summary, and tags that accurately reflect the content with the help LLMs. Denoising can be performed before transcription to ensure higher accuracy. Additionally, the app can extract highlights based on specific topics or phrases, providing quick access to key moments.

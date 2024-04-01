@@ -20,7 +20,7 @@ metadata = sieve.Metadata(
 def highlights(
     file: sieve.File,
     render_clips: bool = True,
-    highlight_search_phrases: str = "most important",
+    highlight_search_phrases: str = "most viral moments",
 ):
     """
     :param file: The video file to process

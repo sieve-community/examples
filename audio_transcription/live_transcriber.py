@@ -15,7 +15,7 @@ metadata = sieve.Metadata(
     description="Transcribe and translate live audio streams in real-time with high accuracy.",
     code_url="https://github.com/sieve-community/examples/tree/main/audio_transcription/live_transcriber.py",
     image=sieve.Image(
-        url="https://storage.googleapis.com/mango-public-models/82bfe0ce-b9a0-4352-aea2-373b466d4eb0.webp"
+        url="https://storage.googleapis.com/sieve-public-data/live_transcriber.jpg"
     ),
     tags=["Audio", "Speech", "Transcription", "Showcase"],
     readme=open("LIVE_README.md", "r").read(),

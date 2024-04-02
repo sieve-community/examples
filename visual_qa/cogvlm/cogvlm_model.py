@@ -6,7 +6,7 @@ metadata = sieve.Metadata(
     code_url="https://github.com/sieve-community/examples/blob/main/visual_qa/cogvlm",
     tags=["Visual", "Image", "VQA", "Dialogue"],
     image=sieve.Image(
-        url="https://storage.googleapis.com/sieve-public-data/cogvlm-icon.webp"
+        url="https://storage.googleapis.com/sieve-public-data/cogvlm-icon.jpg"
     ),
     readme=open("README.md", "r").read(),
 )

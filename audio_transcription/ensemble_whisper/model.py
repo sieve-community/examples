@@ -5,7 +5,7 @@ metadata = sieve.Metadata(
     description="High-quality speech recognition using major improvements on top of Whisper",
     code_url="https://github.com/sieve-community/examples/tree/main/audio_transcription/ensemble_whisper",
     image=sieve.Image(
-        url="https://storage.googleapis.com/sieve-public-data/whisper-figma-design.webp"
+        url="https://storage.googleapis.com/sieve-public-data/whisper-figma-design.jpg"
     ),
     tags=["Audio", "Speech", "Transcription"],
     readme=open("README.md").read(),

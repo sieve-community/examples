@@ -1,8 +1,8 @@
 import sieve
 
 metadata = sieve.Metadata(
-    title="Generate Video Highlights",
-    description="Generate and render video highlights for long-form content based on search phrases.",
+    title="Generate Content Highlights",
+    description="Generate and render video or audio highlights for long-form content based on search phrases.",
     code_url="https://github.com/sieve-community/examples/blob/main/video_editing/highlights",
     image=sieve.Image(
         url="https://storage.googleapis.com/sieve-public-data/highlights-icon.webp"
@@ -58,16 +58,25 @@ def highlights(
             yield highlight
     else:
         print("Rendering clips...")
-        video = VideoFileClip(file.path)
+        is_audio = file.path.endswith(('.mp3', '.wav', '.aac', '.flac', '.ogg', '.m4a'))
+        if is_audio:
+            from moviepy.editor import AudioFileClip
+            media_clip = AudioFileClip(file.path)
+        else:
+            from moviepy.editor import VideoFileClip
+            media_clip = VideoFileClip(file.path)
+        
         count = 0
         for highlight in highlights:
             print(f"Rendering clip {count}...")
             start_time = highlight["start_time"]
             end_time = highlight["end_time"]
-            clip = video.subclip(start_time, end_time)
-            # write the clip to a file in temp directory
-            clip_path = os.path.join(temp_dir, f"highlight_{count}.mp4")
-            clip.write_videofile(clip_path, codec="libx264", audio_codec="aac")
+            clip = media_clip.subclip(start_time, end_time)
+            clip_path = os.path.join(temp_dir, f"highlight_{count}.mp4" if not is_audio else f"highlight_{count}.mp3")
+            if is_audio:
+                clip.write_audiofile(clip_path)
+            else:
+                clip.write_videofile(clip_path, codec="libx264", audio_codec="aac")
             yield sieve.File(path=clip_path), highlight
             count += 1
 

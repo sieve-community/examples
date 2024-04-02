@@ -23,7 +23,7 @@ def highlights(
     highlight_search_phrases: str = "most viral moments",
 ):
     """
-    :param file: The video file to process
+    :param file: The video or audio file to process
     :param render_clips: If True, the function will render the clips and return the clips as files. If False, the function will just return the metadata of the highlights.
     :param highlight_search_phrases: The search phrases to use to generate highlights.
     """

@@ -45,8 +45,11 @@ def highlights(
         highlight_search_phrases=highlight_search_phrases,
     )
 
-    # last output is the highlights
-    highlights = list(output)[-1]["highlights"]
+    try:
+        # last output is the highlights
+        highlights = list(output)[-1]["highlights"]
+    except KeyError:
+        raise ValueError("No highlights found in the output. Please ensure your file contains audio and is long enough to generate highlights.")
 
     from moviepy.editor import VideoFileClip
 

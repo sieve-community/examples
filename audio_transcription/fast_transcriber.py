@@ -90,7 +90,7 @@ class SpeechTranscriber:
         print(f"Split {path} into {num_segments} segments")
     
     def split_silences_by_silero_vad(
-        self, path: str, min_segment_length: float = 30.0, min_silence_length: float = 0.8
+        self, path: str, min_segment_length: float = 30.0, min_silence_length: float = 0.8, vad_threshold: float = 0.2
     ):
         import ffmpeg
         # get audio duration and sample rate
@@ -105,7 +105,7 @@ class SpeechTranscriber:
         wav = read_audio(path, sampling_rate=audio_sample_rate)
         # get speech timestamps from full audio file
         speech_timestamps = get_speech_timestamps(
-            wav, self.model, sampling_rate=SAMPLING_RATE, return_seconds=True, min_silence_duration_ms=min_silence_length * 1000, threshold=0.2
+            wav, self.model, sampling_rate=SAMPLING_RATE, return_seconds=True, min_silence_duration_ms=min_silence_length * 1000, threshold=vad_threshold
         )
 
         
@@ -149,6 +149,7 @@ class SpeechTranscriber:
         chunks: str = "",
         denoise_audio: bool = False,
         use_vad: bool = False,
+        vad_threshold: float = 0.2,
         initial_prompt: str = "",
     ):
         '''
@@ -166,6 +167,7 @@ class SpeechTranscriber:
         :param chunks: A parameter to manually specify the start and end times of each chunk when splitting audio for parallel processing. If set to "", we use silence detection to split the audio. If set to a string formatted with a start and end second on each line, we use the specified chunks. Example: '0,10' and '10,20' on separate lines.
         :param denoise_audio: Whether to apply denoising to the audio to get rid of background noise before transcription. Defaults to False.
         :param use_vad: Whether to use Silero VAD for splitting audio into segments. Defaults to False. More accurate than ffmpeg silence detection.
+        :param vad_threshold: The threshold for VAD. Defaults to 0.2.
         :param initial_prompt: A prompt to correct misspellings and style. Defaults to "".
         '''
         print("Starting transcription...")
@@ -252,6 +254,7 @@ class SpeechTranscriber:
                     audio_path,
                     min_silence_length=min_silence_length,
                     min_segment_length=min_segment_length,
+                    vad_threshold=vad_threshold,
                 )
         else:
             try:

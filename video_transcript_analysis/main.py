@@ -136,7 +136,7 @@ def analyze_transcript(
     if generate_highlights:
         print("running highlight runner")
         # pass in the segments as a flat list
-        highlights_output = asyncio.run(process_segments_in_batches([item for sublist in transcript_segments for item in sublist], highlight_search_phrases))
+        highlights_output = asyncio.run(process_segments_in_batches([item for sublist in transcript_segments for item in sublist], highlight_search_phrases, video_length))
         yield {"highlights": highlights_output}
         print("finished highlight runner")
 

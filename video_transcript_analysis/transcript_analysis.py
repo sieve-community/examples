@@ -322,7 +322,7 @@ async def chapter_runner(transcript):
         )
 
         return add_timecodes_to_chapters(payload.response.chapters)  
-async def process_segments_in_batches(transcript_segments, highlight_phrases):
+async def process_segments_in_batches(transcript_segments, highlight_phrases, media_length):
     BATCH_SIZE = 500
     async def process_batch(batch):
         return await highlight_generator_gpt4(batch, highlight_phrases)
@@ -350,6 +350,16 @@ async def process_segments_in_batches(transcript_segments, highlight_phrases):
 
     # Concatenate the sorted short and long highlights
     final_sorted_highlights = short_highlights_sorted + long_highlights_sorted
+
+    for i in range(len(final_sorted_highlights)):
+        if final_sorted_highlights[i]['start_time'] < 0:
+            final_sorted_highlights[i]['start_time'] = 0
+        if final_sorted_highlights[i]['end_time'] > media_length:
+            final_sorted_highlights[i]['end_time'] = media_length - 0.01
+        
+        final_sorted_highlights[i]['start_timecode'] = seconds_to_timestamp(final_sorted_highlights[i]['start_time'])
+        final_sorted_highlights[i]['end_timecode'] = seconds_to_timestamp(final_sorted_highlights[i]['end_time'])
+        final_sorted_highlights[i]['duration'] = final_sorted_highlights[i]['end_time'] - final_sorted_highlights[i]['start_time']
 
     return final_sorted_highlights
 

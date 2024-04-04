@@ -16,6 +16,9 @@ metadata = sieve.Metadata(
     system_packages=["ffmpeg"],
     python_packages=["moviepy"],
     metadata=metadata,
+    environment_variables=[
+        sieve.Env(name="OPENAI_API_KEY", description="OpenAI API Key")
+    ],
 )
 def highlights(
     file: sieve.File,

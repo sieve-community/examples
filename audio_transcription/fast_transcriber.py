@@ -202,8 +202,17 @@ class SpeechTranscriber:
             print("Warning: because speaker diarization is enabled, the transcription output will only return at the end of the job rather than when each segment is finished processing.")
 
         # Extract the length of the audio using ffprobe
-        result = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", file.path], capture_output=True, text=True)
-        audio_length = float(result.stdout)
+        result = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", f"{file.path}"], capture_output=True, text=True)
+        try:
+            audio_length = float(result.stdout.strip())
+        except:
+            try:
+                # try using librosa to get the duration
+                import librosa
+                y, sr = librosa.load(file.path)
+                audio_length = librosa.get_duration(y=y, sr=sr)
+            except:
+                raise Exception("Could not get the duration of the audio file. Your file may be corrupted or in an unsupported format.")
 
         min_silence_length = float(min_silence_length)
         min_segment_length = float(min_segment_length)
@@ -336,3 +345,10 @@ class SpeechTranscriber:
                 yield job_output
         
         print("transcription finished")
+
+if __name__ == "__main__":
+    import subprocess
+    file = sieve.File(path="/Users/Mokshith/Downloads/tmp9dwy6wqa.mp4")
+    result = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", f"{file.path}"], capture_output=True, text=True)
+    print(result.stdout)
+

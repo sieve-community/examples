@@ -116,7 +116,7 @@ class YOLOv8:
                     f"Unsupported model: {model}. Supported models are yolov8l, yolov8n, yolov8l-face, yolov8n-face, yolov8l-world, and yolov8s-world"
                 )
 
-        file_extension = os.path.splitext(file.path)[1][1:]
+        file_extension = os.path.splitext(file.path)[1][1:].lower()
         print("Starting inference...")
         if file_extension in video_extensions:
             video_path = file.path

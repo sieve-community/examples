@@ -26,6 +26,7 @@ metadata = sieve.Metadata(
         "pip install decord",
         "pip install 'imageio[ffmpeg]'",
         "pip install git+https://github.com/ultralytics/ultralytics.git@29dc1a3987eb8aa2d55d067daffdd26d14929020",
+        "pip install av==9.2.0",
     ]
 )
 class YOLOv8:
@@ -75,7 +76,7 @@ class YOLOv8:
         if not torch.cuda.is_available():
             raise Exception("No CUDA devices are visible. Please check your CUDA setup.")
 
-        video_extensions = ["mp4", "avi", "mov", "flv"]
+        video_extensions = ["mp4", "avi", "mov", "flv", "mkv", "wmv", "mpg", "mpeg", "m4v"]
         image_extensions = ["jpg", "jpeg", "png", "bmp", "tiff"]
 
         # split the models string by comma and remove any whitespace

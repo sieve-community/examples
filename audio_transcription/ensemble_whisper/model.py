@@ -264,16 +264,15 @@ class Whisper:
         print("load_time: ", time.time() - t)
 
         process_time = time.time()
+        regroup_algo = 'mg=.5_sp=.* /。/?/？'
         if speed_boost:
-            result = self.stable_model_base.transcribe_stable(audio_np, language=language, initial_prompt=initial_prompt, input_sr=16000, word_timestamps=word_level_timestamps)
+            result = self.stable_model_base.transcribe_stable(audio_np, language=language, initial_prompt=initial_prompt, input_sr=16000, word_timestamps=word_level_timestamps, regroup=regroup_algo)
         else:
-            result = self.stable_model.transcribe_stable(audio_np, language=language, initial_prompt=initial_prompt, input_sr=16000, word_timestamps=word_level_timestamps)
-        
+            result = self.stable_model.transcribe_stable(audio_np, language=language, initial_prompt=initial_prompt, input_sr=16000, word_timestamps=word_level_timestamps, regroup=regroup_algo)
         result = result.to_dict()
         print("transcribe_time: ", time.time() - process_time)
         process_time = time.time()
 
-        print("result: ", result)
         process_time = time.time()
 
         out_segments = []

@@ -329,19 +329,75 @@ class SpeechTranscriber:
                 yield job_outputs[0]
         if speaker_diarization:
             diarization_job_output = diarization_job.result()
+            
+            def word_timestamp_to_speaker(start_time, end_time):
+                # find the segment that contains the greatest proportion of the word
+                max_proportion = 0
+                speaker_id = None
+                for seg in diarization_job_output:
+                    seg_start, seg_end = seg["start"], seg["end"]
+                    # calculate overlap between the word and the segment
+                    overlap = max(0, min(end_time, seg_end) - max(start_time, seg_start))
+                    proportion = overlap / max((end_time - start_time), 1e-6)
+                    if proportion > max_proportion:
+                        max_proportion = proportion
+                        speaker_id = seg["speaker_id"]
+                if speaker_id is None:
+                    # find the closest segment
+                    seg = min(diarization_job_output, key=lambda x: abs(x["start"] - start_time))
+                    return seg["speaker_id"]
+                return speaker_id
+            
             print("diarization finished")
             for job_output in job_outputs:
                 transcript_segments = job_output["segments"]
+                new_transcript_segments = []
                 for seg in transcript_segments:
-                    diarization_segments = [s for s in diarization_job_output if s['end'] >= seg['start'] and s['start'] <= seg['end']]
-                    if diarization_segments:
-                        seg["speaker"] = max(diarization_segments, key=lambda x: x['end'] - x['start'])['speaker_id']
+                    last_speaker = -1
+                    words_list = []
                     if 'words' in seg:
                         for word in seg['words']:
-                            if 'start' in word:
-                                diarization_segments = [s for s in diarization_job_output if s['end'] >= word['start'] and s['start'] <= word['end']]
-                                if diarization_segments:
-                                    word["speaker"] = max(diarization_segments, key=lambda x: x['end'] - x['start'])['speaker_id']
+                            if 'start' in word and 'end' in word:
+                                speaker = word_timestamp_to_speaker(word['start'], word['end'])
+                                word["speaker"] = speaker
+                                if speaker != last_speaker and len(words_list) > 1:
+                                    new_transcript_segments.append({
+                                        "text": "".join([w.get("word", "") for w in words_list]),
+                                        "speaker": last_speaker,
+                                        "start": words_list[0]["start"],
+                                        "end": words_list[-1]["end"],
+                                        "words": words_list,
+                                    })
+                                    words_list = []
+                                words_list.append(word)
+                                last_speaker = speaker
+                        if len(words_list) > 1:
+                            new_transcript_segments.append({
+                                "text": "".join([w.get("word", "") for w in words_list]),
+                                "speaker": last_speaker,
+                                "start": words_list[0]["start"],
+                                "end": words_list[-1]["end"],
+                                "words": words_list,
+                            })
+                        elif len(words_list) == 1:
+                            # join with the previous segment
+                            if new_transcript_segments:
+                                words_list[0]["speaker"] = new_transcript_segments[-1]["speaker"]
+                                new_transcript_segments[-1]["text"] += words_list[0].get("word", "")
+                                new_transcript_segments[-1]["end"] = words_list[0]["end"]
+                                new_transcript_segments[-1]["words"].append(words_list[0])
+                            else:
+                                new_transcript_segments.append({
+                                    "text": words_list[0].get("word", ""),
+                                    "speaker": words_list[0].get("speaker", -1),
+                                    "start": words_list[0]["start"],
+                                    "end": words_list[0]["end"],
+                                    "words": words_list,
+                                })
+                job_output["segments"] = new_transcript_segments
+                # add a "speaker" field to each segment
+                for seg in job_output["segments"]:
+                    seg["speaker"] = seg["words"][0]["speaker"]
                 yield job_output
         
         print("transcription finished")

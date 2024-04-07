@@ -400,6 +400,9 @@ class SpeechTranscriber:
                 # add a "speaker" field to each segment
                 for seg in job_output["segments"]:
                     seg["speaker"] = seg["words"][0]["speaker"]
+                    # edge case when a segment is very short
+                    if seg["start"] == seg["end"]:
+                        seg["end"] = seg["start"] + 0.01
                 yield job_output
         
         print("transcription finished")

@@ -283,6 +283,8 @@ class SpeechTranscriber:
         job_outputs = []
         for job in executor.map(process_segment, segments):
             job_output = job.result()
+            if job_output["text"] == "":
+                continue
             job_segments = job_output["segments"]
             if len(job_segments) > 0:
                 print(f"transcribed {100*job_segments[-1]['end'] / audio_length:.2f}% of {audio_length:.2f} seconds")

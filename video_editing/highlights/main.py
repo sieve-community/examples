@@ -45,6 +45,8 @@ def highlights(
         generate_highlights=True,
         generate_chapters=False,
         denoise_audio=False,
+        speed_boost=True,
+        use_vad=False,
         highlight_search_phrases=highlight_search_phrases,
     )
 

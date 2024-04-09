@@ -90,7 +90,7 @@ def analyze_transcript(
         use_vad = use_vad,
         vad_threshold = 0.2,
         initial_prompt = "I made sure to add full capitalization and punctuation.",
-        backend="whisperx" if speed_boost else "whisper",
+        backend="whisperx" if speed_boost else "stable-ts",
     ):
 
         transcript.append(transcript_chunk)

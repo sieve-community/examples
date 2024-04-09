@@ -139,7 +139,7 @@ class SpeechTranscriber:
         word_level_timestamps: bool = True,
         speaker_diarization: bool = False,
         speed_boost: bool = False,
-        decode_boost: bool = False,
+        backend: str = "stable-ts",
         source_language: str = "",
         target_language: str = "",
         min_speakers: int = -1,
@@ -157,7 +157,7 @@ class SpeechTranscriber:
         :param word_level_timestamps: Whether to return word-level timestamps. Defaults to True.
         :param speaker_diarization: Whether to perform speaker diarization. Defaults to False.
         :param speed_boost: Whether to use a smaller, less accurate model for faster speed. Defaults to False.
-        :param decode_boost: Whether to enable a more accurate post-processing step at the cost of speed. Defaults to False.
+        :param backend: A choice between different model backends. Choices between "stable-ts", "whisper-timestamped", and "whisperx". See README for more information.
         :param source_language: Language of the audio. Defaults to auto-detect if not specified. See README for supported language codes.
         :param target_language: Language code of the language to translate to (doesn't translate if left blank). See README for supported language codes.
         :param min_speakers: Minimum number of speakers to detect for diarization. Defaults to auto-detect when set to -1.
@@ -221,7 +221,10 @@ class SpeechTranscriber:
             min_segment_length = max(min_segment_length, 15.0)
 
         audio_path = file.path
-        whisper = sieve.function.get("sieve/whisper")
+        if backend == "whisperx":
+            whisper = sieve.function.get("sieve/whisperx")
+        else:
+            whisper = sieve.function.get("sieve/whisper")
         translate = sieve.function.get("sieve/seamless_text2text")
 
         # create a temporary directory to store the audio files
@@ -236,16 +239,19 @@ class SpeechTranscriber:
             t = time.time()
             start_time, end_time = segment
 
-            whisper_job = whisper.push(
-                sieve.File(path=file.path),
-                language=source_language,
-                word_level_timestamps=word_level_timestamps,
-                decode_boost=decode_boost,
-                speed_boost=speed_boost,
-                start_time=start_time,
-                end_time=end_time,
-                initial_prompt=initial_prompt,
-            )
+            whisper_job_args = {
+                "audio": sieve.File(path=file.path),
+                "language": source_language,
+                "word_level_timestamps": word_level_timestamps,
+                "speed_boost": speed_boost,
+                "start_time": start_time,
+                "end_time": end_time,
+                "initial_prompt": initial_prompt,
+            }
+            if backend != "whisperx":
+                whisper_job_args["decode_boost"] = (backend == "whisper-timestamped")
+            
+            whisper_job = whisper.push(**whisper_job_args)
             print(f"Took {time.time() - t:.2f} seconds to push segment from {start_time:.2f} to {end_time:.2f}")
             return whisper_job
 
@@ -278,8 +284,17 @@ class SpeechTranscriber:
                 )
         if not segments:
             if not use_vad:
-                segments.append(whisper.push(sieve.File(path=file.path), language=source_language, word_level_timestamps=word_level_timestamps, speed_boost=speed_boost, decode_boost=decode_boost, initial_prompt=initial_prompt))
-
+                whisper_job_args = {
+                    "audio": sieve.File(path=file.path),
+                    "language": source_language,
+                    "word_level_timestamps": word_level_timestamps,
+                    "speed_boost": speed_boost,
+                    "initial_prompt": initial_prompt,
+                }
+                if backend != "whisperx":
+                    whisper_job_args["decode_boost"] = (backend == "whisper-timestamped")
+                
+                segments.append(whisper.push(**whisper_job_args))
         job_outputs = []
         for job in executor.map(process_segment, segments):
             job_output = job.result()

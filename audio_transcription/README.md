@@ -6,11 +6,11 @@ Some key features include:
 - Word-level timestamps
 - Speaker diarization
 - Speed boost option for faster results
-- Decoding boost option for highly accurate timestamps
+- Model backend options for tradeoffs between cost, quality, and speed
 - Auto translation into many languages
 
 ## Picking the right settings
-- `decode_boost` is basically the option that switches between which implementation to use during the decoding process. Setting it to true will use a slower but more accurate algorithm specifically for timestamps and filler words while leaving it off is faster but less accurate on timestamps. However, it is key to note that both of these approaches make significant improvements on top of what typical AI transcription services provide.
+- `backend` lets you choose between `stable-ts`, `whisperx`, and `whisper-timestamped`. `whisperx` is the fastest while `stable-ts` and `whisper-timestamped` offer more accuracy in things like timestamps.
 - Enabling `speaker_diarization` returns speaker IDs for each word in the transcript. This is useful if you want to know who said what.
 - Enabling `speed_boost` will use smaller models with either decoding approach. This is useful if you want to get results faster and don't mind sacrificing some accuracy.
 

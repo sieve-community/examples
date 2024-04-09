@@ -31,7 +31,7 @@ class Segment(BaseModel):
 
 @sieve.Model(
     name="whisperx",
-    gpu="l4",
+    gpu=sieve.gpu.T4(),
     python_packages=[
         "torch==2.0",
         "torchaudio==2.0.0",
@@ -271,12 +271,16 @@ class Whisper:
 
         if word_level_timestamps:
             language = result["language"]
-            model_a, metadata = self.get_model_for_language(language_code=language, device="cuda")
-            result_aligned = whisperx.align(
-                result["segments"], model_a, metadata, audio_np, "cuda"
-            )
-
-            print("align_time: ", time.time() - process_time)
+            try:
+                model_a, metadata = self.get_model_for_language(language_code=language, device="cuda")
+                result_aligned = whisperx.align(
+                    result["segments"], model_a, metadata, audio_np, "cuda"
+                )
+                print("align_time: ", time.time() - process_time)
+            except:
+                print("Unable to retrieve word-level timestamps for language", language, "Disabling word-level timestamps.")
+                word_level_timestamps = False
+                result_aligned = result
         else:
             result_aligned = result
         process_time = time.time()

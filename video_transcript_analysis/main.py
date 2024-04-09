@@ -31,7 +31,9 @@ def analyze_transcript(
     max_summary_length: int = 5,
     max_title_length: int = 10,
     num_tags: int = 5,
-    denoise_audio: bool = True,
+    denoise_audio: bool = False,
+    use_vad: bool = True,
+    speed_boost: bool = False,
     highlight_search_phrases : str = "Most interesting",
 
 ):
@@ -42,6 +44,8 @@ def analyze_transcript(
     :param num_tags: Number of tags to generate. Defaults to 5.
     :param generate_chapters: Whether to generate chapters or not. Defaults to True.
     :param denoise_audio: Whether to denoise audio before analysis. Results in better transcription but slower processing. Defaults to True.
+    :param use_vad: Whether to use voice activity detection to split audio into segments. Results in less repetition on borders of transcription segments. Defaults to False.
+    :param speed_boost: Whether to speed up processing by using a slightly faster transcription backend will less accurate word-timestamps. Defaults to False.
     :param generate_highlights: Whether to generate highlights or not. Defaults to False.
     :param highlight_search_phrases: Topic(s) of highlights to generate, can be multiple comma-separated phrases. Can be anything from "Most interesting" to "Technology". Defaults to "Most interesting".
 
@@ -75,8 +79,19 @@ def analyze_transcript(
     # audio to text
     whisper = sieve.function.get("sieve/speech_transcriber")
     transcript = []
+    min_segment_length = 240 if speed_boost else 120
+    if video_length < 300:
+        min_segment_length = 30
     transcript_segments = []
-    for transcript_chunk in whisper.run(sieve.File(path=audio_path), denoise_audio=denoise_audio, min_segment_length = 60, use_vad = True, initial_prompt = "I made sure to add full capitalization and punctuation."):
+    for transcript_chunk in whisper.run(
+        sieve.File(path=audio_path),
+        denoise_audio=denoise_audio,
+        min_segment_length = min_segment_length,
+        use_vad = use_vad,
+        vad_threshold = 0.2,
+        initial_prompt = "I made sure to add full capitalization and punctuation.",
+        backend="whisperx" if speed_boost else "whisper",
+    ):
 
         transcript.append(transcript_chunk)
         segments = transcript_chunk["segments"]
@@ -91,15 +106,18 @@ def analyze_transcript(
     transcript = [segment["segments"] for segment in transcript]
     transcript = [item for sublist in transcript for item in sublist]
     average_confidence_per_segment = []
-    for segment in transcript:
-        average_confidence_per_segment.append(
-            sum([word["confidence"] for word in segment["words"]]) / len(segment["words"])
-        )
-    
-    # count segments with low confidence
-    num_low_confidence_segments = sum([1 for confidence in average_confidence_per_segment if confidence < 0.5])
 
-    text = "".join([word["word"] for segment in transcript for word in segment["words"]])
+    try:
+        for segment in transcript:
+            average_confidence_per_segment.append(
+                sum([word["confidence"] for word in segment["words"]]) / len(segment["words"])
+            )
+        # count segments with low confidence
+        num_low_confidence_segments = sum([1 for confidence in average_confidence_per_segment if confidence < 0.5])
+    except:
+        num_low_confidence_segments = 0
+
+    text = " ".join([segment["text"] for segment in transcript]).strip()
     yield {"text": text, "language_code": language_code, "media_length_seconds": video_length}
     yield {"transcript": transcript}
 

@@ -439,15 +439,7 @@ class SpeechTranscriber:
 
 if __name__ == "__main__":
     import subprocess
-    file = sieve.File(url="https://sieve-prod-us-central1-local-file-upload-bucket.storage.googleapis.com/0a27f1ed-b241-4a1e-8b3c-e8aff3b8379c/b576becc-4db1-466b-bcf5-7dd7675a14b9.mp4?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=abhi-admin%40sieve-grapefruit.iam.gserviceaccount.com%2F20240413%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20240413T205233Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=host&x-goog-signature=7492d12dc8ec62aef6f7404ad87cca95735a828c2ac8b9b1eee8c62ed5904e13b5f977fcdb212404e57cf12850f1e3a1a99949e00b713946e1def1f9d8c299000c940b0d5350f5f2e0be69592494f33fdeff774800d1d89796035234bea314db2d8bf04b9a936df7d2cbb341890bcdacb8c5a747690b6b9088899b4f2a2e17f894f91ebf8c40c1d2e315d6b31f3eefd611cd50ae2dcd57f2114e2d5f02c6a908ccea569a68a50115e284bd193eb2061579adfd507ff035e48f879e12d8b185eec127d5751550fb98486f7e88fd8bcda010f3d1d43b52dddccf0d275f400390285a1f0c148ce201be41d46f12814d48165f83146345d9a87d1255c9692fa16631")
-    for out in SpeechTranscriber()(
-        file,
-        speaker_diarization=True,
-        use_vad=True,
-        vad_threshold=0.2,
-        min_silence_length=0.8,
-        initial_prompt = "I made sure to add full capitalization and punctuation."
-    ):
-        for seg in out["segments"]:
-            print(seg["start"], seg["end"], seg["text"])
+    file = sieve.File(path="/Users/Mokshith/Downloads/tmp9dwy6wqa.mp4")
+    result = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", f"{file.path}"], capture_output=True, text=True)
+    print(result.stdout)
 

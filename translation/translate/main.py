@@ -85,6 +85,8 @@ def translate(
     translation_results = []
     for i, job in enumerate(translations, start=1):
         result = job.result()
+        if not result.endswith(('.', '!', '?', '。', '！', '？')):
+            result += '.'
         print(f"Translated sentence {i}/{len(translations)}")
         translation_results.append(result)
     

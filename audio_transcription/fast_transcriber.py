@@ -418,6 +418,21 @@ class SpeechTranscriber:
                     # edge case when a segment is very short
                     if seg["start"] == seg["end"]:
                         seg["end"] = seg["start"] + 0.01
+                
+                # now combine segments where the adjacent segments have the same speaker and are within 1.5s of each other
+                new_transcript_segments = []
+                for i, seg in enumerate(job_output["segments"]):
+                    if i == 0:
+                        new_transcript_segments.append(seg)
+                    else:
+                        time_difference = seg["start"] - new_transcript_segments[-1]["end"]
+                        if seg["speaker"] == new_transcript_segments[-1]["speaker"] and time_difference <= 1.5:
+                            new_transcript_segments[-1]["text"] += seg["text"]
+                            new_transcript_segments[-1]["end"] = seg["end"]
+                            new_transcript_segments[-1]["words"] += seg["words"]
+                        else:
+                            new_transcript_segments.append(seg)
+                job_output["segments"] = new_transcript_segments
                 yield job_output
         
         print("transcription finished")

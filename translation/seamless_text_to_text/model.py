@@ -50,7 +50,7 @@ class SeamlessText2Text:
 
         # Translate the text to desired language in text
         translated_text, _, = self.translator.predict(
-            text, "t2tt", target_language, src_lang=source_language
+            text, "t2tt", target_language, src_lang=source_language, unit_generation_ngram_filtering=True
         )
 
         # Convert text to string

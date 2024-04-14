@@ -134,8 +134,13 @@ class SpeechTranscriber:
         print(f"Split {path} into {num_segments} segments")
     
     def split_silences_by_pyannote(
-        self, diarization_job_output: list, min_segment_length: float = 30.0
+        self, path: str, diarization_job_output: list, min_segment_length: float = 30.0
     ):
+        import ffmpeg
+        # get audio duration and sample rate
+        metadata = ffmpeg.probe(path)
+        duration = float(metadata["format"]["duration"])
+
         segments = [(seg["start"], seg["end"]) for seg in diarization_job_output]
         # they may overlap, so we need to merge them
         new_segments = []
@@ -162,6 +167,10 @@ class SpeechTranscriber:
                 continue
             yield cur_start, end
             cur_start = end
+            num_segments += 1
+
+        if duration > cur_start and len(new_segments) > 0:
+            yield cur_start, duration
             num_segments += 1
         
         print(f"Split into {num_segments} segments")
@@ -316,6 +325,7 @@ class SpeechTranscriber:
                 # we already have the diarization job, so we can use it to segment the audio
                 diarization_job_output = diarization_job.result()
                 segments = self.split_silences_by_pyannote(
+                    audio_path,
                     diarization_job_output,
                     min_segment_length=min_segment_length,
                 )

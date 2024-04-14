@@ -435,7 +435,7 @@ class SpeechTranscriber:
                             if 'start' in word and 'end' in word:
                                 speaker = word_timestamp_to_speaker(word['start'], word['end'])
                                 word["speaker"] = speaker
-                                if (speaker != last_speaker and len(words_list) > 1) or (len(words_list) > 1 and word['start'] - words_list[-1]['end'] > 1.5):
+                                if (speaker != last_speaker and len(words_list) > 1) or (len(words_list) > 1 and word['start'] - words_list[-1]['end'] > 0.75):
                                     new_transcript_segments.append({
                                         "text": "".join([w.get("word", "") for w in words_list]),
                                         "speaker": last_speaker,
@@ -456,7 +456,7 @@ class SpeechTranscriber:
                             })
                         elif len(words_list) == 1:
                             # join with the previous segment
-                            if new_transcript_segments and words_list[0]['start'] - new_transcript_segments[-1]['end'] <= 1.5:
+                            if new_transcript_segments and words_list[0]['start'] - new_transcript_segments[-1]['end'] <= 0.75:
                                 words_list[0]["speaker"] = new_transcript_segments[-1]["speaker"]
                                 new_transcript_segments[-1]["text"] += words_list[0].get("word", "")
                                 new_transcript_segments[-1]["end"] = words_list[0]["end"]
@@ -477,14 +477,14 @@ class SpeechTranscriber:
                     if seg["start"] == seg["end"]:
                         seg["end"] = seg["start"] + 0.01
                 
-                # now combine segments where the adjacent segments have the same speaker and are within 1.5s of each other
+                # now combine segments where the adjacent segments have the same speaker and are within 0.75s of each other
                 new_transcript_segments = []
                 for i, seg in enumerate(job_output["segments"]):
                     if i == 0:
                         new_transcript_segments.append(seg)
                     else:
                         time_difference = seg["start"] - new_transcript_segments[-1]["end"]
-                        if seg["speaker"] == new_transcript_segments[-1]["speaker"] and time_difference <= 1.5:
+                        if seg["speaker"] == new_transcript_segments[-1]["speaker"] and time_difference <= 0.75:
                             new_transcript_segments[-1]["text"] += seg["text"]
                             new_transcript_segments[-1]["end"] = seg["end"]
                             new_transcript_segments[-1]["words"] += seg["words"]

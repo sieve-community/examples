@@ -132,6 +132,40 @@ class SpeechTranscriber:
             yield cur_start, duration
             num_segments += 1
         print(f"Split {path} into {num_segments} segments")
+    
+    def split_silences_by_pyannote(
+        self, diarization_job_output: list, min_segment_length: float = 30.0
+    ):
+        segments = [(seg["start"], seg["end"]) for seg in diarization_job_output]
+        # they may overlap, so we need to merge them
+        new_segments = []
+        for seg in segments:
+            if not new_segments:
+                new_segments.append(seg)
+            else:
+                last_seg = new_segments[-1]
+                if seg[0] - last_seg[1] < 0.5:
+                    new_segments[-1] = (last_seg[0], seg[1])
+                else:
+                    new_segments.append(seg)
+        
+        num_segments = 0
+        if len(new_segments) == 0:
+            cur_start = 0.0
+        else:
+            cur_start = new_segments[0][0]
+            cur_start = max(cur_start - 1, 0.0)
+
+        for seg in new_segments:
+            start, end = seg
+            if (end - cur_start) < min_segment_length:
+                continue
+            yield cur_start, end
+            cur_start = end
+            num_segments += 1
+        
+        print(f"Split into {num_segments} segments")
+        
 
     def __predict__(
         self,
@@ -149,6 +183,7 @@ class SpeechTranscriber:
         chunks: str = "",
         denoise_audio: bool = False,
         use_vad: bool = False,
+        use_pyannote_segmentation: bool = False,
         vad_threshold: float = 0.2,
         initial_prompt: str = "",
     ):
@@ -167,11 +202,15 @@ class SpeechTranscriber:
         :param chunks: A parameter to manually specify the start and end times of each chunk when splitting audio for parallel processing. If set to "", we use silence detection to split the audio. If set to a string formatted with a start and end second on each line, we use the specified chunks. Example: '0,10' and '10,20' on separate lines.
         :param denoise_audio: Whether to apply denoising to the audio to get rid of background noise before transcription. Defaults to False.
         :param use_vad: Whether to use Silero VAD for splitting audio into segments. Defaults to False. More accurate than ffmpeg silence detection.
+        :param use_pyannote_segmentation: Whether to use Pyannote segmentation for splitting audio into segments. Defaults to False.
         :param vad_threshold: The threshold for VAD. Defaults to 0.2.
         :param initial_prompt: A prompt to correct misspellings and style. Defaults to "".
         '''
         print("Starting transcription...")
         import subprocess
+
+        if use_vad and use_pyannote_segmentation:
+            raise ValueError("Cannot use both VAD and Pyannote segmentation at the same time. Please choose one.")
 
         if use_vad:
             # create wav file
@@ -191,7 +230,7 @@ class SpeechTranscriber:
             source_language = ""
 
         # Do diarization if specified
-        if speaker_diarization:
+        if speaker_diarization or use_pyannote_segmentation:
             print("Pushing speaker diarization job...")
             pyannote = sieve.function.get("sieve/pyannote-diarization")
             diarization_job = pyannote.push(
@@ -199,7 +238,8 @@ class SpeechTranscriber:
                 min_speakers=min_speakers,
                 max_speakers=max_speakers,
             )
-            print("Warning: because speaker diarization is enabled, the transcription output will only return at the end of the job rather than when each segment is finished processing.")
+            if speaker_diarization:
+                print("Warning: because speaker diarization is enabled, the transcription output will only return at the end of the job rather than when each segment is finished processing.")
 
         # Extract the length of the audio using ffprobe
         result = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", f"{file.path}"], capture_output=True, text=True)
@@ -256,20 +296,28 @@ class SpeechTranscriber:
             return whisper_job
 
         if chunks == "":
-            if self.model is None or not use_vad:
+            if self.model is None or (not use_vad and not use_pyannote_segmentation):
                 print("Splitting audio into segments using ffmpeg silence detection...")
                 segments = self.split_silences_by_ffmpeg_detect(
                     audio_path,
                     min_silence_length=min_silence_length,
                     min_segment_length=min_segment_length,
                 )
-            else:
+            elif use_vad:
                 print("Splitting audio into segments using Silero VAD...")
                 segments = self.split_silences_by_silero_vad(
                     audio_path,
                     min_silence_length=min_silence_length,
                     min_segment_length=min_segment_length,
                     vad_threshold=vad_threshold,
+                )
+            elif use_pyannote_segmentation:
+                print("Splitting audio into segments using Pyannote segmentation...")
+                # we already have the diarization job, so we can use it to segment the audio
+                diarization_job_output = diarization_job.result()
+                segments = self.split_silences_by_pyannote(
+                    diarization_job_output,
+                    min_segment_length=min_segment_length,
                 )
         else:
             try:

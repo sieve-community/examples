@@ -169,8 +169,8 @@ class SpeechTranscriber:
             cur_start = end
             num_segments += 1
 
-        if duration > cur_start and len(new_segments) > 0:
-            yield cur_start, duration
+        if len(new_segments) > 0 and new_segments[-1][1] > cur_start:
+            yield cur_start, new_segments[-1][1]
             num_segments += 1
         
         print(f"Split into {num_segments} segments")
@@ -417,7 +417,11 @@ class SpeechTranscriber:
                     if proportion > max_proportion:
                         max_proportion = proportion
                         speaker_id = seg["speaker_id"]
-                if speaker_id is None:
+                if speaker_id is None or max_proportion == 0:
+                    # if its inside any segment, return that
+                    for seg in diarization_job_output:
+                        if seg["start"] <= start_time <= seg["end"]:
+                            return seg["speaker_id"]
                     # find the closest segment
                     seg = min(diarization_job_output, key=lambda x: abs(x["start"] - start_time))
                     return seg["speaker_id"]
@@ -435,7 +439,7 @@ class SpeechTranscriber:
                             if 'start' in word and 'end' in word:
                                 speaker = word_timestamp_to_speaker(word['start'], word['end'])
                                 word["speaker"] = speaker
-                                if (speaker != last_speaker and len(words_list) > 1) or (len(words_list) > 1 and word['start'] - words_list[-1]['end'] > 0.75):
+                                if (speaker != last_speaker and len(words_list) > 0) or (len(words_list) > 0 and word['start'] - words_list[-1]['end'] > 0.8):
                                     new_transcript_segments.append({
                                         "text": "".join([w.get("word", "") for w in words_list]),
                                         "speaker": last_speaker,
@@ -456,7 +460,7 @@ class SpeechTranscriber:
                             })
                         elif len(words_list) == 1:
                             # join with the previous segment
-                            if new_transcript_segments and words_list[0]['start'] - new_transcript_segments[-1]['end'] <= 0.75:
+                            if new_transcript_segments and words_list[0]['start'] - new_transcript_segments[-1]['end'] <= 0.8 and new_transcript_segments[-1]['speaker'] == words_list[0]['speaker']:
                                 words_list[0]["speaker"] = new_transcript_segments[-1]["speaker"]
                                 new_transcript_segments[-1]["text"] += words_list[0].get("word", "")
                                 new_transcript_segments[-1]["end"] = words_list[0]["end"]
@@ -477,14 +481,14 @@ class SpeechTranscriber:
                     if seg["start"] == seg["end"]:
                         seg["end"] = seg["start"] + 0.01
                 
-                # now combine segments where the adjacent segments have the same speaker and are within 0.75s of each other
+                # now combine segments where the adjacent segments have the same speaker and are within 0.8s of each other
                 new_transcript_segments = []
                 for i, seg in enumerate(job_output["segments"]):
                     if i == 0:
                         new_transcript_segments.append(seg)
                     else:
                         time_difference = seg["start"] - new_transcript_segments[-1]["end"]
-                        if seg["speaker"] == new_transcript_segments[-1]["speaker"] and time_difference <= 0.75:
+                        if seg["speaker"] == new_transcript_segments[-1]["speaker"] and time_difference <= 0.8:
                             new_transcript_segments[-1]["text"] += seg["text"]
                             new_transcript_segments[-1]["end"] = seg["end"]
                             new_transcript_segments[-1]["words"] += seg["words"]

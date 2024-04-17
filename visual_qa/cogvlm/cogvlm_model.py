@@ -13,7 +13,7 @@ metadata = sieve.Metadata(
 
 @sieve.Model(
     name="cogvlm-chat",
-    gpu="a100",
+    gpu=sieve.gpu.L4(),
     python_packages=[
         "SwissArmyTransformer>=0.4.8",
         "transformers>=4.33.1",
@@ -83,11 +83,12 @@ class Model:
             torch_dtype=torch.bfloat16,
             low_cpu_mem_usage=True,
             trust_remote_code=True,
+            load_in_4bit=True,
             config=config,
         ).eval()
 
         # Move the model to the CUDA device
-        self.model.to("cuda")
+        # self.model.to("cuda")
 
     def __predict__(
         self,

@@ -2,6 +2,12 @@
 
 This app uses a combination of sentence and word tokenization approaches on top of a translation model to do reliable translations on 99 languages, even for long documents. Under the hood, it uses the [Seamless Communication](https://www.sievedata.com/functions/sieve/seamless_text2text) model to translate text.
 
+## Other Backends
+You can also use 3rd party APIs in this app for translation such as OpenAI, Mixtral, and DeepL. To test other backends, you must have the following environment variables set in your Sieve [secrets](https://www.sievedata.com/dashboard/settings/secrets):
+- `OPENAI_API_KEY` (OpenAI API key) if you use `gpt4` backend
+- `TOGETHER_API_KEY` (Together.ai AI key) if you use `mixtral` backend
+- `DEEPL_API_KEY` (DeepL API key) if you use `deepl` backend
+
 ## Languages
 We support 99 total languages. Here are the language codes you can use:
 

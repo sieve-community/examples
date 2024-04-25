@@ -18,21 +18,29 @@ langid = sieve.function.get("sieve/langid")
 
 @sieve.function(
     name="translate",
-    python_packages=["nltk", "langcodes[data]", "langdetect"],
+    python_packages=["nltk", "langcodes[data]", "langdetect", "openai", "instructor", "deepl"],
+    python_version="3.10",
     run_commands=[
         "python -m nltk.downloader punkt",
     ],
-    metadata=metadata
+    metadata=metadata,
+    environment_variables=[
+        sieve.Env(name="OPENAI_API_KEY", description="OpenAI API Key", default=""),
+        sieve.Env(name="TOGETHERAI_API_KEY", description="Together API Key", default=""),
+        sieve.Env(name="DEEPL_API_KEY", description="DeepL API Key", default=""),
+    ],
 )
 def translate(
     text: str,
     source: str = 'auto',
-    target: str = 'es'
+    target: str = 'es',
+    backend: str = 'seamless'
 ) -> str:
     '''
     :param text: The text to translate
     :param source: The source language of the text in ISO 639-1 format. If 'auto', the language will be detected automatically.
     :param target: The target language of the text in ISO 639-1 format. Default is 'es' (Spanish).
+    :param backend: The translation backend to use. Default is 'seamless'. Supported backends are 'seamless', 'gpt4', 'mixtral', 'deepl'. See the README for more information.
     :return: The translated text
     '''
     from nltk.tokenize import sent_tokenize, word_tokenize
@@ -54,6 +62,24 @@ def translate(
     except langcodes.LanguageTagError as e:
         raise ValueError(f"Unsupported language code. {e}")
 
+    if backend == 'gpt4' or backend == 'mixtral':
+        print("Using LLM backend for translation.")
+        from llm_translator import get_translation
+        # keep the text as a single sentence
+        translation = get_translation(text, source_langcode, target_langcode, llm_backend="openai" if backend == 'gpt4' else 'mixtral')
+        return {
+            "translation": translation.translated_text,
+            "sentences": [{"original": text, "translated": translation.translated_text}]
+        }
+    elif backend == 'deepl':
+        print("Using DeepL backend for translation.")
+        from deepl_translator import get_deepl_translation
+        translation = get_deepl_translation(text, source_langcode, target_langcode)
+        return {
+            "translation": translation,
+            "sentences": [{"original": text, "translated": translation}]
+        }
+    print("Using Seamless backend for translation.")
     try:
         sentences = sent_tokenize(text, language=source_language.display_name().lower())
     except:

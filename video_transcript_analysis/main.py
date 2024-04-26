@@ -87,8 +87,9 @@ def analyze_transcript(
         sieve.File(path=audio_path),
         denoise_audio=denoise_audio,
         min_segment_length = min_segment_length,
-        use_vad = use_vad,
-        vad_threshold = 0.2,
+        use_pyannote_segmentation = use_vad,
+        # use_vad = use_vad,
+        # vad_threshold = 0.25,
         initial_prompt = "I made sure to add full capitalization and punctuation.",
         backend="whisperx" if speed_boost else "stable-ts",
     ):

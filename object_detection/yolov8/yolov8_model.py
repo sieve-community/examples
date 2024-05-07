@@ -183,7 +183,7 @@ class YOLOv8:
                 if frame_to_process is not None:
                     combined_boxes = []
                     for x, model_to_use in enumerate(models_to_use):
-                        results = model_to_use.predict(frame_to_process, conf=confidence_threshold)
+                        results = model_to_use.predict(frame_to_process, conf=confidence_threshold, verbose=False)
                         results_dict = self.__process_results__(results, model_to_use)
                         # Filter results based on confidence threshold
                         results_dict["boxes"] = [box for box in results_dict["boxes"] if box["confidence"] > confidence_threshold]
@@ -206,7 +206,7 @@ class YOLOv8:
             image_path = file.path
             combined_boxes = []
             for x, model_to_use in enumerate(models_to_use):
-                results = model_to_use.predict(image_path, conf=confidence_threshold)
+                results = model_to_use.predict(image_path, conf=confidence_threshold, verbose=False)
                 results_dict = self.__process_results__(results, model_to_use)
 
                 # Filter results based on confidence threshold

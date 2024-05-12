@@ -8,7 +8,7 @@ metadata = sieve.Metadata(
     code_url="https://github.com/sieve-community/examples/blob/main/visual_qa/vila",
     tags=["Visual", "Image", "VQA", "Dialogue"],
     image=sieve.Image(
-        path="vila_logo.webp"
+        path="vila_logo.jpeg"
     ),
     readme=open("README.md", "r").read(),
 )

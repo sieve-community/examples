@@ -60,8 +60,9 @@ class VILA:
         from llava.mm_utils import (KeywordsStoppingCriteria,
                                     process_images, tokenizer_image_token)
         from llava.utils import disable_torch_init  
-        from custom_utils import opencv_extract_frames  
+        from custom_utils import get_frame_from_vcap
         import time
+        from decord import VideoReader
 
         video_file = None
         image_file = None
@@ -83,7 +84,8 @@ class VILA:
         if video_file is None:
             images = Image.open(image_file).convert("RGB")
         else:
-            images = opencv_extract_frames(video_file, sampling_count, sampling_strategy=sampling_strategy)
+            vidcap = VideoReader(video_file)
+            images =  get_frame_from_vcap(vidcap, sampling_count, sampling_strategy=sampling_strategy)
 
         qs = query
         image_token_se = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN

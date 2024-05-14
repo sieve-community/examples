@@ -24,7 +24,7 @@ def get_frame_from_vcap(vidcap, num_frames=10, sampling_strategy="auto"):
     for frame_index in frame_indices:
         frame = vidcap[frame_index].asnumpy()
         if frame is not None:
-            img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = frame
             im_pil = Image.fromarray(img)
             images.append(im_pil)
         else:

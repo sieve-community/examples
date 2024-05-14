@@ -15,7 +15,7 @@ metadata = sieve.Metadata(
 
 @sieve.Model(
     name="vila",
-    gpu=sieve.gpu.L4(),
+    gpu=sieve.gpu.A100(split=2),
     python_version="3.10",
     cuda_version="11.8",
     python_packages=["accelerate"],

@@ -1,11 +1,11 @@
 import sieve
 
 metadata = sieve.Metadata(
-    title="Demucs - Source Seperation",
-    description="Seperate audio sources. This function uses demucs to seperate vocals from non-vocals in an audio. Works best for removing background music.",
+    title="Demucs",
+    description="Demucs is a state-of-the-art music source separation model, currently capable of separating drums, bass, and vocals from the rest of the accompaniment.",
     tags=["Audio", "Speech"],
     image=sieve.Image(
-        url="https://github.com/adefossez/demucs/blob/main/demucs.png?raw=true"
+        url="https://storage.googleapis.com/sieve-public-data/demucs.jpeg"
     ),
     readme=open("README.md", "r").read(),
 )

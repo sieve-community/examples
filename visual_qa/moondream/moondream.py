@@ -3,7 +3,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from PIL import Image
 
 MODEL_ID = "vikhyatk/moondream2"
-REVISION = "2024-04-02"
+REVISION = "2024-05-20"
 
 metadata = sieve.Metadata(
     description="a tiny vision language model that kicks ass and runs anywhere",

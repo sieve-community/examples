@@ -215,11 +215,20 @@ class SpeechTranscriber:
         :param vad_threshold: The threshold for VAD. Defaults to 0.2.
         :param initial_prompt: A prompt to correct misspellings and style. Defaults to "".
         '''
+        import time
         print("Starting transcription...")
+        t = time.time()
+        file_path = file.path
+        download_time = time.time() - t
+        print(f"Downloaded file in {download_time:.2f} seconds")
         import subprocess
 
         if use_vad and use_pyannote_segmentation:
             raise ValueError("Cannot use both VAD and Pyannote segmentation at the same time. Please choose one.")
+        
+        if download_time > 5:
+            # cache the file
+            file = sieve.File(path=file_path)
 
         if use_vad:
             # create wav file
@@ -404,6 +413,17 @@ class SpeechTranscriber:
                 yield job_outputs[0]
         if speaker_diarization:
             diarization_job_output = diarization_job.result()
+
+            def join_words(words):
+                text = ""
+                for w in words:
+                    stripped = w["word"].lstrip()
+                    if stripped.endswith(" "):
+                        text += stripped
+                    else:
+                        text += stripped + " "
+                text = text.strip()
+                return text
             
             def word_timestamp_to_speaker(start_time, end_time):
                 # find the segment that contains the greatest proportion of the word
@@ -441,7 +461,7 @@ class SpeechTranscriber:
                                 word["speaker"] = speaker
                                 if (speaker != last_speaker and len(words_list) > 0) or (len(words_list) > 0 and word['start'] - words_list[-1]['end'] > 0.8):
                                     new_transcript_segments.append({
-                                        "text": "".join([w.get("word", "") for w in words_list]),
+                                        "text": join_words(words_list),
                                         "speaker": last_speaker,
                                         "start": words_list[0]["start"],
                                         "end": words_list[-1]["end"],
@@ -452,7 +472,7 @@ class SpeechTranscriber:
                                 last_speaker = speaker
                         if len(words_list) > 1:
                             new_transcript_segments.append({
-                                "text": "".join([w.get("word", "") for w in words_list]),
+                                "text": join_words(words_list),
                                 "speaker": last_speaker,
                                 "start": words_list[0]["start"],
                                 "end": words_list[-1]["end"],
@@ -462,7 +482,10 @@ class SpeechTranscriber:
                             # join with the previous segment
                             if new_transcript_segments and words_list[0]['start'] - new_transcript_segments[-1]['end'] <= 0.8 and new_transcript_segments[-1]['speaker'] == words_list[0]['speaker']:
                                 words_list[0]["speaker"] = new_transcript_segments[-1]["speaker"]
-                                new_transcript_segments[-1]["text"] += words_list[0].get("word", "")
+                                if new_transcript_segments[-1]["text"].endswith(" "):
+                                    new_transcript_segments[-1]["text"] += words_list[0].get("word", "")
+                                else:
+                                    new_transcript_segments[-1]["text"] += " " + words_list[0].get("word", "")
                                 new_transcript_segments[-1]["end"] = words_list[0]["end"]
                                 new_transcript_segments[-1]["words"].append(words_list[0])
                             else:
@@ -489,7 +512,10 @@ class SpeechTranscriber:
                     else:
                         time_difference = seg["start"] - new_transcript_segments[-1]["end"]
                         if seg["speaker"] == new_transcript_segments[-1]["speaker"] and time_difference <= 0.8:
-                            new_transcript_segments[-1]["text"] += seg["text"]
+                            if new_transcript_segments[-1]["text"].endswith(" "):
+                                new_transcript_segments[-1]["text"] += seg["text"]
+                            else:
+                                new_transcript_segments[-1]["text"] += " " + seg["text"]
                             new_transcript_segments[-1]["end"] = seg["end"]
                             new_transcript_segments[-1]["words"] += seg["words"]
                         else:

@@ -14,7 +14,7 @@ metadata = sieve.Metadata(
 
 @sieve.Model(
     name="whisper",
-    gpu="l4",
+    gpu=sieve.gpu.L4(split=1),
     python_packages=[
         "openai-whisper==20230314",
         "torch==1.13.1",

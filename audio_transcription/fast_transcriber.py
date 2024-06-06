@@ -290,7 +290,7 @@ class SpeechTranscriber:
 
         import concurrent.futures
 
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=20)
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 
         def process_segment(segment):
             import time
@@ -311,6 +311,7 @@ class SpeechTranscriber:
             
             whisper_job = whisper.push(**whisper_job_args)
             print(f"Took {time.time() - t:.2f} seconds to push segment from {start_time:.2f} to {end_time:.2f}")
+            whisper_job.result()
             return whisper_job
 
         if chunks == "":

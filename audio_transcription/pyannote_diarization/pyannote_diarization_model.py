@@ -17,11 +17,11 @@ metadata = sieve.Metadata(
 
 @sieve.Model(
     name="pyannote-diarization",
-    gpu="a100",
+    gpu=sieve.gpu.A100(split=2),
     python_packages=[
         "torch==2.0",
         "torchaudio==2.0.0",
-        "git+https://github.com/m-bain/whisperx.git@e9c507ce5dea0f93318746411c03fed0926b70be",
+        "git+https://github.com/m-bain/whisperx.git",
         "onnxruntime-gpu==1.16.0"
     ],
     cuda_version="11.8",
@@ -45,7 +45,7 @@ class PyannoteDiarization:
         import torch
         self.diarize_model = Pipeline.from_pretrained(
             "pyannote/speaker-diarization-3.1",
-            use_auth_token="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").to(torch.device("cuda"))
+            use_auth_token="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").to(torch.device("cuda"))
 
         self.setup_time = time.time() - start_time
         self.first_time = True

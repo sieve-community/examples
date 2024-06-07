@@ -27,18 +27,23 @@ metadata = sieve.Metadata(
         "pip install 'imageio[ffmpeg]'",
         "pip install git+https://github.com/ultralytics/ultralytics.git@29dc1a3987eb8aa2d55d067daffdd26d14929020",
         "pip install av==9.2.0",
+        "wget -O /root/.models/yolov8l.pt https://github.com/ultralytics/assets/releases/download/v8.1.0/yolov8l.pt",
+        "wget -O /root/.models/yolov8n.pt https://github.com/ultralytics/assets/releases/download/v8.1.0/yolov8n.pt",
+        "wget -O /root/.models/yolov8l-worldv2.pt https://github.com/ultralytics/assets/releases/download/v8.1.0/yolov8l-worldv2.pt",
+        "wget -O /root/.models/yolov8s-worldv2.pt https://github.com/ultralytics/assets/releases/download/v8.1.0/yolov8s-worldv2.pt",
+        "pip install dill"
     ]
 )
 class YOLOv8:
     def __setup__(self):
         from ultralytics import YOLO
 
-        self.model = YOLO('yolov8l.pt')
-        self.fast_model = YOLO('yolov8n.pt')
+        self.model = YOLO('/root/.models/yolov8l.pt')
+        self.fast_model = YOLO('/root/.models/yolov8n.pt')
         self.face_model = YOLO("/root/.models/yolov8l-face.pt")
         self.face_fast_model = self.face_model
-        self.world_model = YOLO('yolov8l-worldv2.pt')
-        self.world_fast_model = YOLO('yolov8s-worldv2.pt')
+        self.world_model = YOLO('/root/.models/yolov8l-worldv2.pt')
+        self.world_fast_model = YOLO('/root/.models/yolov8s-worldv2.pt')
         self.current_world_classes = None
         self.current_world_fast_classes = None
 

@@ -47,7 +47,7 @@ class FaceDetector:
             confidence_threshold: float = 0.5,
             start_frame: int = 0, 
             end_frame: int = -1, 
-            fps: int = -1
+            fps: float = -1
         ) -> List[BoundingBox]:
         """
         :param file: Image or video file. If video, a generator is returned with the results for each frame.
@@ -92,16 +92,21 @@ class FaceDetector:
                         int((ratio_box[0] + ratio_box[2]) * image_width),
                         int((ratio_box[1] + ratio_box[3]) * image_height),
                     ]
-                    outputs.append(
-                        BoundingBox(
-                            x1=box[0],
-                            y1=box[1],
-                            x2=box[2],
-                            y2=box[3],
-                            class_name="face",
-                            score=float(detection.score[0]),
-                        ).dict()
-                    )
+                    dct = BoundingBox(
+                        x1=box[0],
+                        y1=box[1],
+                        x2=box[2],
+                        y2=box[3],
+                        class_name="face",
+                        score=float(detection.score[0]),
+                    ).dict()
+                    dct.update({
+                        "width": box[2] - box[0],
+                        "height": box[3] - box[1],
+                        "confidence": dct["score"],
+                        "class_name": "face"
+                    })
+                    outputs.append(dct)
             
             if not return_visualization:
                 return outputs
@@ -117,6 +122,7 @@ class FaceDetector:
                 return image_array, outputs
             
         if file_extension in video_extensions:
+            out_results = []
             video_path = file.path
             cap = cv2.VideoCapture(video_path)
             original_fps = cap.get(cv2.CAP_PROP_FPS)
@@ -142,15 +148,15 @@ class FaceDetector:
                 if ret and count <= end_frame:
                     results = process_frame(frame)
                     if results:
-                        yield {
+                        out_results.append({
                             "frame_number": count,
                             "boxes": results
-                        }
+                        })
                     else:
-                        yield {
+                        out_results.append({
                             "frame_number": count,
                             "boxes": []
-                        }
+                        })
                     count += skip_frames
                 else:
                     break
@@ -159,13 +165,14 @@ class FaceDetector:
             end_time = time.time()
             fps = (count / skip_frames) / (end_time - start_time)
             print(f"Processing FPS: {fps}")
+            return out_results
 
         elif file_extension in image_extensions:
             image_path = file.path
             image_array = cv2.imread(image_path)
             results = process_frame(image_array)
             print(results)
-            yield {
+            return {
                 "boxes": results,
                 "frame_number": 0
             }

@@ -35,6 +35,7 @@ def analyze_transcript(
     use_vad: bool = True,
     speed_boost: bool = False,
     highlight_search_phrases : str = "Most interesting",
+    return_as_json_file: bool = False,
 
 ):
     '''
@@ -48,6 +49,7 @@ def analyze_transcript(
     :param speed_boost: Whether to speed up processing by using a slightly faster transcription backend will less accurate word-timestamps. Defaults to False.
     :param generate_highlights: Whether to generate highlights or not. Defaults to False.
     :param highlight_search_phrases: Topic(s) of highlights to generate, can be multiple comma-separated phrases. Can be anything from "Most interesting" to "Technology". Defaults to "Most interesting".
+    :param return_as_json_file: Whether to return each output as a JSON file (useful for efficient fetching of large payloads). Defaults to False.
 
     '''
     print("converting to audio")
@@ -55,6 +57,10 @@ def analyze_transcript(
     import subprocess
     import os
     import uuid
+    import json
+    def pack_into_json(payload, file_name):
+        with open(file_name, "w") as f:
+            json.dump(payload, f)
         
     # Extract the length of the video using ffprobe
     result = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", file.path], capture_output=True, text=True)
@@ -119,15 +125,41 @@ def analyze_transcript(
         num_low_confidence_segments = 0
 
     text = " ".join([segment["text"] for segment in transcript]).strip()
-    yield {"text": text, "language_code": language_code, "media_length_seconds": video_length}
-    yield {"transcript": transcript}
+    text_and_language = {"text": text, "language_code": language_code, "media_length_seconds": video_length}
+    if return_as_json_file:
+        pack_into_json(text_and_language, "text_and_language.json")
+        yield {"text": sieve.File(path="text_and_language.json")}
+    else:
+        yield text_and_language
+
+    if return_as_json_file:
+        pack_into_json(transcript, "transcript.json")
+        yield {"transcript": sieve.File(path="transcript.json")}
+    else:
+        yield {"transcript": transcript}
 
     if len(text.split(" ")) < 15 or num_low_confidence_segments > 0.25 * len(transcript):
-        yield {"summary": "No summary available. Video is too short, has no audio, or has too many low confidence segments."}
-        yield {"title": "No title available. Video is too short, has no audio, or has too many low confidence segments."}
-        yield {"tags": []}
+        if return_as_json_file:
+            pack_into_json({"summary": "No summary available. Video is too short, has no audio, or has too many low confidence segments."}, "summary.json")
+            yield {"summary": sieve.File(path="summary.json")}
+        else:
+            yield {"summary": "No summary available. Video is too short, has no audio, or has too many low confidence segments."}
+        if return_as_json_file:
+            pack_into_json({"title": "No title available. Video is too short, has no audio, or has too many low confidence segments."}, "title.json")
+            yield {"title": sieve.File(path="title.json")}
+        else:
+            yield {"title": "No title available. Video is too short, has no audio, or has too many low confidence segments."}
+        if return_as_json_file:
+            pack_into_json({"tags": []}, "tags.json")
+            yield {"tags": sieve.File(path="tags.json")}
+        else:
+            yield {"tags": []}
         if generate_chapters:
-            yield {"chapters": []}
+            if return_as_json_file:
+                pack_into_json({"chapters": []}, "chapters.json")
+                yield {"chapters": sieve.File(path="chapters.json")}
+            else:
+                yield {"chapters": []}
         return
 
     import os
@@ -148,15 +180,31 @@ def analyze_transcript(
     )
     
     print("finished description runner")
-    yield {"summary": summary}
-    yield {"title": title}
-    yield {"tags": tags}
+    if return_as_json_file:
+        pack_into_json({"summary": summary}, "summary.json")
+        yield {"summary": sieve.File(path="summary.json")}
+    else:
+        yield {"summary": summary}
+    if return_as_json_file:
+        pack_into_json({"title": title}, "title.json")
+        yield {"title": sieve.File(path="title.json")}
+    else:
+        yield {"title": title}
+    if return_as_json_file:
+        pack_into_json({"tags": tags}, "tags.json")
+        yield {"tags": sieve.File(path="tags.json")}
+    else:
+        yield {"tags": tags}
 
     if generate_highlights:
         print("running highlight runner")
         # pass in the segments as a flat list
         highlights_output = asyncio.run(process_segments_in_batches([item for sublist in transcript_segments for item in sublist], highlight_search_phrases, video_length))
-        yield {"highlights": highlights_output}
+        if return_as_json_file:
+            pack_into_json({"highlights": highlights_output}, "highlights.json")
+            yield {"highlights": sieve.File(path="highlights.json")}
+        else:
+            yield {"highlights": highlights_output}
         print("finished highlight runner")
 
     if generate_chapters:
@@ -166,7 +214,11 @@ def analyze_transcript(
         out_list = []
         for chapter in chapters:
             out_list.append({"title": chapter["title"], "start_time": chapter["start_time"], "timecode": chapter["timecode"]})
-        yield {"chapters": out_list}
+        if return_as_json_file:
+            pack_into_json({"chapters": out_list}, "chapters.json")
+            yield {"chapters": sieve.File(path="chapters.json")}
+        else:
+            yield {"chapters": out_list}
 
     if os.path.exists(audio_path):
         os.remove(audio_path)

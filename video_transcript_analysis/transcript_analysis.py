@@ -432,4 +432,5 @@ def seconds_to_timestamp(seconds):
     milliseconds = int((seconds - int(seconds)) * 1000)
     timestr = f"{hours:02d}:{minutes:02d}:{remaining_seconds:02d}.{milliseconds:03d}"
     hours, minutes, seconds = map(float, timestr.split(':'))
-    return timedelta(hours=hours, minutes=minutes, seconds=seconds)
+    return str(timedelta(hours=hours, minutes=minutes, seconds=seconds))
+

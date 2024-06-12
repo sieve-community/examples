@@ -23,6 +23,7 @@ metadata = sieve.Metadata(
         "moviepy",
         "pydub",
         "pyrubberband",
+        ""
     ],
     metadata=metadata,
     environment_variables=[
@@ -99,7 +100,7 @@ def do(
         for i, segment in enumerate(segments):
             tts = tts_model.push(
                 segment["text"],
-                source_audio,
+                sieve.Audio(path=source_audio.path),
                 stability=speech_stability,
                 similarity_boost=speech_similarity_boost
             )
@@ -171,9 +172,9 @@ def do(
             audio_enhancement_coroutines = []
             for target_audio in target_audios:
                 if tts_model_str == "xtts":
-                    enhanced_audio = sieve.function.get("sieve/audio_enhancement").push(target_audio, filter_type="all")
+                    enhanced_audio = sieve.function.get("sieve/audio_enhancement").push(sieve.File(target_audio.path), filter_type="all")
                 else:
-                    enhanced_audio = sieve.function.get("sieve/audio_enhancement").push(target_audio, filter_type="noise")
+                    enhanced_audio = sieve.function.get("sieve/audio_enhancement").push(sieve.File(target_audio.path), filter_type="noise")
                 audio_enhancement_coroutines.append(enhanced_audio)
             for i, enhanced_audio in enumerate(audio_enhancement_coroutines):
                 refined_target_audios.append(enhanced_audio.result())

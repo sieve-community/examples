@@ -76,9 +76,9 @@ def do(
         try:
             start_time = time.time()
             if tts_model == "xtts":
-                source_audio = sieve.function.get("sieve/audio_enhancement").run(source_audio, filter_type="all")
+                source_audio = sieve.function.get("sieve/audio_enhancement").run(sieve.File(source_audio_path), filter_type="all")
             elif (tts_model == "elevenlabs" and len(voice_id) == 0):
-                source_audio = sieve.function.get("sieve/audio_enhancement").run(source_audio, filter_type="noise")
+                source_audio = sieve.function.get("sieve/audio_enhancement").run(sieve.File(source_audio_path), filter_type="noise")
             print(f"Time taken to refine source audio: {time.time() - start_time} seconds")    
         except Exception as e:
             print(f"Exception: {e}")

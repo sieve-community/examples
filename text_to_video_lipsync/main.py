@@ -23,7 +23,7 @@ metadata = sieve.Metadata(
         "moviepy",
         "pydub",
         "pyrubberband",
-        ""
+        "ffmpeg-python"
     ],
     metadata=metadata,
     environment_variables=[
@@ -64,6 +64,18 @@ def do(
     from utils import extract_audio_from_video, trim_silence_from_video, trim_silence_from_audio_loaded, convert_to_format
 
     source_video_path = source_video.path
+    # ensure fps of video is 60 fps or less
+    import ffmpeg
+    # get fps of video with ffmpeg
+    probe = ffmpeg.probe(source_video_path)
+    video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
+    fps = eval(video_stream['r_frame_rate'])
+    print(f"Input video FPS: {fps}")
+    # if fps greater than 60, downsample the video to 60 fps
+    if fps > 60:
+        print("Downsampling video to 60 fps...")
+        ffmpeg.input(source_video_path).output('output_60fps.mp4', r=60, vcodec='libx264', crf=23, acodec='aac').run(overwrite_output=True)
+        source_video_path = "output_60fps.mp4"
     source_audio_path = "source_audio.wav"
     if os.path.exists(source_audio_path):
         os.remove(source_audio_path)
@@ -76,10 +88,7 @@ def do(
     if refine_source_audio:
         try:
             start_time = time.time()
-            if tts_model == "xtts":
-                source_audio = sieve.function.get("sieve/audio_enhancement").run(sieve.File(source_audio_path), filter_type="all")
-            elif (tts_model == "elevenlabs" and len(voice_id) == 0):
-                source_audio = sieve.function.get("sieve/audio_enhancement").run(sieve.File(source_audio_path), filter_type="noise")
+            source_audio = sieve.function.get("sieve/audio_enhancement").run(sieve.File(source_audio_path), filter_type="noise")
             print(f"Time taken to refine source audio: {time.time() - start_time} seconds")    
         except Exception as e:
             print(f"Exception: {e}")
@@ -110,7 +119,7 @@ def do(
         if len(voice_id) == 0:
             # clone voice
             cloning_model = sieve.function.get("sieve/elevenlabs_voice_cloning")
-            voice_cloning = cloning_model.run(source_audio)
+            voice_cloning = cloning_model.run(sieve.Audio(path=source_audio.path))
             print(voice_cloning)
             voice_id = voice_cloning["voice_id"]
         if voice_id and len(voice_id) > 0:
@@ -132,13 +141,13 @@ def do(
         if cleanup_voice_id:
             # delete voice
             cloning_model = sieve.function.get("sieve/elevenlabs_voice_cloning")
-            cloning_model.run(source_audio, delete_voice_id=voice_id)
+            cloning_model.run(sieve.Audio(path=source_audio.path), delete_voice_id=voice_id)
     elif tts_model_str == "playht":
         tts_model = sieve.function.get(f"sieve/playht_speech_synthesis")
         if len(voice_id) == 0:
             # clone voice
             cloning_model = sieve.function.get("sieve/playht_voice_cloning")
-            voice_cloning = cloning_model.run(source_audio)
+            voice_cloning = cloning_model.run(sieve.Audio(path=source_audio.path))
             print(voice_cloning)
             voice_id = voice_cloning["id"]
         for i, segment in enumerate(segments):
@@ -157,7 +166,7 @@ def do(
         if cleanup_voice_id:
             # delete voice
             cloning_model = sieve.function.get("sieve/playht_voice_cloning")
-            cloning_model.run(source_audio, delete_voice_id=voice_id)
+            cloning_model.run(sieve.Audio(path=source_audio.path), delete_voice_id=voice_id)
     else:
         raise ValueError(f"Unsupported TTS model: {tts_model_str}. Please use one of the following: xtts, elevenlabs, playht")
     for tts in tts_coroutines:

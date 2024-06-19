@@ -172,10 +172,12 @@ class FaceDetector:
             image_array = cv2.imread(image_path)
             results = process_frame(image_array)
             print(results)
-            return {
-                "boxes": results,
-                "frame_number": 0
-            }
+            return [
+                {
+                    "boxes": results,
+                    "frame_number": 0
+                }
+            ]
         else:
             raise ValueError(f"Unsupported file extension: {file_extension}. Supported extensions are {video_extensions + image_extensions}")
 

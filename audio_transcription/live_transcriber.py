@@ -144,13 +144,15 @@ def live_transcriber(
 ):
     """
     :param url: A URL to a live audio stream (RTMP, HLS, etc.). Needs to be supported by FFMPEG.
-    :param target_language: Language code of the language of the transcript (defaults to English if blank). See README for supported language codes.
+    :param target_language: Language code of the language of the transcript (defaults to English if blank). You can specify multiple languages by separating them with commas. See README for supported language codes.
     :param stream_language: Language code of the provided audio. Defaults to blank for auto-detection, but faster inference if the language is known.
     :param chunk_size: The interval at which to process transcripts. Must be > than 3 seconds.
     :return: a list of segments, each with a start time, end time, and text
     """
     if target_language.strip() == "":
         target_language = "eng"
+    
+    target_languages = [lang.strip() for lang in target_language.split(",")]
 
     if chunk_size < 3:
         chunk_size = 3
@@ -238,39 +240,49 @@ def live_transcriber(
                         o["text"] = o["text"][:-3]
 
                     text = o["text"]
-                    if o["language_code"] != target_language and o["text"]:
-                        if target_language not in whisper_to_seamless_languages:
-                            raise Exception(
-                                f"Target language not supported for translation: ",
-                                target_language,
-                            )
-                        if o["language_code"] not in whisper_to_seamless_languages:
-                            raise Exception(
-                                f"Whisper detected language not supported for translation: ",
-                                o["language_code"],
-                            )
+                    output_texts = {}
+                    import concurrent.futures
 
-                        # Output language is in Whisper's language coding, so we need to transform to seamless
-                        seamless_target_lang = whisper_to_seamless_languages[
-                            target_language
-                        ]
-                        seamless_source_lang = whisper_to_seamless_languages[
-                            o["language_code"]
-                        ]
-                        text = translate.run(
-                            text,
-                            target_language=seamless_target_lang,
-                            source_language=seamless_source_lang,
-                        )
+                    def translate_text(target_language):
+                        if o["language_code"] != target_language and o["text"]:
+                            if target_language not in whisper_to_seamless_languages:
+                                raise Exception(
+                                    f"Target language not supported for translation: ",
+                                    target_language,
+                                )
+                            if o["language_code"] not in whisper_to_seamless_languages:
+                                raise Exception(
+                                    f"Whisper detected language not supported for translation: ",
+                                    o["language_code"],
+                                )
+
+                            # Output language is in Whisper's language coding, so we need to transform to seamless
+                            seamless_target_lang = whisper_to_seamless_languages[
+                                target_language
+                            ]
+                            seamless_source_lang = whisper_to_seamless_languages[
+                                o["language_code"]
+                            ]
+                            return target_language, translate.run(
+                                text,
+                                target_language=seamless_target_lang,
+                                source_language=seamless_source_lang,
+                            )
+                        return target_language, None
+
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        future_to_language = {executor.submit(translate_text, target_language): target_language for target_language in target_languages}
+                        for future in concurrent.futures.as_completed(future_to_language):
+                            target_language, translation = future.result()
+                            if translation:
+                                output_texts[target_language] = translation
 
                     data = {
-                        "text": text,
+                        "texts": output_texts,
                         "start": curr_offset,
                         "end": curr_offset + secs,
+                        "original_text": o["text"],
                     }
-
-                    if o["language_code"] != target_language and o["text"]:
-                        data["original_text"] = o["text"]
 
                     yield data
 

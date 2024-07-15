@@ -5,6 +5,7 @@ Features
 - Voice cloning with just a 3-second audio clip.
 - Emotion and style transfer by cloning.
 - Cross-language voice cloning.
+- Pre-Trained speakers.
 - Multi-lingual speech generation.
 - 24khz sampling rate.
 

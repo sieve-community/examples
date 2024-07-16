@@ -26,7 +26,7 @@ def merge_audio(video_with_audio, new_audio, output_video):
     name="youtube_to_mp4",
     system_packages=["ffmpeg"],
     python_packages=[
-        "pytube @ git+https://github.com/sieve-community/pytube@09c8f0885b0a3a3c5808bff1cfe1934759f8f139",
+        "pytube @ git+https://github.com/sieve-community/pytube.git",
     ],
     metadata=metadata
 )

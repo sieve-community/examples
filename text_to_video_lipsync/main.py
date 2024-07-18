@@ -68,7 +68,7 @@ def do(
     if os.path.exists(source_audio_path):
         os.remove(source_audio_path)
     
-    tts = sieve.function.get("sieve/tts")
+    tts_engine = sieve.function.get("sieve/tts")
 
     print(f"Extracting audio from video...")
     # Extract audio from source_video
@@ -85,7 +85,7 @@ def do(
     print(f"Generating speech for each segment...")
     tts_coroutines = []
     for i, segment in enumerate(segments):
-            tts = tts.push(
+            tts = tts_engine.push(
                 voice = voice_engine,
                 text = segment["text"],
                 reference_audio = source_audio,

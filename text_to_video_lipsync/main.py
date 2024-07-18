@@ -1,13 +1,14 @@
 import sieve
+from typing import Literal
 
 metadata = sieve.Metadata(
-    title="Text to Video Lipsync",
+    # title="Text to Video Lipsync",
     description="Generate a video of a person speaking a given text using lipsyncing.",
     code_url="https://github.com/sieve-community/examples/blob/main/text_to_video_lipsync",
     image=sieve.Image(
-        url="https://storage.googleapis.com/mango-public-models/dalle-lipsync-lego.png"
+        url="https://storage.googleapis.com/sieve-public-data/side-profile-text.png"
     ),
-    tags=["Audio", "Speech", "TTS", "Voice Cloning", "Video", "Lipsyncing", "Showcase"],
+    tags=["Audio", "Speech", "TTS", "Voice Cloning", "Video", "Lipsyncing"],
     readme=open("README.md", "r").read(),
 )
 
@@ -26,37 +27,24 @@ metadata = sieve.Metadata(
         "ffmpeg-python"
     ],
     metadata=metadata,
-    environment_variables=[
-        sieve.Env(name="ELEVEN_LABS_API_KEY", description="API key for ElevenLabs", default=""),
-        sieve.Env(name="PLAYHT_API_KEY", description="API key for ElevenLabs", default=""),
-        sieve.Env(name="PLAYHT_API_USER_ID", description="API user ID for ElevenLabs", default="")
-    ],
 )
 def do(
-    source_video: sieve.Video,
+    source_video: sieve.File,
     text: str,
-    tts_model: str = "xtts",
-    speech_stability: float = 0.5,
-    speech_similarity_boost: float = 0.63,
-    voice_id: str = "",
-    cleanup_voice_id: bool = False,
-    refine_source_audio: bool = True,
-    refine_target_audio: bool = True,
-    low_resolution: bool = False,
-    low_fps: bool = False,
+    lipsync_engine: Literal["musetalk", "video_retalking"] = "musetalk",
+    voice_engine: Literal["elevenlabs-voice-cloning", "cartesia-voice-cloning"] = "elevenlabs-voice-cloning",
+    downsample_video: bool = True,
+    voice_stability: float = 0.5,
+    voice_style: float = 0
 ):
     '''
     :param source_video: video to lip-sync
     :param text: text to speak
-    :param tts_model: TTS model to use. Supported models: "xtts", "elevenlabs", or "playht". "elevenlabs" or "playht" is recommended for better quality but requires an API key.
-    :param speech_stability: Value between 0 and 1. Increasing variability can make speech more expressive with output varying between re-generations. It can also lead to instabilities.
-    :param speech_similarity_boost: Value between 0 and 1. Low values are recommended if background artifacts are present in generated speech.
-    :param voice_id: The ID of the ElevenLabs or Play.ht voice to use. If none are set, the voice will be cloned from the source audio and used. Only applicable if tts_model is "elevenlabs" or "playht".
-    :param cleanup_voice_id: Whether to delete the voice after use. Only applicable if tts_model is "elevenlabs" or "playht".
-    :param refine_source_audio: Whether to refine the source audio using sieve/audio_enhancement.
-    :param refine_target_audio: Whether to refine the generated target audio using sieve/audio_enhancement.
-    :param low_resolution: Whether to reduce the resolution of the output video to half of the original on each axis; significantly speeds up inference.
-    :param low_fps: Whether to reduce the fps of the output video to half of the original; significantly speeds up inference.
+    :param lipsync_engine: Lipsync engine to use. Supported engines: "musetalk", "video_retalking".
+    :param voice_engine: voice engine to use. Supported engines: "cartesia", "elevenlabs".
+    :param downsample_video: Whether to downsample the video to 720p.
+    :param voice_stability: Value between 0 and 1. Increasing variability can make speech more expressive with output varying between re-generations. It can also lead to instabilities.
+    :param voice_style: Value between 0 and 1. High values are recommended if the style of the speech should be exaggerated compared to the original source audio. Higher values can lead to more instability in the generated speech. Setting this to 0.0 will greatly increase generation speed and is the default setting.
     :return: A generated video file
     '''
     import os
@@ -80,122 +68,38 @@ def do(
     if os.path.exists(source_audio_path):
         os.remove(source_audio_path)
     
+    tts = sieve.function.get("sieve/tts")
+
+    print(f"Extracting audio from video...")
     # Extract audio from source_video
     extract_audio_from_video(source_video_path, source_audio_path)
-    source_audio = sieve.Audio(path=source_audio_path)
+    source_audio = sieve.File(path=source_audio_path)
 
-    # Refine source_audio
-    if refine_source_audio:
-        try:
-            start_time = time.time()
-            source_audio = sieve.function.get("sieve/audio_enhancement").run(sieve.File(source_audio_path), filter_type="noise")
-            print(f"Time taken to refine source audio: {time.time() - start_time} seconds")    
-        except Exception as e:
-            print(f"Exception: {e}")
-            print("Refining source audio failed. Using unrefined source audio instead.")
-
+    print(f"Split text into sentences...")
     # split text into sentences by punctuation
     import re
     segments = []
     for sentence in re.split(r'(?<=[^A-Z].[.?]) +(?=[A-Z])', text):
         segments.append({"text": sentence})
-    # TTS using audio as source
-    tts_model_str = tts_model
-    start_time = time.time()
-    target_audios = []
+    
+    print(f"Generating speech for each segment...")
     tts_coroutines = []
-    if tts_model_str  == "xtts":
-        tts_model = sieve.function.get(f"sieve/xtts")
-        for i, segment in enumerate(segments):
-            tts = tts_model.push(
-                segment["text"],
-                sieve.Audio(path=source_audio.path),
-                stability=speech_stability,
-                similarity_boost=speech_similarity_boost
+    for i, segment in enumerate(segments):
+            tts = tts.push(
+                voice = voice_engine,
+                text = segment["text"],
+                reference_audio = source_audio,
+                stability = voice_stability,
+                style = voice_style
             )
-            tts_coroutines.append(tts)
-    elif tts_model_str == "elevenlabs":
-        tts_model = sieve.function.get(f"sieve/elevenlabs_speech_synthesis")
-        if len(voice_id) == 0:
-            # clone voice
-            cloning_model = sieve.function.get("sieve/elevenlabs_voice_cloning")
-            voice_cloning = cloning_model.run(sieve.Audio(path=source_audio.path))
-            print(voice_cloning)
-            voice_id = voice_cloning["voice_id"]
-        if voice_id and len(voice_id) > 0:
-            tts = tts_model.push(
-                text,
-                voice_id=voice_id,
-                stability=speech_stability,
-                similarity_boost=speech_similarity_boost
-            )
-        else:
-            tts = tts_model.push(
-                text,
-                stability=speech_stability,
-                similarity_boost=speech_similarity_boost
-            )
-            
-        tts_coroutines.append(tts)
-        
-        if cleanup_voice_id:
-            # delete voice
-            cloning_model = sieve.function.get("sieve/elevenlabs_voice_cloning")
-            cloning_model.run(sieve.Audio(path=source_audio.path), delete_voice_id=voice_id)
-    elif tts_model_str == "playht":
-        tts_model = sieve.function.get(f"sieve/playht_speech_synthesis")
-        if len(voice_id) == 0:
-            # clone voice
-            cloning_model = sieve.function.get("sieve/playht_voice_cloning")
-            voice_cloning = cloning_model.run(sieve.Audio(path=source_audio.path))
-            print(voice_cloning)
-            voice_id = voice_cloning["id"]
-        for i, segment in enumerate(segments):
-            if voice_id and len(voice_id) > 0:
-                tts = tts_model.push(
-                    segment["text"],
-                    voice=voice_id,
-                )
-            else:
-                tts = tts_model.push(
-                    segment["text"],
-                )
-                
             tts_coroutines.append(tts)
 
-        if cleanup_voice_id:
-            # delete voice
-            cloning_model = sieve.function.get("sieve/playht_voice_cloning")
-            cloning_model.run(sieve.Audio(path=source_audio.path), delete_voice_id=voice_id)
-    else:
-        raise ValueError(f"Unsupported TTS model: {tts_model_str}. Please use one of the following: xtts, elevenlabs, playht")
+    print(f"Waiting for speech to generate...")
+    target_audios = []
     for tts in tts_coroutines:
         target_audios.append(tts.result())
-    print(f"Time taken for TTS: {time.time() - start_time} seconds")
     
-    if refine_target_audio:
-        try:
-            # Refine each target audio snippet
-            start_time = time.time()
-            refined_target_audios = []
-            audio_enhancement_coroutines = []
-            for target_audio in target_audios:
-                if tts_model_str == "xtts":
-                    enhanced_audio = sieve.function.get("sieve/audio_enhancement").push(sieve.File(target_audio.path), filter_type="all")
-                else:
-                    enhanced_audio = sieve.function.get("sieve/audio_enhancement").push(sieve.File(target_audio.path), filter_type="noise")
-                audio_enhancement_coroutines.append(enhanced_audio)
-            for i, enhanced_audio in enumerate(audio_enhancement_coroutines):
-                refined_target_audios.append(enhanced_audio.result())
-                # print(f"Exception at index {i} of audio_enhancement_coroutines: {e}, using target_audios[{i}] instead.")
-                # print(f"target audio is {target_audios[i]}")
-                # refined_target_audios.append(target_audios[i])
-            print(f"Time taken to refine target audio: {time.time() - start_time} seconds")
-            target_audios = refined_target_audios
-        except Exception as e:
-            print(f"Exception: {e}")
-            print("Refining target audio failed. Using unrefined target audio instead.")
-    
+    print(f"Combining output speech with gaps...")
     # Combine target audios with gaps
     from pydub import AudioSegment
     combined_audio = AudioSegment.empty()
@@ -204,9 +108,7 @@ def do(
     with tempfile.TemporaryDirectory() as temp_dir:
         for i, target_audio in enumerate(target_audios):
             # Trim silence from target_audio
-            start_time = time.time()
             target_audio_path = target_audio.path
-            print(f"target_audio_path: {target_audio_path}")
             if target_audio_path.endswith(".wav"):
                 segment_audio = AudioSegment.from_wav(target_audio_path)
             elif target_audio_path.endswith(".mp3"):
@@ -225,23 +127,22 @@ def do(
             else:
                 combined_audio += trimmed_audio
     combined_audio.export("combined_audio.wav", format="wav")
-    target_audio = sieve.Audio(path="combined_audio.wav")
+    target_audio = sieve.File(path="combined_audio.wav")
 
     # Combine audio and video with Retalker
+    print("Lipsyncing video...")
     start_time = time.time()
-    retalker = sieve.function.get("sieve/video_retalking")
-    output_video = retalker.run(source_video, target_audio, low_resolution=low_resolution, low_fps=low_fps)
-    print(f"Time taken to combine audio and video: {time.time() - start_time} seconds")
+    lipsync = sieve.function.get("sieve/lipsync")
+    output_video = lipsync.run(source_video, target_audio, backend=lipsync_engine, downsample=downsample_video)
 
     # Trim silence from output_video
     output_video_path = output_video.path
     if os.path.exists("output_video_trimmed.mp4"):
         os.remove("output_video_trimmed.mp4")
-    start_time = time.time()
     trim_silence_from_video(output_video_path, "output_video_trimmed.mp4")
-    print(f"Time taken to trim silence: {time.time() - start_time} seconds")
+    trimmed_video = sieve.File(path="output_video_trimmed.mp4")
 
-    trimmed_video = sieve.Video(path="output_video_trimmed.mp4")
+    print("Done!")
     return trimmed_video
 
 

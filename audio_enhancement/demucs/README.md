@@ -9,6 +9,7 @@ To use this function, you need to call the `demucs` function with the sieve libr
 
 * `audio` -  Audio file (mp3,wav,flac) to be seperated
 * `model` - The model to be used for audio separation. Default is "htdemucs_ft". Available models are given below
+* `two_stems` - The two_stems option seperates the stem chosen from the rest of the stems. 
 * `overlap` -  option controls the amount of overlap between prediction windows. Default is 0.25 (i.e. 25%) which is probably fine. It can probably be reduced to 0.1 to improve a bit speed.
 * `shifts` - The number of shifts to be used. performs multiple predictions with random shifts (a.k.a the shift trick) of the input and average them. This makes prediction SHIFTS times slower. Default is 0
 * `mp3` - If True, the audio will be saved as mp3. Default is False
@@ -23,3 +24,5 @@ To use this function, you need to call the `demucs` function with the sieve libr
 - **`mdx`**: Trained only on MusDB HQ, winning model on track A at the MDX challenge.
 - **`mdx_extra`**: Trained with extra training data (including MusDB test set), ranked 2nd on the track B of the MDX challenge.
 - **`mdx_q`, `mdx_extra_q`**: Quantized version of the previous models. Smaller download and storage but quality can be slightly worse.
+
+**Note**: If you'd like us to support any other models reach out to us!

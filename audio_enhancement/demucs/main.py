@@ -1,4 +1,5 @@
 import sieve
+from typing import Literal
 
 metadata = sieve.Metadata(
     title="Demucs",
@@ -35,17 +36,19 @@ metadata = sieve.Metadata(
 def audio_seperator(
 
     file: sieve.File,
-    model : str = "htdemucs_ft",
+    model : Literal["htdemucs","htdemucs_ft","htdemucs_6s","hdemucs_mmi","mdx","mdx_extra","mdx_q","mdx_extra_q"] = "htdemucs_ft",
+    two_stems: Literal["None","vocals", "drums", "bass", "other", "guitar","piano"] = "None",
     overlap: float = 0.25,
     shifts: int = 0,
-    mp3: bool = False,
+    audio_format: Literal["wav","mp3", "flac"] = "wav",
     ):
     """
     :param audio: Audio file to be separated
     :param model: The model to be used for audio separation. Default is "htdemucs_ft". Check the README for more information on the available models.
+    :param two_stems: Only seperate audio into stem and no_stem. the stem which is specified will be seperated from the rest of the stems.
     :param overlap: option controls the amount of overlap between prediction windows. Default is 0.25 (i.e. 25%) which is probably fine. It can probably be reduced to 0.1 to improve a bit speed.
     :param shifts: The number of shifts to be used. performs multiple predictions with random shifts (a.k.a the shift trick) of the input and average them. This makes prediction SHIFTS times slower. Default is 0
-    :param mp3: If True, the audio will be saved as mp3. Default is False
+    :param audio_format: The format of the audio file to be returned. Default is "wav". You can choose from "mp3", "flac" or "wav".
     :return: The separated audio files
     """
     import os
@@ -61,7 +64,9 @@ def audio_seperator(
 
     if overlap > 1 or overlap < 0:
         raise Exception("Invalid overlap value. Please select a value between 0 and 1")
-    
+
+    if two_stems in ["guiatar","piano"] and model != "htdemucs_6s":
+        raise Exception("Stems guitar and piano are only available for model htdemucs_6s")
 
     audio_path = "input_audio" +".wav"
 
@@ -78,20 +83,27 @@ def audio_seperator(
         raise Exception("Failed to extract audio!")
 
     file_name = os.path.splitext(os.path.basename(audio_path))[0]
-    file_extension = 'mp3' if mp3 else 'wav'
+#    file_extension = 'mp3' if mp3 else 'wav'
 
 
-    print("file name: ", file_name)
+    command = ["--overlap", str(overlap), "--shifts", str(shifts), "-j", "16", "-n", model, audio_path]
+    if audio_format != "wav":
+        command.insert(0,f"--{audio_format}")
+    if two_stems != "None":
+        command.insert(0, "--two-stems")
+        command.insert(1, two_stems)
     
-    if mp3:
-        demucs.separate.main(["--mp3","--two-stems", "vocals","--overlap",str(overlap),"--shifts",str(shifts),"-j","16", "-n", model, audio_path])
-    else:
-        demucs.separate.main(["--two-stems", "vocals","--overlap", str(overlap),"--shifts",str(shifts),"-j","16", "-n", model, audio_path])
+    demucs.separate.main(command)
 
-    vocals = sieve.Audio(path = os.getcwd() + f"/separated/{model}/{file_name}/vocals.{file_extension}")
-    no_vocals = sieve.Audio(path = os.getcwd() + f"/separated/{model}/{file_name}/no_vocals.{file_extension}")
+    dir_path = f"separated/{model}/{file_name}/"
 
-    return vocals, no_vocals
+    files = os.listdir(dir_path)
+    print(files)
+    audios = tuple([sieve.File(path= f"{dir_path}{file}") for file in files])
+
+    return audios
+
+
 
 
 if __name__ == "__main__":

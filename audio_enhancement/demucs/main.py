@@ -14,7 +14,7 @@ metadata = sieve.Metadata(
 
 @sieve.function(
     name="demucs",
-    system_packages=["ffmpeg","soundstretch"],
+    system_packages=["ffmpeg","soundstretch", "diffq"],
     python_packages=["git+https://github.com/facebookresearch/demucs#egg=demucs","torch==2.0.1","diffq"],
     metadata=metadata,
     gpu=sieve.gpu.L4(),
@@ -83,8 +83,6 @@ def audio_seperator(
         raise Exception("Failed to extract audio!")
 
     file_name = os.path.splitext(os.path.basename(audio_path))[0]
-#    file_extension = 'mp3' if mp3 else 'wav'
-
 
     command = ["--overlap", str(overlap), "--shifts", str(shifts), "-j", "16", "-n", model, audio_path]
     if audio_format != "wav":
@@ -94,12 +92,25 @@ def audio_seperator(
         command.insert(1, two_stems)
     
     demucs.separate.main(command)
-
     dir_path = f"separated/{model}/{file_name}/"
 
-    files = os.listdir(dir_path)
-    print(files)
-    audios = tuple([sieve.File(path= f"{dir_path}{file}") for file in files])
+    if two_stems == "None":
+        audios = [
+            sieve.File(path= f"{dir_path}vocals.{audio_format}"),
+            sieve.File(path= f"{dir_path}drums.{audio_format}"),
+            sieve.File(path= f"{dir_path}bass.{audio_format}"),
+            sieve.File(path= f"{dir_path}other.{audio_format}")
+        ]
+        if model == "htdemucs_6s":
+            audios.extend([
+                sieve.File(path= f"{dir_path}guitar.{audio_format}"),
+                sieve.File(path= f"{dir_path}piano.{audio_format}")
+            ])
+    else:
+        audios = [
+            sieve.File(path= f"{dir_path}{two_stems}.{audio_format}"),
+            sieve.File(path= f"{dir_path}no_{two_stems}.{audio_format}")
+        ]
 
     return audios
 
@@ -112,4 +123,3 @@ if __name__ == "__main__":
         file,
         )
     print(output)
-

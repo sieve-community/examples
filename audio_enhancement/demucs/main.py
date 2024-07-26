@@ -14,7 +14,7 @@ metadata = sieve.Metadata(
 
 @sieve.function(
     name="demucs",
-    system_packages=["ffmpeg","soundstretch", "diffq"],
+    system_packages=["ffmpeg","soundstretch"],
     python_packages=["git+https://github.com/facebookresearch/demucs#egg=demucs","torch==2.0.1","diffq"],
     metadata=metadata,
     gpu=sieve.gpu.L4(),

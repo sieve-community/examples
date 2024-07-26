@@ -112,7 +112,7 @@ def audio_seperator(
             sieve.File(path= f"{dir_path}no_{two_stems}.{audio_format}")
         ]
 
-    return audios
+    return tuple(audios)
 
 
 

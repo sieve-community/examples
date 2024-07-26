@@ -8,10 +8,14 @@ By default the stems are returned in the following order:
 2. Drums
 3. Bass
 4. Other
+
 If selected model is `htdemucs_6s` the following additional stems are returned:
+
 5. Guitar
 6. Piano 
+
 If the `two_stem` Option is selected stems are returned in the following order:
+
 1. Stem selected
 2. Other stems
 
@@ -38,4 +42,4 @@ To use this function, you need to call the `demucs` function with the sieve libr
 - **`mdx_extra`**: Trained with extra training data (including MusDB test set), ranked 2nd on the track B of the MDX challenge.
 - **`mdx_q`, `mdx_extra_q`**: Quantized version of the previous models. Smaller download and storage but quality can be slightly worse.
 
-**Note**: If you'd like us to support any other models reach out to us!
+**Note**: If you'd like us to support any other models reach out to us at support@sievedata.com

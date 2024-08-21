@@ -1,4 +1,4 @@
-# yolov8
+# YOLOv8
 
 Ultralytics YOLOv8, the latest version of the acclaimed real-time object detection model.
 

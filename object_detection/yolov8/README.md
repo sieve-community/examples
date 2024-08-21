@@ -15,6 +15,12 @@ We support the following YOLOv8 models:
 - `yolov8l-world`: YOLOv8-Large used for open-vocabulary object detection (specify any object you want to detect)
 - `yolov8s-world`: YOLOv8-Small used for open-vocabulary object detection (specify any object you want to detect)
 
+## Pricing 
+
+Pricing will change as we push optimizations.
+
+For now, we charge a pay as you go rate of [$0.81 per hour of compute](https://www.sievedata.com/pricing) as this function is running on a T4 instance.
+
 ## Output Format
 
 The model returns a dictionary with the following structure:

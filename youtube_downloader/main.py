@@ -7,7 +7,8 @@ def on_progress(stream, chunk, bytes_remaining):
     print(f'{percentage:.2f}% downloaded')
 
 metadata = sieve.Metadata(
-    description="Download highest-resolution version of YouTube video as an MP4.",
+    title = "YouTube Video Downloader",
+    description="Download YouTube videos in MP4 format at any resolution.",
     code_url="https://github.com/sieve-community/examples/blob/main/youtube_downloader",
     image=sieve.Image(
         url="https://yt3.googleusercontent.com/584JjRp5QMuKbyduM_2k5RlXFqHJtQ0qLIPZpwbUjMJmgzZngHcam5JMuZQxyzGMV5ljwJRl0Q=s900-c-k-c0x00ffffff-no-rj"

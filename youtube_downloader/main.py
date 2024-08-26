@@ -16,10 +16,13 @@ metadata = sieve.Metadata(
     readme=open("README.md", "r").read(),
 )
 
-def merge_audio(video_with_audio, new_audio, output_video):
+def merge_audio(video_with_audio, new_audio, output_video, convert_codec = False):
     import subprocess
     # Combine the new audio with the video
-    merge_cmd = f"ffmpeg -y -i '{video_with_audio}' -i '{new_audio}' -c:v copy -map 0:v:0 -map 1:a:0 -shortest '{output_video}'"
+    if convert_codec:
+        merge_cmd = f"ffmpeg -y -i '{video_with_audio}' -i '{new_audio}' -c:v copy -map 0:v:0 -map 1:a:0 -shortest '{output_video}'"
+    else:
+        merge_cmd = f"ffmpeg -y -i '{video_with_audio}' -i '{new_audio}' -c:v copy -c:a copy -map 0:v:0 -map 1:a:0 -shortest '{output_video}'"
     subprocess.call(merge_cmd, shell=True)
 
 @sieve.function(
@@ -83,15 +86,23 @@ def download(
 
     if include_audio:
         print('downloading audio...')
-        audios = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
+        audios = yt.streams.filter(only_audio=True, mime_type = "audio/mp4").order_by('abr').desc().first()
+        convert_codec = False
+        if not audios:
+            print("No audio stream found for mp4, downloading audio and converting...")
+            audios = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
+            convert_codec = True
+
         audios.download(filename=audio_filename)
         print('merging audio...')
-        merge_audio(video_filename, audio_filename, "output.mp4")
+        merge_audio(video_filename, audio_filename, "output.mp4", convert_codec)
         print('Done!')
         return sieve.File(path="output.mp4")
     else:
         print('Done!')
         return sieve.File(path=video_filename)
+
+
 
 if __name__ == "__main__":
     download("https://www.youtube.com/watch?v=AKJfakEsgy0", include_audio=True)

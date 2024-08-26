@@ -1,5 +1,5 @@
 import sieve
-
+from typing import Literal
 def on_progress(stream, chunk, bytes_remaining):
     total_size = stream.filesize
     bytes_downloaded = total_size - bytes_remaining
@@ -16,10 +16,13 @@ metadata = sieve.Metadata(
     readme=open("README.md", "r").read(),
 )
 
-def merge_audio(video_with_audio, new_audio, output_video):
+def merge_audio(video_with_audio, new_audio, output_video, convert_codec = False):
     import subprocess
     # Combine the new audio with the video
-    merge_cmd = f"ffmpeg -y -i '{video_with_audio}' -i '{new_audio}' -c:v copy -map 0:v:0 -map 1:a:0 -shortest '{output_video}'"
+    if convert_codec:
+        merge_cmd = f"ffmpeg -y -i '{video_with_audio}' -i '{new_audio}' -c:v copy -map 0:v:0 -map 1:a:0 -shortest '{output_video}'"
+    else:
+        merge_cmd = f"ffmpeg -y -i '{video_with_audio}' -i '{new_audio}' -c:v copy -c:a copy -map 0:v:0 -map 1:a:0 -shortest '{output_video}'"
     subprocess.call(merge_cmd, shell=True)
 
 @sieve.function(
@@ -30,9 +33,14 @@ def merge_audio(video_with_audio, new_audio, output_video):
     ],
     metadata=metadata
 )
-def download(url: str, include_audio: bool = True):
+def download(
+    url: str,
+    resolution: Literal["highest-available", "lowest-available", "1080p", "720p", "480p", "360p", "240p", "144p"] = "highest-available",
+    include_audio: bool = True,
+):
     '''
     :param url: YouTube URL to download
+    :param resolution: The resolution of the video to download. If the desired resolution is not available, the closest resolution will be downloaded instead.
     :param include_audio: Whether to include audio in the video.
     :return: The downloaded YouTube video
     '''
@@ -54,22 +62,53 @@ def download(url: str, include_audio: bool = True):
     yt = YouTube(url)
     yt.register_on_progress_callback(on_progress)
 
-    print("filtering stream for highest quality mp4...")
-    video = yt.streams.filter(adaptive=True, file_extension='mp4').order_by('resolution').desc().first()
+    #print("filtering stream for highest quality mp4...")
+    video = yt.streams.filter(adaptive=True, file_extension='mp4').order_by('resolution').desc() #.first()
+    if resolution == "highest-available":
+        video = video.first()
+        print(f"highest available resolution is {video.resolution}...")
+    elif resolution == "lowest-available":
+        video = video.last()
+        print(f"lowest available resolution is {video.resolution}...")
+    else:
+        desired_res = int(resolution.replace('p', ''))
+        diff_list = [(abs(desired_res - int(stream.resolution.replace('p', ''))), stream) for stream in video]
+        diff_list.sort(key=lambda x: x[0])
+        video = diff_list[0][1]
+        if video.resolution != resolution:
+            print(f"{resolution} resolution is not available, using {video.resolution} instead...")
+        else:
+            print(f"selected resolution is {resolution}...")
+
+        
     print('downloading video...')
     video.download(filename=video_filename)
 
     if include_audio:
         print('downloading audio...')
-        audios = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
+        audios = yt.streams.filter(only_audio=True, mime_type = "audio/mp4").order_by('abr').desc().first()
+        convert_codec = False
+        if not audios:
+            print("No audio stream found for mp4, downloading audio and converting...")
+            audios = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
+            convert_codec = True
+
         audios.download(filename=audio_filename)
         print('merging audio...')
-        merge_audio(video_filename, audio_filename, "output.mp4")
+        merge_audio(video_filename, audio_filename, "output.mp4", convert_codec)
         print('Done!')
         return sieve.File(path="output.mp4")
     else:
         print('Done!')
         return sieve.File(path=video_filename)
 
+
+
 if __name__ == "__main__":
+    import time
+    start = time.time()
     download("https://www.youtube.com/watch?v=AKJfakEsgy0", include_audio=True)
+
+    end = time.time()
+    print(f"Time taken: {end - start} seconds")
+    

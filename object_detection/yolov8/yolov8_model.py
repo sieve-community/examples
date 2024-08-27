@@ -47,6 +47,19 @@ class YOLOv8:
         self.current_world_classes = None
         self.current_world_fast_classes = None
 
+        test_file = sieve.File("test-image.jpg")
+
+        print("Warming up inference...")
+
+        self.__predict__(test_file)
+        self.__predict__(test_file, models="yolov8n")
+        self.__predict__(test_file, models="yolov8l-face")
+        self.__predict__(test_file, models="yolov8n-face")
+        self.__predict__(test_file, models="yolov8s-world")
+        self.__predict__(test_file, models="yolov8l-world")
+
+        print("Inference warmed up.")
+
     def __predict__(
             self,
             file: sieve.File,

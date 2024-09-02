@@ -65,10 +65,11 @@ metadata = sieve.Metadata(
     ],
     metadata=metadata
 )
-def segment(file: sieve.File, object_name: str):
+def segment(file: sieve.File, object_name: str, return_mp4: bool = False):
     """
     :param file: photo or video to segment
     :param object_name: the object you wish to segment
+    :param return_mp4: if True, return only an MP4 video of the segmentation masks
     """
     sam = sieve.function.get("sieve/sam2")
 
@@ -90,7 +91,7 @@ def segment(file: sieve.File, object_name: str):
         file=file,
         prompts=[sam_prompt],
         model_type="tiny",
-        debug_masks=False
+        debug_masks=return_mp4
     )
 
     return sam_out

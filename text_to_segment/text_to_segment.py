@@ -50,8 +50,11 @@ def segment(file: sieve.File, object_name: str, return_mp4: bool = False):
         file=file,
         prompts=[sam_prompt],
         model_type="tiny",
-        debug_masks=return_mp4
+        debug_masks=False
     )
+
+    if return_mp4:
+        return zip_to_mp4(sam_out["masks"])
 
     return sam_out
 

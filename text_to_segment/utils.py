@@ -97,3 +97,23 @@ def resize_and_crop(image, target_width, target_height):
 
     return cropped_image
 
+
+def resize_with_padding(image, scale):
+    h, w = image.shape[:2]
+    
+    # Calculate new dimensions based on the scale
+    new_h, new_w = int(h * scale), int(w * scale)
+    
+    # Resize the image
+    resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
+    
+    # Calculate padding to maintain original aspect ratio
+    target_size = max(h, w)
+    delta_h, delta_w = target_size - new_h, target_size - new_w
+    top, bottom = delta_h // 2, delta_h - (delta_h // 2)
+    left, right = delta_w // 2, delta_w - (delta_w // 2)
+    
+    # Add padding
+    padded = cv2.copyMakeBorder(resized, top, bottom, left, right, cv2.BORDER_CONSTANT, value=[255, 255, 255])
+    
+    return padded

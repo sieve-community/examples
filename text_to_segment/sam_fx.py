@@ -13,8 +13,7 @@ from utils import get_first_frame, resize_and_crop, resize_with_padding
 
 
 
-def apply_shape_effect(video, mask_video, effect_mask, mask_scale=1.):
-
+def apply_shape_effect(video: sieve.File, mask_video: sieve.File, effect_mask: sieve.File, mask_scale=1.):
 
     video_reader = cv2.VideoCapture(video.path)
     mask_reader = cv2.VideoCapture(mask_video.path)
@@ -26,7 +25,6 @@ def apply_shape_effect(video, mask_video, effect_mask, mask_scale=1.):
     output_path = "output.mp4"
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     output_writer = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
-
 
     effect_mask_arr = cv2.imread(effect_mask.path)
     if len(effect_mask_arr.shape) == 3:
@@ -79,11 +77,68 @@ def apply_shape_effect(video, mask_video, effect_mask, mask_scale=1.):
     return sieve.File(path=output_path)
 
 
+def gaussian_blur(image: np.array):
+    return cv2.GaussianBlur(image, (15, 15), 0)
+
+
+def dim_brightness(image: np.array):
+
+    dimmed = image.astype(np.float32) * 0.5
+
+    return dimmed.astype(np.uint8)
+
+
+def apply_filter(video: sieve.File, mask_video: sieve.File, filter_fn: callable, to_foreground=True):
+    video_reader = cv2.VideoCapture(video.path)
+    mask_reader = cv2.VideoCapture(mask_video.path)
+
+    frame_width = int(video_reader.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = video_reader.get(cv2.CAP_PROP_FPS)
+
+    output_path = "output.mp4"
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    output_writer = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
+
+    while True:
+        ret_video, frame_video = video_reader.read()
+        ret_mask, frame_mask = mask_reader.read()
+
+        if not ret_video or not ret_mask:
+            break
+
+        if not len(frame_mask.shape) == 3:
+            frame_mask = cv2.cvtColor(frame_mask, cv2.COLOR_BGR2GRAY)
+            frame_mask = np.expand_dims(frame_mask, axis=2)
+            frame_mask = np.repeat(frame_mask, 3, axis=2)
+
+        frame_mask = frame_mask > 0
+        if not to_foreground:
+            frame_mask = ~frame_mask
+
+        try:
+            frame_filtered = filter_fn(frame_video)
+            frame_video[frame_mask] = frame_filtered[frame_mask]
+        except:
+            breakpoint()
+
+        output_writer.write(frame_video)
+
+    video_reader.release()
+    mask_reader.release()
+    output_writer.release()
+
+    return sieve.File(path=output_path)
+
+
 metadata = sieve.Metadata(
     name="Sam FX",
     description="Apply cool overlays behind a subject in a video",
     image=sieve.File(path="duck_circle.jpg")
 )
+
+
+CACHE = False
 
 @sieve.function(
     name="sam-fx",
@@ -98,7 +153,7 @@ metadata = sieve.Metadata(
 def add_effect(
     video: sieve.File,
     subject: str,
-    effect: Literal["circle", "spotlight", "frame", "retro solar"]
+    effect: Literal["circle", "spotlight", "frame", "retro solar", "focus", "blur"]
 ):
     """
     :param video: input video
@@ -106,8 +161,15 @@ def add_effect(
     :param effect: effect to overlay
     """
 
-    print("segmenting...")
-    mask_video = segment(video, subject, return_mp4=True)
+    if CACHE and os.path.exists("mask.mp4"):
+        mask_video = sieve.File(path="mask.mp4")
+    else:
+        print("segmenting...")
+        mask_video = segment(video, subject, return_mp4=True)
+
+        if CACHE:
+            shutil.copy(mask_video.path, "mask.mp4")
+
 
     if effect == "retro solar":
         print("applying retro solar effect...")
@@ -133,14 +195,25 @@ def add_effect(
 
         return apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.15)
 
+    if effect == "focus":
+        print("applying focus effect...")
+        return apply_filter(video, mask_video, dim_brightness, to_foreground=False)
+
+    if effect == "blur":
+        print("applying blur effect...")
+        return apply_filter(video, mask_video, gaussian_blur, to_foreground=False)
+
 
     raise ValueError(f"Effect {effect} not supported")
+
+
+
 
 
 if __name__ == "__main__":
     video_path = "duckling.mp4"
     subject = "duckling"
-    effect = "frame"
+    effect = "focus"
 
     video = sieve.File(path=video_path)
 

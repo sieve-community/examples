@@ -230,7 +230,18 @@ metadata = sieve.Metadata(
 def add_effect(
     video: sieve.File,
     subject: str,
-    effect: Literal["circle", "spotlight", "frame", "retro solar", "focus", "blur"]
+    effect: Literal[
+        "circle",
+        "spotlight",
+        "frame",
+        "retro solar",
+        "focus",
+        "blur",
+        "red",
+        "green",
+        "blue",
+        "yellow",
+        "orange"]
 ):
     """
     :param video: input video

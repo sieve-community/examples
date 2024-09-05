@@ -1,7 +1,7 @@
 import os
 import sieve
 
-from CONFIG import CACHE
+from config import CACHE
 
 
 def get_object_bbox(image: sieve.File, object_name: str):

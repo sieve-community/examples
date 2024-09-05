@@ -1,5 +1,6 @@
 import sieve
 import os
+import subprocess
 import shutil
 import cv2
 import numpy as np
@@ -11,6 +12,19 @@ from utils import splice_audio
 from text_to_segment import segment
 from utils import get_first_frame, resize_and_crop, resize_with_padding
 
+from config import CACHE
+
+def reencode_video(video: sieve.File):
+    video_path = video.path
+    # cmd = f"ffmpeg -i {video_path}  -y -nostdin -c:v libx264 -preset fast -pix_fmt yuv420p -crf 23 reencoded.mp4"
+    # os.system(cmd)
+    cmd = ["ffmpeg", "-i", video_path, "-loglevel", "error", "-y", "-nostdin", "-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p", "-crf", "23", "reencoded.mp4"]
+
+    subprocess.run(cmd, check=True)
+
+    shutil.move("reencoded.mp4", video_path)
+
+    return sieve.File(path=video_path)
 
 
 def apply_shape_effect(video: sieve.File, mask_video: sieve.File, effect_mask: sieve.File, mask_scale=1.):
@@ -81,12 +95,72 @@ def gaussian_blur(image: np.array):
     return cv2.GaussianBlur(image, (15, 15), 0)
 
 
+def apply_color_filter(image: np.array, color: tuple, intensity: float = 0.5):
+    # Ensure the color is in BGR format for OpenCV
+    b, g, r = color
+
+    # Create a color overlay
+    overlay = np.full(image.shape, (b, g, r), dtype=np.uint8)
+
+    # Blend the original image with the color overlay
+    filtered = cv2.addWeighted(image, 1 - intensity, overlay, intensity, 0)
+
+    return filtered
+
+
+
+# def dim_brightness(image: np.array):
+
+#     dimmed = image.astype(np.float32) * 0.5
+
+#     return dimmed.astype(np.uint8)
+
+
+# def apply_filter(video: sieve.File, mask_video: sieve.File, filter_fn: callable, to_foreground=True):
+#     video_reader = cv2.VideoCapture(video.path)
+#     mask_reader = cv2.VideoCapture(mask_video.path)
+
+#     frame_width = int(video_reader.get(cv2.CAP_PROP_FRAME_WIDTH))
+#     frame_height = int(video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT))
+#     fps = video_reader.get(cv2.CAP_PROP_FPS)
+
+#     output_path = "output.mp4"
+#     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+#     output_writer = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
+
+#     while True:
+#         ret_video, frame_video = video_reader.read()
+#         ret_mask, frame_mask = mask_reader.read()
+
+#         if not ret_video or not ret_mask:
+#             break
+
+#         if not len(frame_mask.shape) == 3:
+#             frame_mask = cv2.cvtColor(frame_mask, cv2.COLOR_BGR2GRAY)
+#             frame_mask = np.expand_dims(frame_mask, axis=2)
+#             frame_mask = np.repeat(frame_mask, 3, axis=2)
+
+#         frame_mask = frame_mask > 0
+#         if not to_foreground:
+#             frame_mask = ~frame_mask
+
+#         try:
+#             frame_filtered = filter_fn(frame_video)
+#             frame_video[frame_mask] = frame_filtered[frame_mask]
+#         except:
+#             breakpoint()
+
+#         output_writer.write(frame_video)
+
+#     video_reader.release()
+#     mask_reader.release()
+#     output_writer.release()
+
+#     return sieve.File(path=output_path)
+
 def dim_brightness(image: np.array):
-
     dimmed = image.astype(np.float32) * 0.5
-
     return dimmed.astype(np.uint8)
-
 
 def apply_filter(video: sieve.File, mask_video: sieve.File, filter_fn: callable, to_foreground=True):
     video_reader = cv2.VideoCapture(video.path)
@@ -107,22 +181,27 @@ def apply_filter(video: sieve.File, mask_video: sieve.File, filter_fn: callable,
         if not ret_video or not ret_mask:
             break
 
-        if not len(frame_mask.shape) == 3:
+        if len(frame_mask.shape) == 3:
             frame_mask = cv2.cvtColor(frame_mask, cv2.COLOR_BGR2GRAY)
-            frame_mask = np.expand_dims(frame_mask, axis=2)
-            frame_mask = np.repeat(frame_mask, 3, axis=2)
-
-        frame_mask = frame_mask > 0
+        
+        # Apply Gaussian blur to the mask
+        frame_mask = cv2.GaussianBlur(frame_mask, (15, 15), 0)
+        
+        # Normalize mask to range 0-1
+        frame_mask = frame_mask.astype(float) / 255.0
+        
         if not to_foreground:
-            frame_mask = ~frame_mask
+            frame_mask = 1 - frame_mask
 
-        try:
-            frame_filtered = filter_fn(frame_video)
-            frame_video[frame_mask] = frame_filtered[frame_mask]
-        except:
-            breakpoint()
+        # Apply filter to the entire frame
+        frame_filtered = filter_fn(frame_video)
+        
+        # Blend the filtered and original frames using the mask
+        frame_mask = np.repeat(frame_mask[:, :, np.newaxis], 3, axis=2)
+        blended = frame_filtered * frame_mask + frame_video * (1 - frame_mask)
 
-        output_writer.write(frame_video)
+        output_writer.write(blended.astype(np.uint8))
+
 
     video_reader.release()
     mask_reader.release()
@@ -137,8 +216,6 @@ metadata = sieve.Metadata(
     image=sieve.File(path="duck_circle.jpg")
 )
 
-
-CACHE = False
 
 @sieve.function(
     name="sam-fx",
@@ -175,49 +252,84 @@ def add_effect(
         print("applying retro solar effect...")
         effect_mask = sieve.File(path="assets/rays.jpg")
 
-        return apply_shape_effect(video, mask_video, effect_mask)
+        out = apply_shape_effect(video, mask_video, effect_mask)
 
-    if effect == "circle":
+    elif effect == "circle":
         print("applying circle effect...")
         effect_mask = sieve.File(path="assets/circle.jpg")
 
-        return apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.2)
+        out = apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.2)
 
-    if effect == "spotlight":
+    elif effect == "spotlight":
         print("applying splotlight effect...")
         effect_mask = sieve.File(path="assets/spot.jpg")
 
-        return apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.15)
+        out = apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.15)
 
-    if effect == "frame":
+    elif effect == "frame":
         print("applying frame effect...")
         effect_mask = sieve.File(path="assets/square.jpg")
 
-        return apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.15)
+        out = apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.15)
 
-    if effect == "focus":
+
+    elif effect == "focus":
         print("applying focus effect...")
-        return apply_filter(video, mask_video, dim_brightness, to_foreground=False)
+        out = apply_filter(video, mask_video, dim_brightness, to_foreground=False)
 
-    if effect == "blur":
+    elif effect == "blur":
         print("applying blur effect...")
-        return apply_filter(video, mask_video, gaussian_blur, to_foreground=False)
+        out = apply_filter(video, mask_video, gaussian_blur, to_foreground=False)
+
+    elif effect == "red":
+        print("applying red effect...")
+        red_filter = lambda img: apply_color_filter(img, (0, 0, 255), 0.3)
+        out = apply_filter(video, mask_video, red_filter, to_foreground=True)
+
+    elif effect == "green":
+        print("applying green effect...")
+        green_filter = lambda img: apply_color_filter(img, (113, 179, 60), 0.3)
+        out = apply_filter(video, mask_video, green_filter, to_foreground=True)
+
+    elif effect == "blue":
+        print("applying blue effect...")
+        blue_filter = lambda img: apply_color_filter(img, (255, 0, 0), 0.3)
+        out = apply_filter(video, mask_video, blue_filter, to_foreground=True)
+
+    elif effect == "yellow":
+        print("applying yellow effect...")
+        yellow_filter = lambda img: apply_color_filter(img, (0, 255, 255), 0.3)
+        out = apply_filter(video, mask_video, yellow_filter, to_foreground=True)
+
+    elif effect == "orange":
+        print("applying orange effect...")
+        orange_filter = lambda img: apply_color_filter(img, (0, 165, 255), 0.3)
+        out = apply_filter(video, mask_video, orange_filter, to_foreground=True)
+
+    else:
+        raise ValueError(f"Effect {effect} not supported")
+
+    return reencode_video(out)
 
 
-    raise ValueError(f"Effect {effect} not supported")
+def run_all(video_path, subject):
 
+    video = sieve.File(path=video_path)
 
+    for effect in ["circle", "spotlight", "frame", "retro solar", "focus", "blur", "red", "green", "blue", "yellow", "orange"]:
+        output = add_effect(video, subject, effect)
 
+        shutil.move(output.path, os.path.join("outputs", f"{effect}_{video_path}"))
 
 
 if __name__ == "__main__":
     video_path = "duckling.mp4"
     subject = "duckling"
-    effect = "focus"
+    effect = "blur"
 
     video = sieve.File(path=video_path)
 
-    output = add_effect(video, subject, effect)
+    # output = add_effect(video, subject, effect)
+    # shutil.move(output.path, os.path.join("outputs", f"{effect}_{video_path}"))
 
-    shutil.move(output.path, os.path.join("outputs", f"{effect}_{video_path}"))
-
+    run_all(video_path, subject)

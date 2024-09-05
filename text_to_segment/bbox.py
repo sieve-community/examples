@@ -1,7 +1,8 @@
 import os
 import sieve
 
-CACHE = False
+from CONFIG import CACHE
+
 
 def get_object_bbox(image: sieve.File, object_name: str):
     if CACHE and os.path.exists("bbox.txt"):

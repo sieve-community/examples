@@ -1,11 +1,11 @@
 import os
 import sieve
 
-from config import CACHE
+import config
 
 
 def get_object_bbox(image: sieve.File, object_name: str):
-    if CACHE and os.path.exists("bbox.txt"):
+    if config.CACHE and os.path.exists("bbox.txt"):
         with open("bbox.txt", "r") as f:
             return list(map(int, f.read().split(',')))
 
@@ -20,7 +20,7 @@ def get_object_bbox(image: sieve.File, object_name: str):
     box = response['boxes'][0]
     bounding_box = [box['x1'],box['y1'],box['x2'],box['y2']]
 
-    if CACHE:
+    if config.CACHE:
         with open("bbox.txt", "w") as f:
             f.write(','.join(map(str, bounding_box)))
 

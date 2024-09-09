@@ -12,12 +12,11 @@ from utils import splice_audio
 from text_to_segment import segment
 from utils import get_first_frame, resize_and_crop, resize_with_padding
 
-from config import CACHE
+import config
+
 
 def reencode_video(video: sieve.File):
     video_path = video.path
-    # cmd = f"ffmpeg -i {video_path}  -y -nostdin -c:v libx264 -preset fast -pix_fmt yuv420p -crf 23 reencoded.mp4"
-    # os.system(cmd)
     cmd = ["ffmpeg", "-i", video_path, "-loglevel", "error", "-y", "-nostdin", "-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p", "-crf", "23", "reencoded.mp4"]
 
     subprocess.run(cmd, check=True)
@@ -91,10 +90,6 @@ def apply_shape_effect(video: sieve.File, mask_video: sieve.File, effect_mask: s
     return sieve.File(path=output_path)
 
 
-def gaussian_blur(image: np.array):
-    return cv2.GaussianBlur(image, (15, 15), 0)
-
-
 def apply_color_filter(image: np.array, color: tuple, intensity: float = 0.5):
     # Ensure the color is in BGR format for OpenCV
     b, g, r = color
@@ -108,59 +103,10 @@ def apply_color_filter(image: np.array, color: tuple, intensity: float = 0.5):
     return filtered
 
 
-
-# def dim_brightness(image: np.array):
-
-#     dimmed = image.astype(np.float32) * 0.5
-
-#     return dimmed.astype(np.uint8)
-
-
-# def apply_filter(video: sieve.File, mask_video: sieve.File, filter_fn: callable, to_foreground=True):
-#     video_reader = cv2.VideoCapture(video.path)
-#     mask_reader = cv2.VideoCapture(mask_video.path)
-
-#     frame_width = int(video_reader.get(cv2.CAP_PROP_FRAME_WIDTH))
-#     frame_height = int(video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT))
-#     fps = video_reader.get(cv2.CAP_PROP_FPS)
-
-#     output_path = "output.mp4"
-#     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-#     output_writer = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
-
-#     while True:
-#         ret_video, frame_video = video_reader.read()
-#         ret_mask, frame_mask = mask_reader.read()
-
-#         if not ret_video or not ret_mask:
-#             break
-
-#         if not len(frame_mask.shape) == 3:
-#             frame_mask = cv2.cvtColor(frame_mask, cv2.COLOR_BGR2GRAY)
-#             frame_mask = np.expand_dims(frame_mask, axis=2)
-#             frame_mask = np.repeat(frame_mask, 3, axis=2)
-
-#         frame_mask = frame_mask > 0
-#         if not to_foreground:
-#             frame_mask = ~frame_mask
-
-#         try:
-#             frame_filtered = filter_fn(frame_video)
-#             frame_video[frame_mask] = frame_filtered[frame_mask]
-#         except:
-#             breakpoint()
-
-#         output_writer.write(frame_video)
-
-#     video_reader.release()
-#     mask_reader.release()
-#     output_writer.release()
-
-#     return sieve.File(path=output_path)
-
-def dim_brightness(image: np.array):
-    dimmed = image.astype(np.float32) * 0.5
+def dim_brightness(image: np.array, brightness=0.5):
+    dimmed = image.astype(np.float32) * brightness
     return dimmed.astype(np.uint8)
+
 
 def apply_filter(video: sieve.File, mask_video: sieve.File, filter_fn: callable, to_foreground=True):
     video_reader = cv2.VideoCapture(video.path)
@@ -210,15 +156,29 @@ def apply_filter(video: sieve.File, mask_video: sieve.File, filter_fn: callable,
     return sieve.File(path=output_path)
 
 
+def get_mask(video: sieve.File, subject: str):
+
+    if config.CACHE and os.path.exists("mask.mp4"):
+        mask_video = sieve.File(path="mask.mp4")
+    else:
+        print("segmenting...")
+        mask_video = segment(video, subject, return_mp4=True)
+
+        if config.CACHE:
+            shutil.copy(mask_video.path, "mask.mp4")
+
+    return mask_video
+
+
+
 metadata = sieve.Metadata(
-    name="Sam FX",
-    description="Apply cool overlays behind a subject in a video",
-    image=sieve.File(path="duck_circle.jpg")
+    name="Focus",
+    description="Dim the background to highlight the subject",
+    image=sieve.File(path=os.path.join("thumbnails", "focus_0-5_duckling.png"))
 )
 
-
 @sieve.function(
-    name="sam-fx",
+    name="sam2-focus",
     python_packages=["opencv-python"],
     system_packages=[
         "ffmpeg",
@@ -227,95 +187,80 @@ metadata = sieve.Metadata(
     ],
     metadata=metadata
 )
-def add_effect(
-    video: sieve.File,
-    subject: str,
-    effect: Literal[
-        "circle",
-        "spotlight",
-        "frame",
-        "retro solar",
-        "focus",
-        "blur",
-        "red",
-        "green",
-        "blue",
-        "yellow",
-        "orange"]
+def focus(
+        video: sieve.File,
+        subject: str,
+        brightness: Literal["0.25", "0.5", "0.75"] = "0.25"
 ):
     """
-    :param video: input video
-    :param subject: subject of video
-    :param effect: effect to overlay
+    :param video: The video file to apply the effect to
+    :param subject: The subject to apply the effect to
+    :param brightness: The brightness of the background
     """
 
-    if CACHE and os.path.exists("mask.mp4"):
-        mask_video = sieve.File(path="mask.mp4")
-    else:
-        print("segmenting...")
-        mask_video = segment(video, subject, return_mp4=True)
 
-        if CACHE:
-            shutil.copy(mask_video.path, "mask.mp4")
+    mask_video = get_mask(video, subject)
+    dim = lambda img: dim_brightness(img, float(brightness))
+    out = apply_filter(video, mask_video, dim, to_foreground=False)
 
+    return reencode_video(out)
+
+# CALLOUT EFFECTS ################################################################################
+
+metadata = sieve.Metadata(
+    name="Callout",
+    description="Highlight a subject in a video with a callout effect",
+    image=sieve.File(path=os.path.join("thumbnails", "retro_solar_duckling.png"))
+)
+
+@sieve.function(
+    name="sam2-callout",
+    python_packages=["opencv-python"],
+    system_packages=[
+        "ffmpeg",
+        "libgl1-mesa-glx",
+        "libglib2.0-0"
+    ],
+    metadata=metadata
+)
+def callout(
+        video: sieve.File, 
+        subject: str,
+        effect: Literal["retro solar", "circle", "spotlight", "frame"] = "circle",
+        effect_scale: float = 1.0
+):
+    """
+    :param video: The video file to apply the effect to
+    :param subject: The subject to apply the effect to
+    :param effect: The effect to apply
+    :param effect_scale: The scale of the effect
+    """
+
+    mask_video = get_mask(video, subject)
 
     if effect == "retro solar":
         print("applying retro solar effect...")
         effect_mask = sieve.File(path="assets/rays.jpg")
 
-        out = apply_shape_effect(video, mask_video, effect_mask)
+        out = apply_shape_effect(video, mask_video, effect_mask, effect_scale)
 
     elif effect == "circle":
         print("applying circle effect...")
         effect_mask = sieve.File(path="assets/circle.jpg")
 
-        out = apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.2)
+        out = apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.2*effect_scale)
 
     elif effect == "spotlight":
         print("applying splotlight effect...")
         effect_mask = sieve.File(path="assets/spot.jpg")
 
-        out = apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.15)
+        out = apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.15*effect_scale)
 
     elif effect == "frame":
         print("applying frame effect...")
         effect_mask = sieve.File(path="assets/square.jpg")
 
-        out = apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.15)
-
-
-    elif effect == "focus":
-        print("applying focus effect...")
-        out = apply_filter(video, mask_video, dim_brightness, to_foreground=False)
-
-    elif effect == "blur":
-        print("applying blur effect...")
-        out = apply_filter(video, mask_video, gaussian_blur, to_foreground=False)
-
-    elif effect == "red":
-        print("applying red effect...")
-        red_filter = lambda img: apply_color_filter(img, (0, 0, 255), 0.3)
-        out = apply_filter(video, mask_video, red_filter, to_foreground=True)
-
-    elif effect == "green":
-        print("applying green effect...")
-        green_filter = lambda img: apply_color_filter(img, (113, 179, 60), 0.3)
-        out = apply_filter(video, mask_video, green_filter, to_foreground=True)
-
-    elif effect == "blue":
-        print("applying blue effect...")
-        blue_filter = lambda img: apply_color_filter(img, (255, 0, 0), 0.3)
-        out = apply_filter(video, mask_video, blue_filter, to_foreground=True)
-
-    elif effect == "yellow":
-        print("applying yellow effect...")
-        yellow_filter = lambda img: apply_color_filter(img, (0, 255, 255), 0.3)
-        out = apply_filter(video, mask_video, yellow_filter, to_foreground=True)
-
-    elif effect == "orange":
-        print("applying orange effect...")
-        orange_filter = lambda img: apply_color_filter(img, (0, 165, 255), 0.3)
-        out = apply_filter(video, mask_video, orange_filter, to_foreground=True)
+        out = apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.15*effect_scale)
 
     else:
         raise ValueError(f"Effect {effect} not supported")
@@ -323,14 +268,160 @@ def add_effect(
     return reencode_video(out)
 
 
+# COLOR FILTERS ################################################################################
+
+metadata = sieve.Metadata(
+    name="Color Filter",
+    description="Apply a color filter to a video",
+    image=sieve.File(path=os.path.join("thumbnails", "red_duckling.png"))
+)
+
+@sieve.function(
+    name="sam2-color-filter",
+    python_packages=["opencv-python"],
+    system_packages=[
+        "ffmpeg",
+        "libgl1-mesa-glx",
+        "libglib2.0-0"
+    ],
+    metadata=metadata
+)
+def color_filter(
+        video: sieve.File,
+        subject: str,
+        color: Literal["red", "green", "blue", "yellow", "orange"],
+        intensity: float = 0.5
+):
+    """
+    :param video: The video file to apply the effect to
+    :param subject: The subject to apply the effect to
+    :param color: The color to apply the effect with
+    :param intensity: The intensity of the effect
+    """
+
+    mask_video = get_mask(video, subject)
+
+    if color == "red":
+        print("applying red effect...")
+        color_filter_fn = lambda img: apply_color_filter(img, (0, 0, 255), intensity)
+
+    elif color == "green":
+        print("applying green effect...")
+        color_filter_fn = lambda img: apply_color_filter(img, (113, 179, 60), intensity)
+
+    elif color == "blue":
+        print("applying blue effect...")
+        color_filter_fn = lambda img: apply_color_filter(img, (255, 0, 0), intensity)
+
+    elif color == "yellow":
+        print("applying yellow effect...")
+        color_filter_fn = lambda img: apply_color_filter(img, (0, 255, 255), intensity)
+
+    elif color == "orange":
+        print("applying orange effect...")
+        color_filter_fn = lambda img: apply_color_filter(img, (0, 165, 255), intensity)
+
+    else:
+        raise ValueError(f"Color {color} not supported")
+
+    out = apply_filter(video, mask_video, color_filter_fn, to_foreground=True)
+
+    return reencode_video(out)
+
+
+# BLUR EFFECT ################################################################################
+
+metadata = sieve.Metadata(
+    name="Blur",
+    description="Blur the background of a video",
+    image=sieve.File(path=os.path.join("thumbnails", "high_blur_duckling.png"))
+)
+
+@sieve.function(
+    name="sam2-blur",
+    python_packages=["opencv-python"],
+    system_packages=[
+        "ffmpeg",
+        "libgl1-mesa-glx",
+        "libglib2.0-0"
+    ],
+    metadata=metadata
+)
+def blur(
+        video: sieve.File,
+        subject: str,
+        blur_amount: Literal["low", "medium", "high"]
+):
+    """
+    :param video: The video file to apply the effect to
+    :param subject: The subject to apply the effect to
+    :param blur_amount: The amount of blur to apply
+    """
+
+    mask_video = get_mask(video, subject)
+
+    if blur_amount == "low":
+        print("applying low blur effect...")
+        blur_filter = lambda img: cv2.GaussianBlur(img, (15, 15), 0)
+    elif blur_amount == "medium":
+        print("applying medium blur effect...")
+        blur_filter = lambda img: cv2.GaussianBlur(img, (25, 25), 0)
+    elif blur_amount == "high":
+        print("applying high blur effect...")
+        blur_filter = lambda img: cv2.GaussianBlur(img, (35, 35), 0)
+
+    out = apply_filter(video, mask_video, blur_filter, to_foreground=False)
+
+
+    return reencode_video(out)
+
+
+
 def run_all(video_path, subject):
+    config.CACHE = True
 
     video = sieve.File(path=video_path)
 
-    for effect in ["circle", "spotlight", "frame", "retro solar", "focus", "blur", "red", "green", "blue", "yellow", "orange"]:
-        output = add_effect(video, subject, effect)
+    os.makedirs("outputs", exist_ok=True)
 
-        shutil.move(output.path, os.path.join("outputs", f"{effect}_{video_path}"))
+    # Focus
+    for brightness in ["0.25", "0.5", "0.75"]:
+        out_path = os.path.join("outputs", f"focus_{brightness.replace('.', '-')}_{video_path}")
+        if os.path.exists(out_path):
+            continue
+
+        output = focus(video, subject, brightness)
+        shutil.move(output.path, out_path)
+
+    # Callout
+    for effect in ["circle", "spotlight", "frame", "retro solar"]:
+        out_path = os.path.join("outputs", f"{effect.replace(' ', '_')}_{video_path}")
+        if os.path.exists(out_path):
+            continue
+
+        output = callout(video, subject, effect)
+        shutil.move(output.path, out_path)
+
+    # Color Filter
+    for color in ["red", "green", "blue", "yellow", "orange"]:
+        out_path = os.path.join("outputs", f"{color}_{video_path}")
+        if os.path.exists(out_path):
+            continue
+
+        output = color_filter(video, subject, color)
+        shutil.move(output.path, out_path)
+
+
+    # Blur
+    for blur_amount in ["low", "medium", "high"]:
+        out_path = os.path.join("outputs", f"{blur_amount}_blur_{video_path}")
+        if os.path.exists(out_path):
+            continue
+
+        output = blur(video, subject, blur_amount)
+        shutil.move(output.path, out_path)
+
+
 
 
 if __name__ == "__main__":

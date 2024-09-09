@@ -13,6 +13,7 @@ from text_to_segment import segment
 from utils import get_first_frame, resize_and_crop, resize_with_padding
 
 import config
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 def reencode_video(video: sieve.File):
@@ -108,6 +109,23 @@ def dim_brightness(image: np.array, brightness=0.5):
     return dimmed.astype(np.uint8)
 
 
+def process_frame(frame_video, frame_mask, filter_fn, to_foreground):
+    if len(frame_mask.shape) == 3:
+        frame_mask = cv2.cvtColor(frame_mask, cv2.COLOR_BGR2GRAY)
+
+    frame_mask = cv2.GaussianBlur(frame_mask, (15, 15), 0)
+    frame_mask = frame_mask.astype(float) / 255.0
+
+    if not to_foreground:
+        frame_mask = 1 - frame_mask
+
+    frame_filtered = filter_fn(frame_video)
+
+    frame_mask = np.repeat(frame_mask[:, :, np.newaxis], 3, axis=2)
+    blended = frame_filtered * frame_mask + frame_video * (1 - frame_mask)
+
+    return blended.astype(np.uint8)
+
 def apply_filter(video: sieve.File, mask_video: sieve.File, filter_fn: callable, to_foreground=True):
     video_reader = cv2.VideoCapture(video.path)
     mask_reader = cv2.VideoCapture(mask_video.path)
@@ -120,41 +138,29 @@ def apply_filter(video: sieve.File, mask_video: sieve.File, filter_fn: callable,
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     output_writer = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
 
-    while True:
-        ret_video, frame_video = video_reader.read()
-        ret_mask, frame_mask = mask_reader.read()
+    def read_frames():
+        while True:
+            ret_video, frame_video = video_reader.read()
+            ret_mask, frame_mask = mask_reader.read()
+            if not ret_video or not ret_mask:
+                break
+            yield frame_video, frame_mask
 
-        if not ret_video or not ret_mask:
-            break
+    with ThreadPoolExecutor() as executor:
+        futures = []
+        for frame_video, frame_mask in read_frames():
+            future = executor.submit(process_frame, frame_video, frame_mask, filter_fn, to_foreground)
+            futures.append(future)
 
-        if len(frame_mask.shape) == 3:
-            frame_mask = cv2.cvtColor(frame_mask, cv2.COLOR_BGR2GRAY)
-        
-        # Apply Gaussian blur to the mask
-        frame_mask = cv2.GaussianBlur(frame_mask, (15, 15), 0)
-        
-        # Normalize mask to range 0-1
-        frame_mask = frame_mask.astype(float) / 255.0
-        
-        if not to_foreground:
-            frame_mask = 1 - frame_mask
-
-        # Apply filter to the entire frame
-        frame_filtered = filter_fn(frame_video)
-        
-        # Blend the filtered and original frames using the mask
-        frame_mask = np.repeat(frame_mask[:, :, np.newaxis], 3, axis=2)
-        blended = frame_filtered * frame_mask + frame_video * (1 - frame_mask)
-
-        output_writer.write(blended.astype(np.uint8))
-
+        for future in futures:
+            blended_frame = future.result()
+            output_writer.write(blended_frame)
 
     video_reader.release()
     mask_reader.release()
     output_writer.release()
 
     return sieve.File(path=output_path)
-
 
 def get_mask(video: sieve.File, subject: str):
 
@@ -318,25 +324,21 @@ def callout(
     mask_video = get_mask(video, subject)
 
     if effect == "retro solar":
-        print("applying retro solar effect...")
         effect_mask = sieve.File(path="assets/rays.jpg")
 
         out = apply_shape_effect(video, mask_video, effect_mask, effect_scale)
 
     elif effect == "circle":
-        print("applying circle effect...")
         effect_mask = sieve.File(path="assets/circle.jpg")
 
         out = apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.2*effect_scale)
 
     elif effect == "spotlight":
-        print("applying splotlight effect...")
         effect_mask = sieve.File(path="assets/spot.jpg")
 
         out = apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.15*effect_scale)
 
     elif effect == "frame":
-        print("applying frame effect...")
         effect_mask = sieve.File(path="assets/square.jpg")
 
         out = apply_shape_effect(video, mask_video, effect_mask, mask_scale=0.15*effect_scale)

@@ -413,7 +413,7 @@ metadata = sieve.Metadata(
 def color_filter(
         video: sieve.File,
         subject: str,
-        color: Literal["red", "green", "blue", "yellow", "orange"],
+        color: Literal["red", "green", "blue", "yellow", "orange"] = "red",
         intensity: float = 0.5
 ):
     """
@@ -514,7 +514,7 @@ metadata = sieve.Metadata(
 def blur(
         video: sieve.File,
         subject: str,
-        blur_amount: Literal["low", "medium", "high"]
+        blur_amount: Literal["low", "medium", "high"] = "medium"
 ):
     """
     :param video: The video file to apply the effect to

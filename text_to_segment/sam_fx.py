@@ -26,89 +26,6 @@ def reencode_video(video: sieve.File):
 
     return sieve.File(path=video_path)
 
-
-def apply_shape_effect(video: sieve.File, mask_video: sieve.File, effect_mask: sieve.File, mask_scale=1.):
-
-    video_reader = cv2.VideoCapture(video.path)
-    mask_reader = cv2.VideoCapture(mask_video.path)
-
-    frame_width = int(video_reader.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = video_reader.get(cv2.CAP_PROP_FPS)
-
-    output_path = "output.mp4"
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    output_writer = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
-
-    effect_mask_arr = cv2.imread(effect_mask.path)
-    if len(effect_mask_arr.shape) == 3:
-        effect_mask_arr = cv2.cvtColor(effect_mask_arr, cv2.COLOR_BGR2GRAY)
-
-    effect_mask_arr = resize_with_padding(effect_mask_arr, mask_scale)
-
-    size = 2 * max(frame_width, frame_height)
-    effect_mask_arr = resize_and_crop(effect_mask_arr, size, size)
-    _, effect_mask_arr = cv2.threshold(effect_mask_arr, 127, 255, cv2.THRESH_BINARY)
-
-    prev_current_center = None
-
-    while True:
-        ret_video, frame_video = video_reader.read()
-        ret_mask, frame_mask = mask_reader.read()
-
-        if not ret_video or not ret_mask:
-            break
-
-        if len(frame_mask.shape) == 3:
-            frame_mask = cv2.cvtColor(frame_mask, cv2.COLOR_BGR2GRAY)
-
-        M = cv2.moments(frame_mask, binaryImage=True)
-        current_center = (int(M['m10'] / M['m00']), int(M['m01'] / M['m00']))
-
-        if prev_current_center is None:
-            prev_current_center = current_center
-
-        beta = 0.2
-        current_center = (int((1.-beta)*prev_current_center[0] + beta*current_center[0]), int(0.8*prev_current_center[1] + 0.2*current_center[1]))
-        prev_current_center = current_center
-
-        translation = (current_center[0] - size//2, current_center[1] - size//2)
-        translation_matrix = np.float32([[1, 0, translation[0]], [0, 1, translation[1]]])
-        translated_mask = cv2.warpAffine(effect_mask_arr, translation_matrix, (frame_mask.shape[1], frame_mask.shape[0]))
-
-        combined_mask = cv2.bitwise_or(frame_mask, translated_mask)
-        mask = combined_mask.astype(np.float32) / 255.0
-        mask = np.expand_dims(mask, axis=2)
-
-        new_frame = frame_video * mask + (1 - mask) * 255.
-
-        output_writer.write(new_frame.astype(np.uint8))
-
-    video_reader.release()
-    mask_reader.release()
-    output_writer.release()
-
-    return sieve.File(path=output_path)
-
-
-def apply_color_filter(image: np.array, color: tuple, intensity: float = 0.5):
-    # Ensure the color is in BGR format for OpenCV
-    b, g, r = color
-
-    # Create a color overlay
-    overlay = np.full(image.shape, (b, g, r), dtype=np.uint8)
-
-    # Blend the original image with the color overlay
-    filtered = cv2.addWeighted(image, 1 - intensity, overlay, intensity, 0)
-
-    return filtered
-
-
-def dim_brightness(image: np.array, brightness=0.5):
-    dimmed = image.astype(np.float32) * brightness
-    return dimmed.astype(np.uint8)
-
-
 def process_frame(frame_video, frame_mask, filter_fn, to_foreground):
     if len(frame_mask.shape) == 3:
         frame_mask = cv2.cvtColor(frame_mask, cv2.COLOR_BGR2GRAY)
@@ -210,6 +127,9 @@ output = focus.run(video, subject, brightness="0.5")
 
 """
 
+def dim_brightness(image: np.array, brightness=0.5):
+    dimmed = image.astype(np.float32) * brightness
+    return dimmed.astype(np.uint8)
 
 metadata = sieve.Metadata(
     name="Focus",
@@ -290,6 +210,70 @@ output = callout.run(video, subject, effect="retro solar")
 
 
 """
+
+def apply_shape_effect(video: sieve.File, mask_video: sieve.File, effect_mask: sieve.File, mask_scale=1.):
+
+    video_reader = cv2.VideoCapture(video.path)
+    mask_reader = cv2.VideoCapture(mask_video.path)
+
+    frame_width = int(video_reader.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = video_reader.get(cv2.CAP_PROP_FPS)
+
+    output_path = "output.mp4"
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    output_writer = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
+
+    effect_mask_arr = cv2.imread(effect_mask.path)
+    if len(effect_mask_arr.shape) == 3:
+        effect_mask_arr = cv2.cvtColor(effect_mask_arr, cv2.COLOR_BGR2GRAY)
+
+    effect_mask_arr = resize_with_padding(effect_mask_arr, mask_scale)
+
+    size = 2 * max(frame_width, frame_height)
+    effect_mask_arr = resize_and_crop(effect_mask_arr, size, size)
+    _, effect_mask_arr = cv2.threshold(effect_mask_arr, 127, 255, cv2.THRESH_BINARY)
+
+    prev_current_center = None
+
+    while True:
+        ret_video, frame_video = video_reader.read()
+        ret_mask, frame_mask = mask_reader.read()
+
+        if not ret_video or not ret_mask:
+            break
+
+        if len(frame_mask.shape) == 3:
+            frame_mask = cv2.cvtColor(frame_mask, cv2.COLOR_BGR2GRAY)
+
+        M = cv2.moments(frame_mask, binaryImage=True)
+        current_center = (int(M['m10'] / M['m00']), int(M['m01'] / M['m00']))
+
+        if prev_current_center is None:
+            prev_current_center = current_center
+
+        beta = 0.2
+        current_center = (int((1.-beta)*prev_current_center[0] + beta*current_center[0]), int(0.8*prev_current_center[1] + 0.2*current_center[1]))
+        prev_current_center = current_center
+
+        translation = (current_center[0] - size//2, current_center[1] - size//2)
+        translation_matrix = np.float32([[1, 0, translation[0]], [0, 1, translation[1]]])
+        translated_mask = cv2.warpAffine(effect_mask_arr, translation_matrix, (frame_mask.shape[1], frame_mask.shape[0]))
+
+        combined_mask = cv2.bitwise_or(frame_mask, translated_mask)
+        mask = combined_mask.astype(np.float32) / 255.0
+        mask = np.expand_dims(mask, axis=2)
+
+        new_frame = frame_video * mask + (1 - mask) * 255.
+
+        output_writer.write(new_frame.astype(np.uint8))
+
+    video_reader.release()
+    mask_reader.release()
+    output_writer.release()
+
+    return sieve.File(path=output_path)
+
 
 metadata = sieve.Metadata(
     name="Callout",
@@ -391,6 +375,17 @@ output = color_filter.run(video, subject, color="red")
 
 """
 
+def apply_color_filter(image: np.array, color: tuple, intensity: float = 0.5):
+    # Ensure the color is in BGR format for OpenCV
+    b, g, r = color
+
+    # Create a color overlay
+    overlay = np.full(image.shape, (b, g, r), dtype=np.uint8)
+
+    # Blend the original image with the color overlay
+    filtered = cv2.addWeighted(image, 1 - intensity, overlay, intensity, 0)
+
+    return filtered
 
 
 metadata = sieve.Metadata(

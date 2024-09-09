@@ -170,11 +170,46 @@ def get_mask(video: sieve.File, subject: str):
     return mask_video
 
 
+# FOCUS EFFECT ################################################################################
+
+focus_readme = """
+# Focus Effect
+
+## Description
+
+Dim the background to highlight the subject
+
+## Parameters
+
+- `video` (File): The video file to apply the effect to
+- `subject` (str): The subject to apply the effect to
+- `brightness` (Literal["0.25", "0.5", "0.75"], optional): The brightness of the background. Default is `"0.25"`.
+
+## Examples
+
+```python
+focus = sieve.function.get("sieve-internal/sam2-focus")
+
+video = File(path="duckling.mp4")
+subject = "duckling"
+
+output = focus.run(video, subject, brightness="0.5")
+```
+
+## How does it work?
+- The video is segmented using a separate function to create a mask of the subject.
+- A simple dimming function is applied to each frame, where the brightness level is specified by the user (0.25, 0.5, or 0.75).
+- The apply_filter function then uses this dimming function and the mask to blend the dimmed and original frames.
+- This creates a video where the subject remains bright while the background is dimmed to the specified level.
+
+"""
+
 
 metadata = sieve.Metadata(
     name="Focus",
     description="Dim the background to highlight the subject",
-    image=sieve.File(path=os.path.join("thumbnails", "focus_0-5_duckling.png"))
+    image=sieve.File(path=os.path.join("thumbnails", "focus_0-5_duckling.png")),
+    readme=focus_readme
 )
 
 @sieve.function(
@@ -207,10 +242,54 @@ def focus(
 
 # CALLOUT EFFECTS ################################################################################
 
+
+callout_readme = """
+# Callout Effects
+
+## Description
+
+Places a shape behind the subject to make it pop out!
+
+## Parameters
+
+- `video` (File): The video file to apply the effect to
+- `subject` (str): The subject to apply the effect to
+- `effect` (Literal["retro solar", "circle", "spotlight", "frame"], optional): The effect to apply. Default is `"circle"`.
+- `effect_scale` (float, optional): Adjust the size of the shape, e.g. 2.0 will double the size of the effect. Default is `1.0`.
+
+## Examples
+
+```python
+callout = sieve.function.get("sieve-internal/sam2-callout")
+
+video = File(path="duckling.mp4")
+subject = "duckling"
+
+output = callout.run(video, subject, effect="retro solar")
+```
+
+## Effects
+
+- `"retro solar"`: A retro solar effect applied behind the subject
+- `"circle"`: A circular effect applied behind the subject
+- `"spotlight"`: A spotlight effect applied behind the subject
+- `"frame"`: A frame effect applied behind the subject
+
+## How does it work?
+- A pre-made image (e.g., circle, spotlight) is used as the effect mask.
+- For each frame, the center of the subject is calculated applying OpenCV's moments function to the segmentation mask.
+- The center position is smoothed using a simple exponential moving average to reduce jitter in the mask position
+- The effect mask is then translated to this center position using a translation matrix and OpenCV's warpAffine function.
+- The translated mask is combined with the subject mask and used to blend the effect into the original frame.
+
+
+"""
+
 metadata = sieve.Metadata(
     name="Callout",
     description="Highlight a subject in a video with a callout effect",
-    image=sieve.File(path=os.path.join("thumbnails", "retro_solar_duckling.png"))
+    image=sieve.File(path=os.path.join("thumbnails", "retro_solar_duckling.png")),
+    readme=callout_readme
 )
 
 @sieve.function(
@@ -226,7 +305,7 @@ metadata = sieve.Metadata(
 def callout(
         video: sieve.File, 
         subject: str,
-        effect: Literal["retro solar", "circle", "spotlight", "frame"] = "circle",
+        effect: Literal["retro solar", "circle", "spotlight", "frame"] = "retro solar",
         effect_scale: float = 1.0
 ):
     """
@@ -270,10 +349,53 @@ def callout(
 
 # COLOR FILTERS ################################################################################
 
+color_filter_readme = """
+# Color Filter
+
+## Description
+
+Highlight an object in the video with a colour filter!
+
+## Parameters
+
+- `video` (File): The video file to apply the effect to
+- `subject` (str): The subject to apply the effect to
+- `color` (Literal["red", "green", "blue", "yellow", "orange"]): The color to apply the effect with
+- `intensity` (float, optional): The intensity of the effect. Default is `0.5`.
+
+## Examples
+
+```python
+color_filter = sieve.function.get("sieve-internal/sam2-color-filter")
+
+video = File(path="duckling.mp4")
+subject = "duckling"
+
+output = color_filter.run(video, subject, color="red")
+```
+
+## Colors
+
+- `"red"`: Apply a red color filter
+- `"green"`: Apply a green color filter
+- `"blue"`: Apply a blue color filter
+- `"yellow"`: Apply a yellow color filter
+- `"orange"`: Apply an orange color filter
+
+## How does it work?
+- A simple color overlay function is defined that creates a full-frame overlay of the specified color and blends it with the original image using OpenCV's addWeighted function.
+- This function is applied to each frame, with the color and intensity specified by the user.
+- The apply_filter function then uses the segmentation mask to apply this colored version only to the subject area of each frame.
+
+"""
+
+
+
 metadata = sieve.Metadata(
     name="Color Filter",
     description="Apply a color filter to a video",
-    image=sieve.File(path=os.path.join("thumbnails", "red_duckling.png"))
+    image=sieve.File(path=os.path.join("thumbnails", "red_duckling.png")),
+    readme=color_filter_readme
 )
 
 @sieve.function(
@@ -331,10 +453,51 @@ def color_filter(
 
 # BLUR EFFECT ################################################################################
 
+
+blur_readme = """
+# Blur Effect
+
+## Description
+
+Blur the background of a video
+
+## Parameters
+
+- `video` (File): The video file to apply the effect to
+- `subject` (str): The subject to apply the effect to
+- `blur_amount` (Literal["low", "medium", "high"]): The amount of blur to apply
+
+## Examples
+
+```python
+blur = sieve.function.get("sieve-internal/sam2-blur")
+
+video = File(path="duckling.mp4")
+subject = "duckling"
+
+output = blur.run(video, subject, blur_amount="high")
+```
+
+## Blur Amounts
+
+- `"low"`: Apply a low amount of blur
+- `"medium"`: Apply a medium amount of blur
+- `"high"`: Apply a high amount of blur
+
+## How does it work?
+- A Gaussian blur function is defined based on the blur amount, using OpenCV's GaussianBlur function with different kernel sizes (15 for low, 25 for medium, or 35 for high blur).
+- This blur is applied to the entire frame.
+- The apply_filter function then uses the inverted segmentation mask to blend the blurred background with the original subject.
+
+"""
+
+
+
 metadata = sieve.Metadata(
     name="Blur",
     description="Blur the background of a video",
-    image=sieve.File(path=os.path.join("thumbnails", "high_blur_duckling.png"))
+    image=sieve.File(path=os.path.join("thumbnails", "high_blur_duckling.png")),
+    readme=blur_readme
 )
 
 @sieve.function(

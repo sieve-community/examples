@@ -492,7 +492,6 @@ output = blur.run(video, subject, blur_amount="high")
 """
 
 
-
 metadata = sieve.Metadata(
     name="Blur",
     description="Blur the background of a video",
@@ -539,6 +538,146 @@ def blur(
     return reencode_video(out)
 
 
+# SELECTIVE COLOR EFFECT ################################################################################
+
+
+selective_color_readme = """
+# Selective Color Effect
+
+## Description
+
+Keep the subject in color while turning the background black and white.
+
+## Parameters
+
+- `video` (File): The video file to apply the effect to
+- `subject` (str): The subject to keep in color
+
+## Examples
+
+```python
+selective_color = sieve.function.get("sieve-internal/sam2-selective-color")
+
+video = File(path="duckling.mp4")
+subject = "duckling"
+
+output = selective_color.run(video, subject)
+```
+
+## How does it work?
+- The video is segmented using a separate function to create a mask of the subject.
+- For each frame, two versions are created: a full-color version (the original) and a grayscale version.
+- The segmentation mask is used to blend these two versions: the color version for the subject and the grayscale version for the background.
+- This creates a striking contrast between the colorful subject and the monochrome background.
+"""
+
+selective_color_metadata = sieve.Metadata(
+    name="Selective Color",
+    description="Keep the subject in color while turning the background black and white",
+    image=sieve.File(path=os.path.join("thumbnails", "selective_color_duckling.png")),
+    readme=selective_color_readme
+)
+
+@sieve.function(
+    name="sam2-selective-color",
+    python_packages=["opencv-python"],
+    system_packages=[
+        "ffmpeg",
+        "libgl1-mesa-glx",
+        "libglib2.0-0"
+    ],
+    metadata=selective_color_metadata
+)
+def selective_color(
+        video: sieve.File,
+        subject: str
+):
+    """
+    :param video: The video file to apply the effect to
+    :param subject: The subject to keep in color
+    """
+    mask_video = get_mask(video, subject)
+
+    def color_filter(frame):
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
+    out = apply_filter(video, mask_video, color_filter, to_foreground=False)
+    return reencode_video(out)
+
+
+# PIXELATE EFFECT ################################################################################
+
+pixelate_readme = """
+# Pixelate Effect
+
+## Description
+
+Apply a pixelated look to the subject while keeping the background clear.
+
+## Parameters
+
+- `video` (File): The video file to apply the effect to
+- `subject` (str): The subject to pixelate
+- `pixel_size` (int, optional): The size of the pixels in the pixelation effect. Default is 20.
+
+## Examples
+
+```python
+pixelate = sieve.function.get("sieve-internal/sam2-pixelate")
+
+video = File(path="duckling.mp4")
+subject = "duckling"
+
+output = pixelate.run(video, subject, pixel_size=15)
+```
+
+## How does it work?
+- The video is segmented using a separate function to create a mask of the subject.
+- A pixelation function is applied to each frame, which reduces the resolution and then enlarges it back, creating a blocky look.
+- The segmentation mask is used to apply this pixelated version only to the subject area of each frame.
+- This creates an interesting visual where the subject appears blocky and pixelated while the background remains clear and detailed.
+"""
+
+pixelate_metadata = sieve.Metadata(
+    name="Pixelate",
+    description="Apply a pixelated look to the subject while keeping the background clear",
+    image=sieve.File(path=os.path.join("thumbnails", "pixelate_25_duckling.png")),
+    readme=pixelate_readme
+)
+
+@sieve.function(
+    name="sam2-pixelate",
+    python_packages=["opencv-python"],
+    system_packages=[
+        "ffmpeg",
+        "libgl1-mesa-glx",
+        "libglib2.0-0"
+    ],
+    metadata=pixelate_metadata
+)
+def pixelate(
+        video: sieve.File,
+        subject: str,
+        pixel_size: Literal["15", "20", "25"] = "20"
+):
+    """
+    :param video: The video file to apply the effect to
+    :param subject: The subject to pixelate
+    :param pixel_size: The size of the pixels in the pixelation effect
+    """
+    mask_video = get_mask(video, subject)
+
+    pixel_size = int(pixel_size)
+
+    def pixelate_filter(frame):
+        height, width = frame.shape[:2]
+        temp = cv2.resize(frame, (width // pixel_size, height // pixel_size), interpolation=cv2.INTER_LINEAR)
+        return cv2.resize(temp, (width, height), interpolation=cv2.INTER_NEAREST)
+
+    out = apply_filter(video, mask_video, pixelate_filter, to_foreground=True)
+    return reencode_video(out)
+
 
 def run_all(video_path, subject):
     config.CACHE = True
@@ -574,7 +713,6 @@ def run_all(video_path, subject):
         output = color_filter(video, subject, color)
         shutil.move(output.path, out_path)
 
-
     # Blur
     for blur_amount in ["low", "medium", "high"]:
         out_path = os.path.join("outputs", f"{blur_amount}_blur_{video_path}")
@@ -584,17 +722,26 @@ def run_all(video_path, subject):
         output = blur(video, subject, blur_amount)
         shutil.move(output.path, out_path)
 
+    # Selective Color
+    out_path = os.path.join("outputs", f"selective_color_{video_path}")
+    if not os.path.exists(out_path):
+        output = selective_color(video, subject)
+        shutil.move(output.path, out_path)
 
+    # Pixelate
+    for pixel_size in [15, 20, 25, 50]:
+        out_path = os.path.join("outputs", f"pixelate_{pixel_size}_{video_path}")
+        if os.path.exists(out_path):
+            continue
+
+        output = pixelate(video, subject, pixel_size)
+        shutil.move(output.path, out_path)
 
 
 if __name__ == "__main__":
     video_path = "duckling.mp4"
     subject = "duckling"
-    effect = "blur"
 
     video = sieve.File(path=video_path)
-
-    # output = add_effect(video, subject, effect)
-    # shutil.move(output.path, os.path.join("outputs", f"{effect}_{video_path}"))
 
     run_all(video_path, subject)

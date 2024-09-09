@@ -11,7 +11,7 @@ metadata = sieve.Metadata(
     title="text-to-segment",
     description="Text prompt SAM2 to segment a video or image.",
     readme=open("README.md").read(),
-    image=sieve.File(path="duck_silhouette.png")
+    image=sieve.File(path="assets/duck_silhouette.png")
 )
 
 
@@ -63,7 +63,7 @@ def segment(file: sieve.File, object_name: str, return_mp4: bool = False):
 
 if __name__ == "__main__":
 
-    video_path = "duckling.mp4"
+    video_path = "assets/duckling.mp4"
     text_prompt = "duckling"
 
     video = sieve.File(path=video_path)

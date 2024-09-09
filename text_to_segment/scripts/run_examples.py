@@ -11,7 +11,7 @@ def run_examples():
         "sam2-pixelate",
     ]
 
-    video = sieve.File(path="duckling.mp4")
+    video = sieve.File(path="assets/duckling.mp4")
     subject = "duckling"
 
     jobs = []

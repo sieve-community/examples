@@ -13,7 +13,7 @@ def generate_thumbnails():
     config.CACHE = True
 
     os.makedirs("thumbnails", exist_ok=True)
-    video = sieve.File(path="duckling.mp4")
+    video = sieve.File(path="assets/duckling.mp4")
 
 
     if not [x for x in os.listdir("outputs") if x.endswith(".mp4")]:

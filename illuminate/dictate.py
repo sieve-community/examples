@@ -140,13 +140,6 @@ if __name__ == "__main__":
         {"role": "assistant", "message": "The capital of France is Paris."},
     ]
 
-    # shutil.rmtree("convo", ignore_errors=True)
-    # os.makedirs("convo", exist_ok=True)
-    # for i, audio in enumerate(dictate_messages(messages)):
-    #     shutil.move(audio.path, os.path.join("convo", f"audio_{i}.wav"))
-    #     print(f"Audio {i} saved to convo/audio_{i}.wav")
-
-    # out = concatenate_audio_files("convo")
 
     main(messages)
 

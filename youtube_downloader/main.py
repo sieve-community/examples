@@ -64,12 +64,13 @@ def download(
     yt.register_on_progress_callback(on_progress)
 
     #print("filtering stream for highest quality mp4...")
-    video = yt.streams.filter(adaptive=True, file_extension='mp4').order_by('resolution').desc() #.first()
+    all_streams = yt.streams.filter(adaptive=True, file_extension='mp4').order_by('resolution').desc() #.first()
+    video = [stream for stream in all_streams if stream.video_codec.startswith('avc1')]
     if resolution == "highest-available":
-        video = video.first()
+        video = video[0]
         print(f"highest available resolution is {video.resolution}...")
     elif resolution == "lowest-available":
-        video = video.last()
+        video = video[-1]
         print(f"lowest available resolution is {video.resolution}...")
     else:
         desired_res = int(resolution.replace('p', ''))

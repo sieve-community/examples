@@ -116,12 +116,12 @@ class XTTS:
     def __predict__(
             self,
             text: str,
-            reference_audio: sieve.Audio,
+            reference_audio: sieve.File,
             speaker: Literal["None", "Claribel", "Daisy", "Gracie", "Tammie", "Alison", "Ana", "Annmarie", "Asya", "Brenda", "Gitta", "Henriette", "Sofia", "Tammy", "Tanja", "Vjollca", "Andrew", "Badr", "Dionisio", "Royston", "Viktor", "Abrahan", "Adde", "Baldur", "Craig", "Damien", "Gilberto", "Ilkin", "Kazuhiko", "Ludvig", "Suad", "Torcull", "Zacharie", "Nova", "Maja", "Uta", "Lidiya", "Chandra", "Szofi", "Camilla", "Lilya", "Zofija", "Narelle", "Barbora", "Alexandra", "Alma", "Rosemary", "Ige", "Filip", "Damjan", "Wulf", "Aaron", "Kumar", "Eugenio", "Ferran", "Xavier", "Luis", "Marcos"] = "None",
             stability: float = 0.5,
             similarity_boost: float = 0.63,
             language_code: str = "",
-        ) -> sieve.Audio:
+        ) -> sieve.File:
         """
         :param text: text to speak
         :param reference_audio: audio of the reference speaker.

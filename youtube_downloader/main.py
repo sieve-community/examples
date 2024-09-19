@@ -1,5 +1,8 @@
 import sieve
 from typing import Literal
+import random
+import ssl
+import urllib.request
 def on_progress(stream, chunk, bytes_remaining):
     total_size = stream.filesize
     bytes_downloaded = total_size - bytes_remaining
@@ -16,6 +19,11 @@ metadata = sieve.Metadata(
     tags=["Video"],
     readme=open("README.md", "r").read(),
 )
+working_proxies = [
+    "http://178.48.68.61:18080",
+    "http://213.148.10.199:3128",
+    "http://160.86.242.23:8080"
+]
 
 def merge_audio(video_with_audio, new_audio, output_video, convert_codec = False):
     import subprocess
@@ -59,32 +67,63 @@ def download(
         print("deleting temp audio file...")
         os.remove(audio_filename)
 
+    def get_required_video(all_streams):
+        video = [stream for stream in all_streams if stream.video_codec.startswith('avc1')]
+        if resolution == "highest-available":
+            video = video[0]
+            print(f"highest available resolution is {video.resolution}...")
+        elif resolution == "lowest-available":
+            video = video[-1]
+            print(f"lowest available resolution is {video.resolution}...")
+        else:
+            desired_res = int(resolution.replace('p', ''))
+            diff_list = [(abs(desired_res - int(stream.resolution.replace('p', ''))), stream) for stream in video]
+            diff_list.sort(key=lambda x: x[0])
+            video = diff_list[0][1]
+            if video.resolution != resolution:
+                print(f"{resolution} resolution is not available, using {video.resolution} instead...")
+            else:
+                print(f"selected resolution is {resolution}...")
+            
+        return video
+    
+    def create_ssl_context():
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        return context
+
+    def download_with_proxy():
+        proxy = random.choice(working_proxies)
+        proxies = {'http':proxy, 'https': proxy} 
+        cert = create_ssl_context()
+        proxy_handler = urllib.request.ProxyHandler(proxies)
+        opener = urllib.request.build_opener(proxy_handler)
+        urllib.request.install_opener(opener)
+        yt = YouTube(url, proxies=proxies)
+        yt.register_on_progress_callback(on_progress)
+        return yt
+
     print("setting stream...")
     yt = YouTube(url)
     yt.register_on_progress_callback(on_progress)
 
-    #print("filtering stream for highest quality mp4...")
-    all_streams = yt.streams.filter(adaptive=True, file_extension='mp4').order_by('resolution').desc() #.first()
-    video = [stream for stream in all_streams if stream.video_codec.startswith('avc1')]
-    if resolution == "highest-available":
-        video = video[0]
-        print(f"highest available resolution is {video.resolution}...")
-    elif resolution == "lowest-available":
-        video = video[-1]
-        print(f"lowest available resolution is {video.resolution}...")
-    else:
-        desired_res = int(resolution.replace('p', ''))
-        diff_list = [(abs(desired_res - int(stream.resolution.replace('p', ''))), stream) for stream in video]
-        diff_list.sort(key=lambda x: x[0])
-        video = diff_list[0][1]
-        if video.resolution != resolution:
-            print(f"{resolution} resolution is not available, using {video.resolution} instead...")
-        else:
-            print(f"selected resolution is {resolution}...")
-
-        
     print('downloading video...')
-    video.download(filename=video_filename)
+    for i in range(len(working_proxies) + 1):
+        try:
+            all_streams = yt.streams.filter(adaptive=True, file_extension='mp4').order_by('resolution').desc() #.first()
+            video = get_required_video(all_streams)
+            video.download(filename=video_filename)
+            break
+        except Exception as e:
+            print("Download failed, retrying...")
+            if i < len(working_proxies):
+                #update the proxy
+                yt = download_with_proxy()
+                
+            else:
+                print(f"Failed after trying all proxies: {str(e)}")
+                raise Exception("Could not download video. Please try again later...")
 
     if include_audio:
         print('downloading audio...')
@@ -103,8 +142,6 @@ def download(
     else:
         print('Done!')
         return sieve.File(path=video_filename)
-
-
 
 if __name__ == "__main__":
     download("https://www.youtube.com/watch?v=AKJfakEsgy0", include_audio=True)

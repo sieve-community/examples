@@ -32,7 +32,8 @@ def merge_audio(video_with_audio, new_audio, output_video, convert_codec = False
     python_packages=[
         "pytube @ git+https://github.com/sieve-community/pytube.git",
     ],
-    metadata=metadata
+    metadata=metadata,
+    gpu = sieve.gpu.T4(split=3)
 )
 def download(
     url: str,
@@ -47,6 +48,7 @@ def download(
     '''
     from pytube import YouTube
     import os
+    import time
 
     video_filename = "video.mp4"
     audio_filename = "audio.mp3"
@@ -60,12 +62,23 @@ def download(
         os.remove(audio_filename)
 
     print("setting stream...")
-    yt = YouTube(url)
-    yt.register_on_progress_callback(on_progress)
 
     #print("filtering stream for highest quality mp4...")
-    all_streams = yt.streams.filter(adaptive=True, file_extension='mp4').order_by('resolution').desc() #.first()
-    video = [stream for stream in all_streams if stream.video_codec.startswith('avc1')]
+    stream_tries = 10
+    while stream_tries > 0:
+        try:
+            yt = YouTube(url)
+            yt.register_on_progress_callback(on_progress)
+            all_streams = yt.streams.filter(adaptive=True, file_extension='mp4').order_by('resolution').desc() #.first()
+            video = [stream for stream in all_streams if stream.video_codec.startswith('avc1')]
+            break
+        except Exception as e:
+            print(f"Error filtering stream: {e}")
+            stream_tries -= 1
+            time.sleep(0.3)
+            if stream_tries == 0:
+                raise e
+                
     if resolution == "highest-available":
         video = video[0]
         print(f"highest available resolution is {video.resolution}...")
@@ -107,4 +120,4 @@ def download(
 
 
 if __name__ == "__main__":
-    download("https://www.youtube.com/watch?v=AKJfakEsgy0", include_audio=True)
+    download("https://www.youtube.com/watch?v=Q4F-NrelkZs", include_audio=True)

@@ -1,10 +1,5 @@
 import sieve
 from typing import Literal
-def on_progress(stream, chunk, bytes_remaining):
-    total_size = stream.filesize
-    bytes_downloaded = total_size - bytes_remaining
-    percentage = (bytes_downloaded / total_size) * 100
-    print(f'{percentage:.2f}% downloaded')
 
 metadata = sieve.Metadata(
     title = "YouTube Video Downloader",
@@ -17,23 +12,11 @@ metadata = sieve.Metadata(
     readme=open("README.md", "r").read(),
 )
 
-def merge_audio(video_with_audio, new_audio, output_video, convert_codec = False):
-    import subprocess
-    # Combine the new audio with the video
-    if convert_codec:
-        merge_cmd = f"ffmpeg -y -i '{video_with_audio}' -i '{new_audio}' -c:v copy -map 0:v:0 -map 1:a:0 -shortest '{output_video}'"
-    else:
-        merge_cmd = f"ffmpeg -y -i '{video_with_audio}' -i '{new_audio}' -c:v copy -c:a copy -map 0:v:0 -map 1:a:0 -shortest '{output_video}'"
-    subprocess.call(merge_cmd, shell=True)
-
 @sieve.function(
     name="youtube_to_mp4",
     system_packages=["ffmpeg"],
-    python_packages=[
-        "pytube @ git+https://github.com/sieve-community/pytube.git",
-    ],
+    python_packages=["yt-dlp"],
     metadata=metadata,
-    gpu = sieve.gpu.T4(split=3)
 )
 def download(
     url: str,
@@ -46,78 +29,63 @@ def download(
     :param include_audio: Whether to include audio in the video.
     :return: The downloaded YouTube video
     '''
-    from pytube import YouTube
+    import yt_dlp
     import os
-    import time
 
-    video_filename = "video.mp4"
-    audio_filename = "audio.mp3"
-    
-    if os.path.exists(video_filename):
-        print("deleting temp video file...")
-        os.remove(video_filename)
-    
-    if os.path.exists(audio_filename):
-        print("deleting temp audio file...")
-        os.remove(audio_filename)
+    output_filename = "output.mp4"
 
-    print("setting stream...")
+    if os.path.exists(output_filename):
+        print("Deleting existing output file...")
+        os.remove(output_filename)
 
-    #print("filtering stream for highest quality mp4...")
-    stream_tries = 10
-    while stream_tries > 0:
-        try:
-            yt = YouTube(url)
-            yt.register_on_progress_callback(on_progress)
-            all_streams = yt.streams.filter(adaptive=True, file_extension='mp4').order_by('resolution').desc() #.first()
-            video = [stream for stream in all_streams if stream.video_codec.startswith('avc1')]
-            break
-        except Exception as e:
-            print(f"Error filtering stream: {e}")
-            stream_tries -= 1
-            time.sleep(0.3)
-            if stream_tries == 0:
-                raise e
-                
-    if resolution == "highest-available":
-        video = video[0]
-        print(f"highest available resolution is {video.resolution}...")
-    elif resolution == "lowest-available":
-        video = video[-1]
-        print(f"lowest available resolution is {video.resolution}...")
-    else:
-        desired_res = int(resolution.replace('p', ''))
-        diff_list = [(abs(desired_res - int(stream.resolution.replace('p', ''))), stream) for stream in video]
-        diff_list.sort(key=lambda x: x[0])
-        video = diff_list[0][1]
-        if video.resolution != resolution:
-            print(f"{resolution} resolution is not available, using {video.resolution} instead...")
+    ydl_opts = {
+        'format': 'bestvideo[ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc1]/best',
+        'outtmpl': output_filename,
+    }
+
+    if resolution != "highest-available":
+        if resolution == "lowest-available":
+            ydl_opts['format'] = 'worstvideo[ext=mp4][vcodec^=avc1]+worstaudio[ext=m4a]/worst[ext=mp4][vcodec^=avc1]/worst'
         else:
-            print(f"selected resolution is {resolution}...")
+            ydl_opts['format'] = f'bestvideo[height<={resolution[:-1]}][ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[height<={resolution[:-1]}][ext=mp4][vcodec^=avc1]/best'
 
-        
-    print('downloading video...')
-    video.download(filename=video_filename)
+    if not include_audio:
+        ydl_opts['format'] = ydl_opts['format'].split('+')[0]
 
-    if include_audio:
-        print('downloading audio...')
-        audios = yt.streams.filter(only_audio=True, mime_type = "audio/mp4").order_by('abr').desc().first()
-        convert_codec = False
-        if not audios:
-            print("No audio stream found for mp4, downloading audio and converting...")
-            audios = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
-            convert_codec = True
+    print("Downloading video...")
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
 
-        audios.download(filename=audio_filename)
-        print('merging audio...')
-        merge_audio(video_filename, audio_filename, "output.mp4", convert_codec)
-        print('Done!')
-        return sieve.File(path="output.mp4")
-    else:
-        print('Done!')
-        return sieve.File(path=video_filename)
-
-
+    print('Done!')
+    return sieve.File(path=output_filename)
 
 if __name__ == "__main__":
-    download("https://www.youtube.com/watch?v=Q4F-NrelkZs", include_audio=True)
+    path  = 'video_144p_audio_True.mp4'
+    import subprocess
+    import json
+
+    # Function to get video codec using ffprobe
+    def get_video_codec(file_path):
+        cmd = [
+            'ffprobe',
+            '-v', 'quiet',
+            '-print_format', 'json',
+            '-show_streams',
+            file_path
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        data = json.loads(result.stdout)
+        
+        for stream in data['streams']:
+            if stream['codec_type'] == 'video':
+                return stream['codec_name']
+        
+        return None
+
+    # Check the codec of the video
+    video_codec = get_video_codec(path)
+    if video_codec:
+        print(f"The video codec is: {video_codec}")
+    else:
+        print("Could not determine the video codec.")

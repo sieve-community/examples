@@ -15,7 +15,7 @@ metadata = sieve.Metadata(
 @sieve.function(
     name="youtube_to_mp4",
     system_packages=["ffmpeg"],
-    python_packages=["yt-dlp"],
+    python_packages=["yt-dlp", "pytube"],
     metadata=metadata,
 )
 def download(
@@ -41,6 +41,9 @@ def download(
     ydl_opts = {
         'format': 'bestvideo[ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc1]/best',
         'outtmpl': output_filename,
+        'quiet': True,  # Suppress output
+        'no_warnings': True,  # Suppress warnings
+        'noprogress': True,  # Disable progress bar
     }
 
     if resolution != "highest-available":
@@ -60,32 +63,4 @@ def download(
     return sieve.File(path=output_filename)
 
 if __name__ == "__main__":
-    path  = 'video_144p_audio_True.mp4'
-    import subprocess
-    import json
-
-    # Function to get video codec using ffprobe
-    def get_video_codec(file_path):
-        cmd = [
-            'ffprobe',
-            '-v', 'quiet',
-            '-print_format', 'json',
-            '-show_streams',
-            file_path
-        ]
-        
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        data = json.loads(result.stdout)
-        
-        for stream in data['streams']:
-            if stream['codec_type'] == 'video':
-                return stream['codec_name']
-        
-        return None
-
-    # Check the codec of the video
-    video_codec = get_video_codec(path)
-    if video_codec:
-        print(f"The video codec is: {video_codec}")
-    else:
-        print("Could not determine the video codec.")
+   download("https://www.youtube.com/watch?v=AKJfakEsgy0")

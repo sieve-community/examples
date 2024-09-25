@@ -1,5 +1,6 @@
 import sieve
 from typing import Literal
+import re
 
 metadata = sieve.Metadata(
     title = "YouTube Video Downloader",
@@ -12,10 +13,17 @@ metadata = sieve.Metadata(
     readme=open("README.md", "r").read(),
 )
 
+def progress_hook(d):
+    if d['status'] == 'downloading':
+        percent_str = d.get('_percent_str', '0%')
+        # remove ANSI color codes and convert to float
+        percent = float(re.sub(r'\x1b\[[0-9;]*m', '', percent_str).replace('%', ''))
+        if percent % 10 == 0 or percent == 100:
+            print(f"Downloading... {percent:.1f}% complete")
 @sieve.function(
     name="youtube_to_mp4",
     system_packages=["ffmpeg"],
-    python_packages=["yt-dlp", "pytube"],
+    python_packages=["yt-dlp", "python-dotenv"],
     metadata=metadata,
 )
 def download(
@@ -31,19 +39,37 @@ def download(
     '''
     import yt_dlp
     import os
+    import json
+    import random
+    from dotenv import load_dotenv
+    load_dotenv()
 
     output_filename = "output.mp4"
 
     if os.path.exists(output_filename):
         print("Deleting existing output file...")
         os.remove(output_filename)
+    
+    # load proxies from environment if exists
+    proxies = []
+    proxies_env = os.getenv('YOUTUBE_PROXIES')
+    if proxies_env:
+        try:
+            proxies = json.loads(proxies_env)
+        except json.JSONDecodeError:
+            print("No proxies found in environment variable, proceeding without proxies...")
+    
+    if not proxies:
+        print("No proxies found, proceeding without proxies...")
 
     ydl_opts = {
         'format': 'bestvideo[ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc1]/best',
         'outtmpl': output_filename,
-        'quiet': True,  # Suppress output
-        'no_warnings': True,  # Suppress warnings
-        'noprogress': True,  # Disable progress bar
+        'quiet': True,  
+        'no_warnings': True,
+        'noprogress': True, 
+        'progress_hooks': [progress_hook],
+
     }
 
     if resolution != "highest-available":
@@ -51,13 +77,26 @@ def download(
             ydl_opts['format'] = 'worstvideo[ext=mp4][vcodec^=avc1]+worstaudio[ext=m4a]/worst[ext=mp4][vcodec^=avc1]/worst'
         else:
             ydl_opts['format'] = f'bestvideo[height<={resolution[:-1]}][ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[height<={resolution[:-1]}][ext=mp4][vcodec^=avc1]/best'
-
     if not include_audio:
         ydl_opts['format'] = ydl_opts['format'].split('+')[0]
 
-    print("Downloading video...")
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+    max_retries = 6 if proxies else 1
+    for attempt in range(max_retries):
+        try:
+            # try without proxy
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+            print('Download successful!')
+            return sieve.File(path=output_filename)
+        except Exception as e:
+            print("Download failed, retrying...")
+            if proxies:
+                proxy = random.choice(proxies)
+                ydl_opts['proxy'] = proxy
+            else:
+                print(f"Download failed: {str(e)}")
+            if attempt == max_retries - 1:
+                raise Exception(f"Failed to download after {max_retries} attempt{'s' if max_retries > 1 else ''}.")
 
     print('Done!')
     return sieve.File(path=output_filename)

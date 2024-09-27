@@ -31,7 +31,7 @@ metadata = sieve.Metadata(
 def do(
     source_video: sieve.File,
     text: str,
-    lipsync_engine: Literal["musetalk", "video_retalking"] = "musetalk",
+    lipsync_engine: Literal["musetalk", "video_retalking", "sievesync"] = "sievesync",
     voice_engine: Literal["elevenlabs-voice-cloning", "cartesia-voice-cloning"] = "elevenlabs-voice-cloning",
     downsample_video: bool = True,
     voice_stability: float = 0.5,
@@ -144,8 +144,3 @@ def do(
 
     print("Done!")
     return trimmed_video
-
-
-
-    
-    

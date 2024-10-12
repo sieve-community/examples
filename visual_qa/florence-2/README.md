@@ -13,12 +13,12 @@ For examples, click [here](#examples).
 - **Object Segmentation**: Text promptable segmentation of objects in image.
 
 ## Pricing
-This function is hosted on an L4 GPU and is billed at a compute-based pay-as-you rate of $1.25/hr. You can find more information about compute pricing on Sieve [here](https://www.sievedata.com/pricing).
+This function is hosted on an L4 GPU and is billed at a compute-based pay-as-you-go rate of $1.25/hr. You can find more information about compute pricing on Sieve [here](https://www.sievedata.com/pricing).
 
 ## Parameters
 
 - `image`: A sieve.File pointing to an image to perform QA tasks.
-- `task_prompt`: A string that decides what task Florence-2 should perform. For more information on the options, click [here](#task-prompt).
+- `task_prompt`: A string representing task Florence-2 should perform. For more information on the options, click [here](#task-prompt).
 - `text_input`: An optional string that supplies an additional text prompt. This is only applicable for certain tasks, including `<CAPTION_TO_PHRASE_GROUNDING>`, `<REFERRING_EXPRESSION_SEGMENTATION>`, `<OPEN_VOCABULARY_DETECTION>`, `<REGION_TO_CATEGORY>`, `<REGION_TO_SEGMENTATION>`, and `<REGION_TO_DESCRIPTION>`. Other tasks will throw an error. For more info on proper usage, click [here](#text-input)
 - `debug_visualization`: A boolean flag that, when set to true, enables the visualization of outputs on the source image for debugging purposes. Only works for tasks that output bounding boxes.
 
@@ -58,6 +58,8 @@ For more information, refer [here](https://huggingface.co/microsoft/Florence-2-l
 
 For certain tasks, like `<CAPTION_TO_PHRASE_GROUNDING>`, you can supply a prompt to the `text_input` parameter to focus on detecting/segmenting particular objects. Good phrases are 1-2 words long, as adjectives can be picked up as objects, nouns, and verbs.
 
+Checkout an example of this [here](#guided-object-detection-with-prompts).
+
 For more information, refer [here](https://huggingface.co/microsoft/Florence-2-large/blob/main/sample_inference.ipynb).
 
 ## Examples
@@ -92,7 +94,7 @@ If you run on the image of the car, the response dictionary will look something 
 {
   "<OD>": {
     "bboxes": [
-      [...],  // abbreviated for brevity
+      [...],  
       [...],
       [...],
       [...]
@@ -136,7 +138,7 @@ If you run on the image of the car, the response dictionary will look something 
 {
   "<CAPTION_TO_PHRASE_GROUNDING>": {
     "bboxes": [
-      [...],  // abbreviated for brevity
+      [...],  
       [...]
     ],
     "labels": [

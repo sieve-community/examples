@@ -3,7 +3,7 @@ from typing import Literal
 
 metadata = sieve.Metadata(
     title="Florence-2",
-    description="Florence-2 is a large multimodal model that can perform a variety of tasks, such as object detection, image captioning, segmentation, and OCR.",
+    description="Florence-2 is a visual language foundation model that can perform a variety of question-answer tasks, such as object detection, image captioning, segmentation, and OCR.",
     code_url="https://github.com/sieve-community/examples/blob/main/visual_qa/florence-2",
     image=sieve.Image(
         url="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/transformers/tasks/car.jpg?download=true",

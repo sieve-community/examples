@@ -1,0 +1,7 @@
+langchain
+langchain-community
+pypdf
+openai
+sievedata
+tiktoken
+pydub

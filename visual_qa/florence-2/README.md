@@ -1,6 +1,6 @@
 # Florence-2
 
-This is Sieve's open-source implementation of Florence-2, a visual foundation model for a variety of image question-and-answer tasks. 
+This is Sieve's open-source implementation of Florence-2, a visual foundation model for a variety of image question-and-answer tasks, which we have extended to video.
 
 This implementation is based on the [HuggingFace implementation](https://huggingface.co/microsoft/Florence-2-large) of Florence-2 Large using the transformers library. You can find the original paper [here](https://arxiv.org/pdf/2311.06242).
 
@@ -9,30 +9,39 @@ For examples, click [here](#examples).
 ## Features
 - **Object Detection**: Detect objects with an optional guiding text prompt.
 - **Captioning**: Caption images with varying levels of detail.
-- **OCR**: Optical character recognition to understand text in image.
-- **Object Segmentation**: Text promptable segmentation of objects in image.
+- **OCR**: Optical character recognition to understand text in image and video.
+- **Object Segmentation**: Text promptable segmentation of objects in image and video.
 
 ## Pricing
 This function is hosted on an L4 GPU and is billed at a compute-based pay-as-you-go rate of $1.25/hr. You can find more information about compute pricing on Sieve [here](https://www.sievedata.com/pricing).
 
 ## Parameters
 
-- `image`: A sieve.File pointing to an image to perform QA tasks.
-- `task_prompt`: A string representing task Florence-2 should perform. For more information on the options, click [here](#task-prompt).
-- `text_input`: An optional string that supplies an additional text prompt. This is only applicable for certain tasks, including `<CAPTION_TO_PHRASE_GROUNDING>`, `<REFERRING_EXPRESSION_SEGMENTATION>`, `<OPEN_VOCABULARY_DETECTION>`, `<REGION_TO_CATEGORY>`, `<REGION_TO_SEGMENTATION>`, and `<REGION_TO_DESCRIPTION>`. Other tasks will throw an error. For more info on proper usage, click [here](#text-input)
+- `file`: A sieve.File pointing to an image or video to perform QA tasks.
+- `task_prompt`: A string representing the task Florence-2 should perform. For more information on the options, click [here](#task-prompt).
+- `text_input`: An optional string that supplies an additional text prompt. This is only applicable for certain tasks, including `<CAPTION_TO_PHRASE_GROUNDING>`, `<REFERRING_EXPRESSION_SEGMENTATION>`, `<OPEN_VOCABULARY_DETECTION>`, `<REGION_TO_CATEGORY>`, `<REGION_TO_SEGMENTATION>`, and `<REGION_TO_DESCRIPTION>`. Other tasks will throw an error. For more info on proper usage, click [here](#text-input).
 - `debug_visualization`: A boolean flag that, when set to true, enables the visualization of outputs on the source image for debugging purposes. Only works for tasks that output bounding boxes.
+- `start_frame`: An integer specifying the start frame for video processing. If -1, the video will be processed from the beginning.
+- `end_frame`: An integer specifying the end frame for video processing. If -1, the video will be processed until the end.
+- `frame_interval`: An integer specifying the interval between frames to process. If 1, all frames will be processed. If 2, every other frame will be processed, and so on. Used to speed up video processing. In production settings, we strongly recommend skipping through frames to speed up processing.
 
 ## Notes
 
 ### Output Format
 
-For all tasks, the output is a dictionary where the key is the `task_prompt`. Depending on the task, the value's type changes.
+#### Image
+
+For all image tasks, the output is a dictionary where the key is the `task_prompt`. Depending on the task, the value's type changes.
 
 For `<CAPTION>`, `<DETAILED_CAPTION>`, `<MORE_DETAILED_CAPTION>`, `<OCR>` and `<DENSE_REGION_CAPTION>` the value is a string.
 
 For `<OD>` and `<CAPTION_TO_PHRASE_GROUNDING>`, the value is a dict with two keys, `bboxes` and `labels`, that point to a list of x1,y1,x2,y2 boxes and their labels, respectively.
 
 For more information and examples, refer [here](https://huggingface.co/microsoft/Florence-2-large/blob/main/sample_inference.ipynb).
+
+#### Video
+
+For all video tasks, the output is a list of dictionaries, where the keys for each dictionary are `frame_number` and the `task_prompt`. Under the `task_prompt`, the values are the same as specified above.
 
 ### Task Prompt
 

@@ -200,6 +200,7 @@ class Florence2Model:
                     "-c:v", "libx264",  # Re-encode the video using H.264 codec
                     "-map", "0:v:0",  # Map the video from the processed video
                     "-map", "1:a:0?",  # Map the audio from the original video
+                    "-shortest",  # Stop encoding when the shortest input ends
                     "final_output.mp4"  # Output file
                 ]
 

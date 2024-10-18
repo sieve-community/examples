@@ -18,7 +18,7 @@ def progress_hook(d):
         percent_str = d.get('_percent_str', '0%')
         # remove ANSI color codes and convert to float
         percent = float(re.sub(r'\x1b\[[0-9;]*m', '', percent_str).replace('%', ''))
-        if percent % 10 == 0 or percent == 100:
+        if percent % 5 == 0 or percent == 100:
             print(f"Downloading... {percent:.1f}% complete")
 @sieve.function(
     name="youtube_to_mp4",
@@ -69,14 +69,26 @@ def download(
         'no_warnings': True,
         'noprogress': True, 
         'progress_hooks': [progress_hook],
+        'playlist_items': '1' ,
+#        'verbose': True,
+        'nopart': True,  # Add this line,
+
 
     }
 
     if resolution != "highest-available":
         if resolution == "lowest-available":
-            ydl_opts['format'] = 'worstvideo[ext=mp4][vcodec^=avc1]+worstaudio[ext=m4a]/worst[ext=mp4][vcodec^=avc1]/worst'
+            ydl_opts['format'] = 'worstvideo[ext=mp4]+worstaudio[ext=m4a]/worst[ext=mp4]/worst'
         else:
-            ydl_opts['format'] = f'bestvideo[height<={resolution[:-1]}][ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[height<={resolution[:-1]}][ext=mp4][vcodec^=avc1]/best'
+            # try h264 codec first, then fallback to any codec
+            ydl_opts['format'] = (
+                f'bestvideo[height<={resolution[:-1]}][ext=mp4][vcodec^=avc1]+'
+                f'bestaudio[ext=m4a]/'
+                f'bestvideo[height<={resolution[:-1]}][ext=mp4]+'
+                f'bestaudio[ext=m4a]/'
+                f'best[height<={resolution[:-1]}][ext=mp4]/'
+                f'best'
+            )
     if not include_audio:
         ydl_opts['format'] = ydl_opts['format'].split('+')[0]
 
@@ -102,4 +114,4 @@ def download(
     return sieve.File(path=output_filename)
 
 if __name__ == "__main__":
-   download("https://www.youtube.com/watch?v=AKJfakEsgy0")
+   download("https://www.youtube.com/watch?v=AKJfakEsgy0") 

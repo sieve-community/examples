@@ -10,5 +10,5 @@ pip install sievedata
 pip install git+https://github.com/sieve-community/pytube.git
 python main.py
 ```
-**Note**: To add proxies, set the `YOUTUBE_PROXIES` environment variable to a JSON array of proxies.
+**Note**: To add proxies in local development, set the `YOUTUBE_PROXIES` environment variable to a JSON array of proxies.
 

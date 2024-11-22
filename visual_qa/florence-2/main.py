@@ -84,6 +84,7 @@ class Florence2Model:
                 "<REGION_PROPOSAL>",
                 "<OCR>",
                 "<OCR_WITH_BOXES>",
+                "<OCR_WITH_REGION>",
                 "<REGION_TO_SEGMENTATION>",
                 "<REGION_TO_CATEGORY>",
                 "<REGION_TO_DESCRIPTION>",
